@@ -947,7 +947,7 @@
     "module_path": "api::domestic_stock::symbol_info::dividend",
     "file_path": "src/api/domestic_stock/symbol_info/dividend.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__dividend.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -987,7 +987,7 @@
     "module_path": "api::domestic_stock::symbol_info::cap_dcrs",
     "file_path": "src/api/domestic_stock/symbol_info/cap_dcrs.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__cap_dcrs.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -1047,7 +1047,7 @@
     "module_path": "api::domestic_stock::symbol_info::bonus_issue",
     "file_path": "src/api/domestic_stock/symbol_info/bonus_issue.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__bonus_issue.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
