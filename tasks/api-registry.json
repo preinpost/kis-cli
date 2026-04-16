@@ -1557,7 +1557,7 @@
     "module_path": "api::domestic_stock::ranking::bulk_trans_num",
     "file_path": "src/api/domestic_stock/ranking/bulk_trans_num.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__bulk_trans_num.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1567,7 +1567,7 @@
     "module_path": "api::domestic_stock::ranking::credit_balance",
     "file_path": "src/api/domestic_stock/ranking/credit_balance.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__credit_balance.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1577,7 +1577,7 @@
     "module_path": "api::domestic_stock::ranking::short_sale",
     "file_path": "src/api/domestic_stock/ranking/short_sale.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__short_sale.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
