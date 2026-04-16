@@ -3,6 +3,10 @@
 
 pub mod balance_sheet;
 pub mod financial_ratio;
+pub mod growth_ratio;
 pub mod income_statement;
+pub mod other_major_ratios;
+pub mod profit_ratio;
+pub mod stability_ratio;
 pub mod search_info;
 pub mod search_stock_info;

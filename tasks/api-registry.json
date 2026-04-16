@@ -897,7 +897,7 @@
     "module_path": "api::domestic_stock::symbol_info::profit_ratio",
     "file_path": "src/api/domestic_stock/symbol_info/profit_ratio.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__profit_ratio.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -907,7 +907,7 @@
     "module_path": "api::domestic_stock::symbol_info::other_major_ratios",
     "file_path": "src/api/domestic_stock/symbol_info/other_major_ratios.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__other_major_ratios.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -917,7 +917,7 @@
     "module_path": "api::domestic_stock::symbol_info::stability_ratio",
     "file_path": "src/api/domestic_stock/symbol_info/stability_ratio.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__stability_ratio.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -927,7 +927,7 @@
     "module_path": "api::domestic_stock::symbol_info::growth_ratio",
     "file_path": "src/api/domestic_stock/symbol_info/growth_ratio.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__growth_ratio.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
