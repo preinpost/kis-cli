@@ -1887,7 +1887,7 @@
     "module_path": "api::domestic_stock::realtime::h0nxpgm0",
     "file_path": "src/api/domestic_stock/realtime/h0nxpgm0.rs",
     "spec_path": ".agent/specs/domestic_stock__realtime__h0nxpgm0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 실시간시세",
@@ -1897,7 +1897,7 @@
     "module_path": "api::domestic_stock::realtime::h0nxmko0",
     "file_path": "src/api/domestic_stock/realtime/h0nxmko0.rs",
     "spec_path": ".agent/specs/domestic_stock__realtime__h0nxmko0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 주문/계좌",
@@ -1907,7 +1907,7 @@
     "module_path": "api::futureoption_domestic::order_account::order",
     "file_path": "src/api/futureoption_domestic/order_account/order.rs",
     "spec_path": ".agent/specs/futureoption_domestic__order_account__order.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 주문/계좌",
