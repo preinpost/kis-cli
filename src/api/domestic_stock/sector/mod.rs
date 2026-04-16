@@ -1,2 +1,5 @@
 // 카테고리: [국내주식] 업종/기타
 // 각 엔드포인트 모듈은 Ralph Loop가 추가한다.
+
+pub mod inquire_index_daily_price;
+pub mod inquire_index_price;
