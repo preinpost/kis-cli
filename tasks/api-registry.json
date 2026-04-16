@@ -2127,7 +2127,7 @@
     "module_path": "api::futureoption_domestic::quotations::display_board_futures",
     "file_path": "src/api/futureoption_domestic/quotations/display_board_futures.rs",
     "spec_path": ".agent/specs/futureoption_domestic__quotations__display_board_futures.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 기본시세",
@@ -2137,7 +2137,7 @@
     "module_path": "api::futureoption_domestic::quotations::exp_price_trend",
     "file_path": "src/api/futureoption_domestic/quotations/exp_price_trend.rs",
     "spec_path": ".agent/specs/futureoption_domestic__quotations__exp_price_trend.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 실시간시세",
@@ -2147,7 +2147,7 @@
     "module_path": "api::futureoption_domestic::realtime::h0ifasp0",
     "file_path": "src/api/futureoption_domestic/realtime/h0ifasp0.rs",
     "spec_path": ".agent/specs/futureoption_domestic__realtime__h0ifasp0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 실시간시세",
