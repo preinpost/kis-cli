@@ -3,3 +3,6 @@
 
 pub mod inquire_index_daily_price;
 pub mod inquire_index_price;
+pub mod inquire_index_tickprice;
+pub mod inquire_index_timeprice;
+pub mod inquire_time_indexchartprice;
