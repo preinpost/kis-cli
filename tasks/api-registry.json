@@ -2067,7 +2067,7 @@
     "module_path": "api::futureoption_domestic::quotations::inquire_asking_price",
     "file_path": "src/api/futureoption_domestic/quotations/inquire_asking_price.rs",
     "spec_path": ".agent/specs/futureoption_domestic__quotations__inquire_asking_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 기본시세",
@@ -2077,7 +2077,7 @@
     "module_path": "api::futureoption_domestic::quotations::inquire_daily_fuopchartprice",
     "file_path": "src/api/futureoption_domestic/quotations/inquire_daily_fuopchartprice.rs",
     "spec_path": ".agent/specs/futureoption_domestic__quotations__inquire_daily_fuopchartprice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 기본시세",
@@ -2087,7 +2087,7 @@
     "module_path": "api::futureoption_domestic::quotations::inquire_time_fuopchartprice",
     "file_path": "src/api/futureoption_domestic/quotations/inquire_time_fuopchartprice.rs",
     "spec_path": ".agent/specs/futureoption_domestic__quotations__inquire_time_fuopchartprice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 기본시세",
