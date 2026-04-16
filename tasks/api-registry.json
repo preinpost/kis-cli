@@ -757,7 +757,7 @@
     "module_path": "api::domestic_stock::sector::inquire_daily_indexchartprice",
     "file_path": "src/api/domestic_stock/sector/inquire_daily_indexchartprice.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__inquire_daily_indexchartprice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",
@@ -767,7 +767,7 @@
     "module_path": "api::domestic_stock::sector::inquire_index_category_price",
     "file_path": "src/api/domestic_stock/sector/inquire_index_category_price.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__inquire_index_category_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",
