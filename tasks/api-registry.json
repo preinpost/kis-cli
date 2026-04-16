@@ -1067,7 +1067,7 @@
     "module_path": "api::domestic_stock::symbol_info::estimate_perform",
     "file_path": "src/api/domestic_stock/symbol_info/estimate_perform.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__estimate_perform.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -1077,7 +1077,7 @@
     "module_path": "api::domestic_stock::symbol_info::lendable_by_company",
     "file_path": "src/api/domestic_stock/symbol_info/lendable_by_company.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__lendable_by_company.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -1087,7 +1087,7 @@
     "module_path": "api::domestic_stock::symbol_info::invest_opinion",
     "file_path": "src/api/domestic_stock/symbol_info/invest_opinion.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__invest_opinion.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -1097,7 +1097,7 @@
     "module_path": "api::domestic_stock::symbol_info::invest_opbysec",
     "file_path": "src/api/domestic_stock/symbol_info/invest_opbysec.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__invest_opbysec.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",
