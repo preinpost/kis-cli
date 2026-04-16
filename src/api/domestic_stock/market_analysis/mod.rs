@@ -1,6 +1,9 @@
 // 카테고리: [국내주식] 시세분석
 // 각 엔드포인트 모듈은 Ralph Loop가 추가한다.
 
+pub mod comp_program_trade_daily;
+pub mod comp_program_trade_today;
+pub mod daily_credit_balance;
 pub mod foreign_institution_total;
 pub mod frgnmem_pchs_trend;
 pub mod frgnmem_trade_estimate;
@@ -12,6 +15,7 @@ pub mod inquire_member_daily;
 pub mod intstock_grouplist;
 pub mod intstock_multprice;
 pub mod intstock_stocklist_by_group;
+pub mod investor_program_trade_today;
 pub mod investor_trade_by_stock_daily;
 pub mod investor_trend_estimate;
 pub mod program_trade_by_stock;
