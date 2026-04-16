@@ -4,3 +4,4 @@
 
 # Ralph Loop 부산물
 .agent/specs/*.FAILED.md
+/.claude/scheduled_tasks.lock
