@@ -537,7 +537,7 @@
     "module_path": "api::domestic_stock::elw::quick_change",
     "file_path": "src/api/domestic_stock/elw/quick_change.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__quick_change.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
@@ -547,7 +547,7 @@
     "module_path": "api::domestic_stock::elw::udrl_asset_list",
     "file_path": "src/api/domestic_stock/elw/udrl_asset_list.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__udrl_asset_list.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
@@ -557,7 +557,7 @@
     "module_path": "api::domestic_stock::elw::compare_stocks",
     "file_path": "src/api/domestic_stock/elw/compare_stocks.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__compare_stocks.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
