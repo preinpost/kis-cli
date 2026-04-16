@@ -7,6 +7,7 @@ pub mod inquire_balance_2;
 pub mod inquire_balance_rlz_pl;
 pub mod inquire_credit_psamount;
 pub mod inquire_deposit;
+pub mod inquire_period_profit;
 pub mod inquire_daily_ccld;
 pub mod inquire_daily_ccld_2;
 pub mod inquire_present_balance;
