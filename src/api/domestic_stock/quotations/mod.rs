@@ -8,6 +8,8 @@ pub mod inquire_daily_overtimeprice;
 pub mod inquire_daily_price;
 pub mod inquire_investor;
 pub mod inquire_member;
+pub mod inquire_overtime_asking_price;
+pub mod inquire_overtime_price;
 pub mod inquire_price;
 pub mod inquire_price_2;
 pub mod inquire_time_dailychartprice;

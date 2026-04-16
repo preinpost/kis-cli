@@ -407,7 +407,7 @@
     "module_path": "api::domestic_stock::quotations::inquire_overtime_price",
     "file_path": "src/api/domestic_stock/quotations/inquire_overtime_price.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__inquire_overtime_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
@@ -417,7 +417,7 @@
     "module_path": "api::domestic_stock::quotations::inquire_overtime_asking_price",
     "file_path": "src/api/domestic_stock/quotations/inquire_overtime_asking_price.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__inquire_overtime_asking_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
