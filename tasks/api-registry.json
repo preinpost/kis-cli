@@ -1857,7 +1857,7 @@
     "module_path": "api::domestic_stock::realtime::h0nxasp0",
     "file_path": "src/api/domestic_stock/realtime/h0nxasp0.rs",
     "spec_path": ".agent/specs/domestic_stock__realtime__h0nxasp0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 실시간시세",
@@ -1867,7 +1867,7 @@
     "module_path": "api::domestic_stock::realtime::h0nxanc0",
     "file_path": "src/api/domestic_stock/realtime/h0nxanc0.rs",
     "spec_path": ".agent/specs/domestic_stock__realtime__h0nxanc0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 실시간시세",
@@ -1877,7 +1877,7 @@
     "module_path": "api::domestic_stock::realtime::h0nxmbc0",
     "file_path": "src/api/domestic_stock/realtime/h0nxmbc0.rs",
     "spec_path": ".agent/specs/domestic_stock__realtime__h0nxmbc0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 실시간시세",
