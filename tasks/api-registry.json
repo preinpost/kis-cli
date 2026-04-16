@@ -1497,7 +1497,7 @@
     "module_path": "api::domestic_stock::ranking::volume_power",
     "file_path": "src/api/domestic_stock/ranking/volume_power.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__volume_power.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1507,7 +1507,7 @@
     "module_path": "api::domestic_stock::ranking::top_interest_stock",
     "file_path": "src/api/domestic_stock/ranking/top_interest_stock.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__top_interest_stock.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1517,7 +1517,7 @@
     "module_path": "api::domestic_stock::ranking::exp_trans_updown",
     "file_path": "src/api/domestic_stock/ranking/exp_trans_updown.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__exp_trans_updown.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
