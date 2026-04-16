@@ -117,7 +117,7 @@
     "module_path": "api::domestic_stock::order_account::inquire_psbl_sell",
     "file_path": "src/api/domestic_stock/order_account/inquire_psbl_sell.rs",
     "spec_path": ".agent/specs/domestic_stock__order_account__inquire_psbl_sell.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 주문/계좌",
