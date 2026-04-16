@@ -47,7 +47,7 @@
     "module_path": "api::domestic_stock::order_account::order_cash",
     "file_path": "src/api/domestic_stock/order_account/order_cash.rs",
     "spec_path": ".agent/specs/domestic_stock__order_account__order_cash.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 주문/계좌",
