@@ -1237,7 +1237,7 @@
     "module_path": "api::domestic_stock::market_analysis::program_trade_by_stock",
     "file_path": "src/api/domestic_stock/market_analysis/program_trade_by_stock.rs",
     "spec_path": ".agent/specs/domestic_stock__market_analysis__program_trade_by_stock.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",
@@ -1247,7 +1247,7 @@
     "module_path": "api::domestic_stock::market_analysis::program_trade_by_stock_daily",
     "file_path": "src/api/domestic_stock/market_analysis/program_trade_by_stock_daily.rs",
     "spec_path": ".agent/specs/domestic_stock__market_analysis__program_trade_by_stock_daily.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",
@@ -1257,7 +1257,7 @@
     "module_path": "api::domestic_stock::market_analysis::investor_trend_estimate",
     "file_path": "src/api/domestic_stock/market_analysis/investor_trend_estimate.rs",
     "spec_path": ".agent/specs/domestic_stock__market_analysis__investor_trend_estimate.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",
@@ -1267,7 +1267,7 @@
     "module_path": "api::domestic_stock::market_analysis::inquire_daily_trade_volume",
     "file_path": "src/api/domestic_stock/market_analysis/inquire_daily_trade_volume.rs",
     "spec_path": ".agent/specs/domestic_stock__market_analysis__inquire_daily_trade_volume.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",
