@@ -4,6 +4,8 @@
 pub mod compare_stocks;
 pub mod cond_search;
 pub mod indicator_trend_ccnl;
+pub mod indicator_trend_daily;
+pub mod indicator_trend_minute;
 pub mod inquire_elw_price;
 pub mod lp_trade_trend;
 pub mod newly_listed;
