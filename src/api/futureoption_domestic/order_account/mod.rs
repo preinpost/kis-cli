@@ -3,7 +3,10 @@
 
 pub mod inquire_balance;
 pub mod inquire_balance_settlement_pl;
+pub mod inquire_balance_valuation_pl;
 pub mod inquire_ccnl;
+pub mod inquire_ccnl_bstime;
+pub mod inquire_deposit;
 pub mod inquire_ngt_balance;
 pub mod inquire_ngt_ccnl;
 pub mod inquire_psbl_ngt_order;

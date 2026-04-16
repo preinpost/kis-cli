@@ -2007,7 +2007,7 @@
     "module_path": "api::futureoption_domestic::order_account::inquire_deposit",
     "file_path": "src/api/futureoption_domestic/order_account/inquire_deposit.rs",
     "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_deposit.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 주문/계좌",
@@ -2017,7 +2017,7 @@
     "module_path": "api::futureoption_domestic::order_account::inquire_balance_valuation_pl",
     "file_path": "src/api/futureoption_domestic/order_account/inquire_balance_valuation_pl.rs",
     "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_balance_valuation_pl.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 주문/계좌",
@@ -2027,7 +2027,7 @@
     "module_path": "api::futureoption_domestic::order_account::inquire_ccnl_bstime",
     "file_path": "src/api/futureoption_domestic/order_account/inquire_ccnl_bstime.rs",
     "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_ccnl_bstime.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 주문/계좌",
