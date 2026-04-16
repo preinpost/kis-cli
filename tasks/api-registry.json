@@ -27,7 +27,7 @@
     "module_path": "api::oauth::hashkey",
     "file_path": "src/api/oauth/hashkey.rs",
     "spec_path": ".agent/specs/oauth__hashkey.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "OAuth인증",
