@@ -46,6 +46,14 @@
 - 애매하면 여전히 `String`이 안전 (KIS는 Number 표기해놓고 문자열 돌려주는 케이스도 있음).
 - 확신 없으면 `String` 고수.
 
+### L09. 주문 API의 TR_ID는 매수/매도 × 실전/모의 4종 분기
+**상황**: `domestic_stock__order_account__order_cash` (주식주문 현금)에서 TR_ID가 4개 (TTTC0011U/TTTC0012U/VTTC0011U/VTTC0012U).
+**규칙**:
+- `pub enum Side { Buy, Sell }` 선언.
+- `call(client, side: Side, req)` 시그니처로 매수/매도 구분 받음.
+- `match (client.is_mock(), side)`로 4가지 TR_ID 중 선택.
+- 상수 이름 관례: `TR_ID_REAL_BUY`, `TR_ID_REAL_SELL`, `TR_ID_MOCK_BUY`, `TR_ID_MOCK_SELL`.
+
 ### L08. tokenp는 Response에 `Option<>` 감싸지 않음
 **상황**: 토큰 발급 API는 성공 응답이 `{access_token, token_type, expires_in, access_token_token_expired}` 네 필드가 반드시 채워짐. `ApiResponse`(rt_cd/output 래퍼) 형태가 아니라 **평면 JSON**으로 옴.
 **규칙**:
