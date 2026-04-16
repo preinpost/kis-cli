@@ -1397,7 +1397,7 @@
     "module_path": "api::domestic_stock::ranking::volume_rank",
     "file_path": "src/api/domestic_stock/ranking/volume_rank.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__volume_rank.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
