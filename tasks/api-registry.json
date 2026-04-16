@@ -187,7 +187,7 @@
     "module_path": "api::domestic_stock::order_account::inquire_psbl_order",
     "file_path": "src/api/domestic_stock/order_account/inquire_psbl_order.rs",
     "spec_path": ".agent/specs/domestic_stock__order_account__inquire_psbl_order_2.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 주문/계좌",
@@ -197,7 +197,7 @@
     "module_path": "api::domestic_stock::order_account::inquire_deposit",
     "file_path": "src/api/domestic_stock/order_account/inquire_deposit.rs",
     "spec_path": ".agent/specs/domestic_stock__order_account__inquire_deposit.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 주문/계좌",
@@ -207,7 +207,7 @@
     "module_path": "api::domestic_stock::order_account::inquire_balance",
     "file_path": "src/api/domestic_stock/order_account/inquire_balance.rs",
     "spec_path": ".agent/specs/domestic_stock__order_account__inquire_balance_2.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 주문/계좌",
