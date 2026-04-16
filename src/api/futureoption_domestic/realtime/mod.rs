@@ -11,3 +11,6 @@ pub mod h0iocnt0;
 pub mod h0zfanc0;
 pub mod h0zfasp0;
 pub mod h0zfcnt0;
+pub mod h0zoanc0;
+pub mod h0zoasp0;
+pub mod h0zocnt0;
