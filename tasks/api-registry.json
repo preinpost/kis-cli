@@ -37,7 +37,7 @@
     "module_path": "api::oauth::approval",
     "file_path": "src/api/oauth/approval.rs",
     "spec_path": ".agent/specs/oauth__approval.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 주문/계좌",
