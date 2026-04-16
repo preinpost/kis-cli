@@ -497,7 +497,7 @@
     "module_path": "api::domestic_stock::elw::newly_listed",
     "file_path": "src/api/domestic_stock/elw/newly_listed.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__newly_listed.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
@@ -507,7 +507,7 @@
     "module_path": "api::domestic_stock::elw::sensitivity",
     "file_path": "src/api/domestic_stock/elw/sensitivity.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__sensitivity.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
