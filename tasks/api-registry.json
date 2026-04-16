@@ -447,7 +447,7 @@
     "module_path": "api::domestic_stock::quotations::inquire_component_stock_price",
     "file_path": "src/api/domestic_stock/quotations/inquire_component_stock_price.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__inquire_component_stock_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
@@ -457,7 +457,7 @@
     "module_path": "api::domestic_stock::quotations::nav_comparison_trend",
     "file_path": "src/api/domestic_stock/quotations/nav_comparison_trend.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__nav_comparison_trend.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
@@ -467,7 +467,7 @@
     "module_path": "api::domestic_stock::quotations::nav_comparison_daily_trend",
     "file_path": "src/api/domestic_stock/quotations/nav_comparison_daily_trend.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__nav_comparison_daily_trend.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
@@ -477,7 +477,7 @@
     "module_path": "api::domestic_stock::quotations::nav_comparison_time_trend",
     "file_path": "src/api/domestic_stock/quotations/nav_comparison_time_trend.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__nav_comparison_time_trend.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
