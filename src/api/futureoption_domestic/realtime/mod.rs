@@ -3,6 +3,9 @@
 
 pub mod h0cfasp0;
 pub mod h0cfcnt0;
+pub mod h0euanc0;
+pub mod h0euasp0;
+pub mod h0eucnt0;
 pub mod h0ifasp0;
 pub mod h0ifcni0;
 pub mod h0ifcnt0;
