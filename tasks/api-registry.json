@@ -527,7 +527,7 @@
     "module_path": "api::domestic_stock::elw::cond_search",
     "file_path": "src/api/domestic_stock/elw/cond_search.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__cond_search.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
