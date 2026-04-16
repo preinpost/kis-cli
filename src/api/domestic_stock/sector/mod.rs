@@ -12,4 +12,6 @@ pub mod inquire_index_price;
 pub mod inquire_index_tickprice;
 pub mod inquire_index_timeprice;
 pub mod inquire_time_indexchartprice;
+pub mod inquire_vi_status;
 pub mod market_time;
+pub mod news_title;

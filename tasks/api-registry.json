@@ -797,7 +797,7 @@
     "module_path": "api::domestic_stock::sector::inquire_vi_status",
     "file_path": "src/api/domestic_stock/sector/inquire_vi_status.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__inquire_vi_status.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",
@@ -817,7 +817,7 @@
     "module_path": "api::domestic_stock::sector::news_title",
     "file_path": "src/api/domestic_stock/sector/news_title.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__news_title.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",
