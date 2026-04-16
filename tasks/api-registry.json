@@ -247,7 +247,7 @@
     "module_path": "api::domestic_stock::order_account::inquire_period_trade_profit",
     "file_path": "src/api/domestic_stock/order_account/inquire_period_trade_profit.rs",
     "spec_path": ".agent/specs/domestic_stock__order_account__inquire_period_trade_profit.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 주문/계좌",
@@ -257,7 +257,7 @@
     "module_path": "api::domestic_stock::order_account::intgr_margin",
     "file_path": "src/api/domestic_stock/order_account/intgr_margin.rs",
     "spec_path": ".agent/specs/domestic_stock__order_account__intgr_margin.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 주문/계좌",
@@ -267,7 +267,7 @@
     "module_path": "api::domestic_stock::order_account::period_rights",
     "file_path": "src/api/domestic_stock/order_account/period_rights.rs",
     "spec_path": ".agent/specs/domestic_stock__order_account__period_rights.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
