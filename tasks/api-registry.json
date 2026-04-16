@@ -937,7 +937,7 @@
     "module_path": "api::domestic_stock::symbol_info::credit_by_company",
     "file_path": "src/api/domestic_stock/symbol_info/credit_by_company.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__credit_by_company.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -957,7 +957,7 @@
     "module_path": "api::domestic_stock::symbol_info::purreq",
     "file_path": "src/api/domestic_stock/symbol_info/purreq.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__purreq.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -967,7 +967,7 @@
     "module_path": "api::domestic_stock::symbol_info::merger_split",
     "file_path": "src/api/domestic_stock/symbol_info/merger_split.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__merger_split.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -977,7 +977,7 @@
     "module_path": "api::domestic_stock::symbol_info::rev_split",
     "file_path": "src/api/domestic_stock/symbol_info/rev_split.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__rev_split.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -997,7 +997,7 @@
     "module_path": "api::domestic_stock::symbol_info::list_info",
     "file_path": "src/api/domestic_stock/symbol_info/list_info.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__list_info.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
