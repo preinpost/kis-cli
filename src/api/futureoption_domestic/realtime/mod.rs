@@ -8,3 +8,6 @@ pub mod h0ifcni0;
 pub mod h0ifcnt0;
 pub mod h0ioasp0;
 pub mod h0iocnt0;
+pub mod h0zfanc0;
+pub mod h0zfasp0;
+pub mod h0zfcnt0;
