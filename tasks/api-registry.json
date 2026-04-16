@@ -1147,7 +1147,7 @@
     "module_path": "api::domestic_stock::market_analysis::intstock_stocklist_by_group",
     "file_path": "src/api/domestic_stock/market_analysis/intstock_stocklist_by_group.rs",
     "spec_path": ".agent/specs/domestic_stock__market_analysis__intstock_stocklist_by_group.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",
@@ -1157,7 +1157,7 @@
     "module_path": "api::domestic_stock::market_analysis::foreign_institution_total",
     "file_path": "src/api/domestic_stock/market_analysis/foreign_institution_total.rs",
     "spec_path": ".agent/specs/domestic_stock__market_analysis__foreign_institution_total.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",
