@@ -2,3 +2,4 @@
 // 각 엔드포인트 모듈은 Ralph Loop가 추가한다.
 
 pub mod order_cash;
+pub mod order_credit;

@@ -46,6 +46,19 @@
 - 애매하면 여전히 `String`이 안전 (KIS는 Number 표기해놓고 문자열 돌려주는 케이스도 있음).
 - 확신 없으면 `String` 고수.
 
+### L10. 모의투자 미지원 API는 is_mock일 때 거부
+**상황**: 신용주문, 예약주문, 해외주식 상당수 등 "모의Domain: 모의투자 미지원"이라고 명시된 API.
+**규칙**:
+- 파일 상단 주석에 "모의투자 미지원"을 명기.
+- `call()` 본문 첫 줄: `if client.is_mock() { bail!("... 모의투자 미지원 API입니다"); }`.
+- TR_ID 상수는 실전용 2개만 (`TR_ID_BUY`, `TR_ID_SELL`, 혹은 단일 `TR_ID`).
+
+### L11. Response 필드 대소문자는 스펙의 표기를 따른다
+**상황**: `order_cash`는 Response가 `KRX_FWDG_ORD_ORGNO`(대문자, rename 필요), `order_credit`은 `krx_fwdg_ord_orgno`(소문자). 스펙 표기를 무시하면 역직렬화 실패.
+**규칙**:
+- 스펙 Response Body 테이블의 Element 이름을 **그대로** 필드명으로 사용 (대문자면 snake_case 필드 + `#[serde(rename = "...")]`, 소문자면 rename 없이).
+- 확신 없으면 `#[serde(default)]`는 항상 붙임 (빈 응답 방어).
+
 ### L09. 주문 API의 TR_ID는 매수/매도 × 실전/모의 4종 분기
 **상황**: `domestic_stock__order_account__order_cash` (주식주문 현금)에서 TR_ID가 4개 (TTTC0011U/TTTC0012U/VTTC0011U/VTTC0012U).
 **규칙**:
