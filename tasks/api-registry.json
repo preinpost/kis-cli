@@ -1587,7 +1587,7 @@
     "module_path": "api::domestic_stock::ranking::overtime_fluctuation",
     "file_path": "src/api/domestic_stock/ranking/overtime_fluctuation.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__overtime_fluctuation.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1597,7 +1597,7 @@
     "module_path": "api::domestic_stock::ranking::overtime_volume",
     "file_path": "src/api/domestic_stock/ranking/overtime_volume.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__overtime_volume.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1607,7 +1607,7 @@
     "module_path": "api::domestic_stock::ranking::hts_top_view",
     "file_path": "src/api/domestic_stock/ranking/hts_top_view.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__hts_top_view.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 실시간시세",
