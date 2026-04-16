@@ -847,7 +847,7 @@
     "module_path": "api::domestic_stock::symbol_info::search_info",
     "file_path": "src/api/domestic_stock/symbol_info/search_info.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__search_info.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -857,7 +857,7 @@
     "module_path": "api::domestic_stock::symbol_info::search_stock_info",
     "file_path": "src/api/domestic_stock/symbol_info/search_stock_info.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__search_stock_info.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
