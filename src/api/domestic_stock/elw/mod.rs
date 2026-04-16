@@ -3,7 +3,9 @@
 
 pub mod compare_stocks;
 pub mod cond_search;
+pub mod indicator_trend_ccnl;
 pub mod inquire_elw_price;
+pub mod lp_trade_trend;
 pub mod newly_listed;
 pub mod quick_change;
 pub mod sensitivity;

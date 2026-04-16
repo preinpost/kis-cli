@@ -567,7 +567,7 @@
     "module_path": "api::domestic_stock::elw::lp_trade_trend",
     "file_path": "src/api/domestic_stock/elw/lp_trade_trend.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__lp_trade_trend.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
@@ -577,7 +577,7 @@
     "module_path": "api::domestic_stock::elw::indicator_trend_ccnl",
     "file_path": "src/api/domestic_stock/elw/indicator_trend_ccnl.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__indicator_trend_ccnl.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
