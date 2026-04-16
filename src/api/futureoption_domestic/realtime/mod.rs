@@ -2,3 +2,6 @@
 // 각 엔드포인트 모듈은 Ralph Loop가 추가한다.
 
 pub mod h0ifasp0;
+pub mod h0ifcnt0;
+pub mod h0ioasp0;
+pub mod h0iocnt0;
