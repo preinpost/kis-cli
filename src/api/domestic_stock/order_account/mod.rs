@@ -9,4 +9,7 @@ pub mod inquire_psbl_rvsecncl;
 pub mod inquire_psbl_sell;
 pub mod order_cash;
 pub mod order_credit;
+pub mod order_resv;
+pub mod order_resv_ccnl;
+pub mod order_resv_rvsecncl;
 pub mod order_rvsecncl;
