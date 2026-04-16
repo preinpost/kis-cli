@@ -667,7 +667,7 @@
     "module_path": "api::domestic_stock::elw::expiration_stocks",
     "file_path": "src/api/domestic_stock/elw/expiration_stocks.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__expiration_stocks.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
@@ -677,7 +677,7 @@
     "module_path": "api::domestic_stock::elw::indicator",
     "file_path": "src/api/domestic_stock/elw/indicator.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__indicator.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
@@ -687,7 +687,7 @@
     "module_path": "api::domestic_stock::elw::updown_rate",
     "file_path": "src/api/domestic_stock/elw/updown_rate.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__updown_rate.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
@@ -697,7 +697,7 @@
     "module_path": "api::domestic_stock::elw::volume_rank",
     "file_path": "src/api/domestic_stock/elw/volume_rank.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__volume_rank.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",

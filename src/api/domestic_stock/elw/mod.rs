@@ -3,6 +3,8 @@
 
 pub mod compare_stocks;
 pub mod cond_search;
+pub mod expiration_stocks;
+pub mod indicator;
 pub mod indicator_trend_ccnl;
 pub mod indicator_trend_daily;
 pub mod indicator_trend_minute;
@@ -15,7 +17,9 @@ pub mod sensitivity_trend_ccnl;
 pub mod sensitivity_trend_daily;
 pub mod udrl_asset_list;
 pub mod udrl_asset_price;
+pub mod updown_rate;
 pub mod volatility_trend_ccnl;
 pub mod volatility_trend_daily;
 pub mod volatility_trend_minute;
 pub mod volatility_trend_tick;
+pub mod volume_rank;
