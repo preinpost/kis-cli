@@ -1187,7 +1187,7 @@
     "module_path": "api::domestic_stock::market_analysis::inquire_investor_time_by_market",
     "file_path": "src/api/domestic_stock/market_analysis/inquire_investor_time_by_market.rs",
     "spec_path": ".agent/specs/domestic_stock__market_analysis__inquire_investor_time_by_market.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",
@@ -1197,7 +1197,7 @@
     "module_path": "api::domestic_stock::market_analysis::inquire_investor_daily_by_market",
     "file_path": "src/api/domestic_stock/market_analysis/inquire_investor_daily_by_market.rs",
     "spec_path": ".agent/specs/domestic_stock__market_analysis__inquire_investor_daily_by_market.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 시세분석",

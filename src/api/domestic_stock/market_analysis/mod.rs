@@ -5,6 +5,8 @@ pub mod foreign_institution_total;
 pub mod frgnmem_pchs_trend;
 pub mod frgnmem_trade_estimate;
 pub mod frgnmem_trade_trend;
+pub mod inquire_investor_daily_by_market;
+pub mod inquire_investor_time_by_market;
 pub mod intstock_grouplist;
 pub mod intstock_multprice;
 pub mod intstock_stocklist_by_group;
