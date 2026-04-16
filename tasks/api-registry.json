@@ -1007,7 +1007,7 @@
     "module_path": "api::domestic_stock::symbol_info::pub_offer",
     "file_path": "src/api/domestic_stock/symbol_info/pub_offer.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__pub_offer.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -1017,7 +1017,7 @@
     "module_path": "api::domestic_stock::symbol_info::forfeit",
     "file_path": "src/api/domestic_stock/symbol_info/forfeit.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__forfeit.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -1027,7 +1027,7 @@
     "module_path": "api::domestic_stock::symbol_info::mand_deposit",
     "file_path": "src/api/domestic_stock/symbol_info/mand_deposit.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__mand_deposit.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -1037,7 +1037,7 @@
     "module_path": "api::domestic_stock::symbol_info::paidin_capin",
     "file_path": "src/api/domestic_stock/symbol_info/paidin_capin.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__paidin_capin.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -1057,7 +1057,7 @@
     "module_path": "api::domestic_stock::symbol_info::sharehld_meet",
     "file_path": "src/api/domestic_stock/symbol_info/sharehld_meet.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__sharehld_meet.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
