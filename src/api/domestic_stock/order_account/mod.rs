@@ -4,6 +4,8 @@
 pub mod inquire_balance;
 pub mod inquire_credit_psamount;
 pub mod inquire_daily_ccld;
+pub mod inquire_daily_ccld_2;
+pub mod inquire_present_balance;
 pub mod inquire_psbl_order;
 pub mod inquire_psbl_rvsecncl;
 pub mod inquire_psbl_sell;
