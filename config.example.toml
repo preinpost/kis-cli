@@ -1,0 +1,7 @@
+# true면 모의투자(openapivts:29443), false면 실전(openapi:9443)
+is_mock = false
+
+[credentials]
+app_key = "your_app_key"
+app_secret = "your_app_secret"
+account_number = "00000000-01"

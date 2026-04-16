@@ -1,0 +1,3382 @@
+[
+  {
+    "category": "OAuth인증",
+    "name": "접근토큰발급(P)",
+    "endpoint": "/oauth2/tokenP",
+    "slug": "oauth__tokenp",
+    "module_path": "api::oauth::tokenp",
+    "file_path": "src/api/oauth/tokenp.rs",
+    "spec_path": ".agent/specs/oauth__tokenp.md",
+    "status": "done"
+  },
+  {
+    "category": "OAuth인증",
+    "name": "접근토큰폐기(P)",
+    "endpoint": "/oauth2/revokeP",
+    "slug": "oauth__revokep",
+    "module_path": "api::oauth::revokep",
+    "file_path": "src/api/oauth/revokep.rs",
+    "spec_path": ".agent/specs/oauth__revokep.md",
+    "status": "pending"
+  },
+  {
+    "category": "OAuth인증",
+    "name": "Hashkey",
+    "endpoint": "/uapi/hashkey",
+    "slug": "oauth__hashkey",
+    "module_path": "api::oauth::hashkey",
+    "file_path": "src/api/oauth/hashkey.rs",
+    "spec_path": ".agent/specs/oauth__hashkey.md",
+    "status": "pending"
+  },
+  {
+    "category": "OAuth인증",
+    "name": "실시간 (웹소켓) 접속키 발급",
+    "endpoint": "/oauth2/Approval",
+    "slug": "oauth__approval",
+    "module_path": "api::oauth::approval",
+    "file_path": "src/api/oauth/approval.rs",
+    "spec_path": ".agent/specs/oauth__approval.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식주문(현금)",
+    "endpoint": "/uapi/domestic-stock/v1/trading/order-cash",
+    "slug": "domestic_stock__order_account__order_cash",
+    "module_path": "api::domestic_stock::order_account::order_cash",
+    "file_path": "src/api/domestic_stock/order_account/order_cash.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__order_cash.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식주문(신용)",
+    "endpoint": "/uapi/domestic-stock/v1/trading/order-credit",
+    "slug": "domestic_stock__order_account__order_credit",
+    "module_path": "api::domestic_stock::order_account::order_credit",
+    "file_path": "src/api/domestic_stock/order_account/order_credit.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__order_credit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식주문(정정취소)",
+    "endpoint": "/uapi/domestic-stock/v1/trading/order-rvsecncl",
+    "slug": "domestic_stock__order_account__order_rvsecncl",
+    "module_path": "api::domestic_stock::order_account::order_rvsecncl",
+    "file_path": "src/api/domestic_stock/order_account/order_rvsecncl.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__order_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식정정취소가능주문조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-psbl-rvsecncl",
+    "slug": "domestic_stock__order_account__inquire_psbl_rvsecncl",
+    "module_path": "api::domestic_stock::order_account::inquire_psbl_rvsecncl",
+    "file_path": "src/api/domestic_stock/order_account/inquire_psbl_rvsecncl.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_psbl_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식일별주문체결조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-daily-ccld",
+    "slug": "domestic_stock__order_account__inquire_daily_ccld",
+    "module_path": "api::domestic_stock::order_account::inquire_daily_ccld",
+    "file_path": "src/api/domestic_stock/order_account/inquire_daily_ccld.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_daily_ccld.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식잔고조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-balance",
+    "slug": "domestic_stock__order_account__inquire_balance",
+    "module_path": "api::domestic_stock::order_account::inquire_balance",
+    "file_path": "src/api/domestic_stock/order_account/inquire_balance.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "매수가능조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-psbl-order",
+    "slug": "domestic_stock__order_account__inquire_psbl_order",
+    "module_path": "api::domestic_stock::order_account::inquire_psbl_order",
+    "file_path": "src/api/domestic_stock/order_account/inquire_psbl_order.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_psbl_order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "매도가능수량조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-psbl-sell",
+    "slug": "domestic_stock__order_account__inquire_psbl_sell",
+    "module_path": "api::domestic_stock::order_account::inquire_psbl_sell",
+    "file_path": "src/api/domestic_stock/order_account/inquire_psbl_sell.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_psbl_sell.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "신용매수가능조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-credit-psamount",
+    "slug": "domestic_stock__order_account__inquire_credit_psamount",
+    "module_path": "api::domestic_stock::order_account::inquire_credit_psamount",
+    "file_path": "src/api/domestic_stock/order_account/inquire_credit_psamount.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_credit_psamount.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식예약주문",
+    "endpoint": "/uapi/domestic-stock/v1/trading/order-resv",
+    "slug": "domestic_stock__order_account__order_resv",
+    "module_path": "api::domestic_stock::order_account::order_resv",
+    "file_path": "src/api/domestic_stock/order_account/order_resv.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__order_resv.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식예약주문정정취소",
+    "endpoint": "/uapi/domestic-stock/v1/trading/order-resv-rvsecncl",
+    "slug": "domestic_stock__order_account__order_resv_rvsecncl",
+    "module_path": "api::domestic_stock::order_account::order_resv_rvsecncl",
+    "file_path": "src/api/domestic_stock/order_account/order_resv_rvsecncl.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__order_resv_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식예약주문조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/order-resv-ccnl",
+    "slug": "domestic_stock__order_account__order_resv_ccnl",
+    "module_path": "api::domestic_stock::order_account::order_resv_ccnl",
+    "file_path": "src/api/domestic_stock/order_account/order_resv_ccnl.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__order_resv_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "퇴직연금 체결기준잔고",
+    "endpoint": "/uapi/domestic-stock/v1/trading/pension/inquire-present-balance",
+    "slug": "domestic_stock__order_account__inquire_present_balance",
+    "module_path": "api::domestic_stock::order_account::inquire_present_balance",
+    "file_path": "src/api/domestic_stock/order_account/inquire_present_balance.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_present_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "퇴직연금 미체결내역",
+    "endpoint": "/uapi/domestic-stock/v1/trading/pension/inquire-daily-ccld",
+    "slug": "domestic_stock__order_account__inquire_daily_ccld_2",
+    "module_path": "api::domestic_stock::order_account::inquire_daily_ccld",
+    "file_path": "src/api/domestic_stock/order_account/inquire_daily_ccld.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_daily_ccld_2.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "퇴직연금 매수가능조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/pension/inquire-psbl-order",
+    "slug": "domestic_stock__order_account__inquire_psbl_order_2",
+    "module_path": "api::domestic_stock::order_account::inquire_psbl_order",
+    "file_path": "src/api/domestic_stock/order_account/inquire_psbl_order.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_psbl_order_2.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "퇴직연금 예수금조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/pension/inquire-deposit",
+    "slug": "domestic_stock__order_account__inquire_deposit",
+    "module_path": "api::domestic_stock::order_account::inquire_deposit",
+    "file_path": "src/api/domestic_stock/order_account/inquire_deposit.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_deposit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "퇴직연금 잔고조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/pension/inquire-balance",
+    "slug": "domestic_stock__order_account__inquire_balance_2",
+    "module_path": "api::domestic_stock::order_account::inquire_balance",
+    "file_path": "src/api/domestic_stock/order_account/inquire_balance.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_balance_2.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식잔고조회_실현손익",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-balance-rlz-pl",
+    "slug": "domestic_stock__order_account__inquire_balance_rlz_pl",
+    "module_path": "api::domestic_stock::order_account::inquire_balance_rlz_pl",
+    "file_path": "src/api/domestic_stock/order_account/inquire_balance_rlz_pl.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_balance_rlz_pl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "투자계좌자산현황조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-account-balance",
+    "slug": "domestic_stock__order_account__inquire_account_balance",
+    "module_path": "api::domestic_stock::order_account::inquire_account_balance",
+    "file_path": "src/api/domestic_stock/order_account/inquire_account_balance.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_account_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "기간별손익일별합산조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-period-profit",
+    "slug": "domestic_stock__order_account__inquire_period_profit",
+    "module_path": "api::domestic_stock::order_account::inquire_period_profit",
+    "file_path": "src/api/domestic_stock/order_account/inquire_period_profit.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_period_profit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "기간별매매손익현황조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/inquire-period-trade-profit",
+    "slug": "domestic_stock__order_account__inquire_period_trade_profit",
+    "module_path": "api::domestic_stock::order_account::inquire_period_trade_profit",
+    "file_path": "src/api/domestic_stock/order_account/inquire_period_trade_profit.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__inquire_period_trade_profit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "주식통합증거금 현황",
+    "endpoint": "/uapi/domestic-stock/v1/trading/intgr-margin",
+    "slug": "domestic_stock__order_account__intgr_margin",
+    "module_path": "api::domestic_stock::order_account::intgr_margin",
+    "file_path": "src/api/domestic_stock/order_account/intgr_margin.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__intgr_margin.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 주문/계좌",
+    "name": "기간별계좌권리현황조회",
+    "endpoint": "/uapi/domestic-stock/v1/trading/period-rights",
+    "slug": "domestic_stock__order_account__period_rights",
+    "module_path": "api::domestic_stock::order_account::period_rights",
+    "file_path": "src/api/domestic_stock/order_account/period_rights.rs",
+    "spec_path": ".agent/specs/domestic_stock__order_account__period_rights.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 시세",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-price",
+    "slug": "domestic_stock__quotations__inquire_price",
+    "module_path": "api::domestic_stock::quotations::inquire_price",
+    "file_path": "src/api/domestic_stock/quotations/inquire_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 시세2",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-price-2",
+    "slug": "domestic_stock__quotations__inquire_price_2",
+    "module_path": "api::domestic_stock::quotations::inquire_price_2",
+    "file_path": "src/api/domestic_stock/quotations/inquire_price_2.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_price_2.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 체결",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-ccnl",
+    "slug": "domestic_stock__quotations__inquire_ccnl",
+    "module_path": "api::domestic_stock::quotations::inquire_ccnl",
+    "file_path": "src/api/domestic_stock/quotations/inquire_ccnl.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 일자별",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-daily-price",
+    "slug": "domestic_stock__quotations__inquire_daily_price",
+    "module_path": "api::domestic_stock::quotations::inquire_daily_price",
+    "file_path": "src/api/domestic_stock/quotations/inquire_daily_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_daily_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 호가/예상체결",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn",
+    "slug": "domestic_stock__quotations__inquire_asking_price_exp_ccn",
+    "module_path": "api::domestic_stock::quotations::inquire_asking_price_exp_ccn",
+    "file_path": "src/api/domestic_stock/quotations/inquire_asking_price_exp_ccn.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_asking_price_exp_ccn.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 투자자",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-investor",
+    "slug": "domestic_stock__quotations__inquire_investor",
+    "module_path": "api::domestic_stock::quotations::inquire_investor",
+    "file_path": "src/api/domestic_stock/quotations/inquire_investor.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_investor.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 회원사",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-member",
+    "slug": "domestic_stock__quotations__inquire_member",
+    "module_path": "api::domestic_stock::quotations::inquire_member",
+    "file_path": "src/api/domestic_stock/quotations/inquire_member.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_member.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "국내주식기간별시세(일/주/월/년)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
+    "slug": "domestic_stock__quotations__inquire_daily_itemchartprice",
+    "module_path": "api::domestic_stock::quotations::inquire_daily_itemchartprice",
+    "file_path": "src/api/domestic_stock/quotations/inquire_daily_itemchartprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_daily_itemchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식당일분봉조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
+    "slug": "domestic_stock__quotations__inquire_time_itemchartprice",
+    "module_path": "api::domestic_stock::quotations::inquire_time_itemchartprice",
+    "file_path": "src/api/domestic_stock/quotations/inquire_time_itemchartprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_time_itemchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식일별분봉조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice",
+    "slug": "domestic_stock__quotations__inquire_time_dailychartprice",
+    "module_path": "api::domestic_stock::quotations::inquire_time_dailychartprice",
+    "file_path": "src/api/domestic_stock/quotations/inquire_time_dailychartprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_time_dailychartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 당일시간대별체결",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-time-itemconclusion",
+    "slug": "domestic_stock__quotations__inquire_time_itemconclusion",
+    "module_path": "api::domestic_stock::quotations::inquire_time_itemconclusion",
+    "file_path": "src/api/domestic_stock/quotations/inquire_time_itemconclusion.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_time_itemconclusion.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 시간외일자별주가",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-daily-overtimeprice",
+    "slug": "domestic_stock__quotations__inquire_daily_overtimeprice",
+    "module_path": "api::domestic_stock::quotations::inquire_daily_overtimeprice",
+    "file_path": "src/api/domestic_stock/quotations/inquire_daily_overtimeprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_daily_overtimeprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "주식현재가 시간외시간별체결",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-time-overtimeconclusion",
+    "slug": "domestic_stock__quotations__inquire_time_overtimeconclusion",
+    "module_path": "api::domestic_stock::quotations::inquire_time_overtimeconclusion",
+    "file_path": "src/api/domestic_stock/quotations/inquire_time_overtimeconclusion.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_time_overtimeconclusion.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "국내주식 시간외현재가",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-overtime-price",
+    "slug": "domestic_stock__quotations__inquire_overtime_price",
+    "module_path": "api::domestic_stock::quotations::inquire_overtime_price",
+    "file_path": "src/api/domestic_stock/quotations/inquire_overtime_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_overtime_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "국내주식 시간외호가",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-overtime-asking-price",
+    "slug": "domestic_stock__quotations__inquire_overtime_asking_price",
+    "module_path": "api::domestic_stock::quotations::inquire_overtime_asking_price",
+    "file_path": "src/api/domestic_stock/quotations/inquire_overtime_asking_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_overtime_asking_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "국내주식 장마감 예상체결가",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/exp-closing-price",
+    "slug": "domestic_stock__quotations__exp_closing_price",
+    "module_path": "api::domestic_stock::quotations::exp_closing_price",
+    "file_path": "src/api/domestic_stock/quotations/exp_closing_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__exp_closing_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "ETF/ETN 현재가",
+    "endpoint": "/uapi/etfetn/v1/quotations/inquire-price",
+    "slug": "domestic_stock__quotations__inquire_price_2",
+    "module_path": "api::domestic_stock::quotations::inquire_price",
+    "file_path": "src/api/domestic_stock/quotations/inquire_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_price_2.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "ETF 구성종목시세",
+    "endpoint": "/uapi/etfetn/v1/quotations/inquire-component-stock-price",
+    "slug": "domestic_stock__quotations__inquire_component_stock_price",
+    "module_path": "api::domestic_stock::quotations::inquire_component_stock_price",
+    "file_path": "src/api/domestic_stock/quotations/inquire_component_stock_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__inquire_component_stock_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "NAV 비교추이(종목)",
+    "endpoint": "/uapi/etfetn/v1/quotations/nav-comparison-trend",
+    "slug": "domestic_stock__quotations__nav_comparison_trend",
+    "module_path": "api::domestic_stock::quotations::nav_comparison_trend",
+    "file_path": "src/api/domestic_stock/quotations/nav_comparison_trend.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__nav_comparison_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "NAV 비교추이(일)",
+    "endpoint": "/uapi/etfetn/v1/quotations/nav-comparison-daily-trend",
+    "slug": "domestic_stock__quotations__nav_comparison_daily_trend",
+    "module_path": "api::domestic_stock::quotations::nav_comparison_daily_trend",
+    "file_path": "src/api/domestic_stock/quotations/nav_comparison_daily_trend.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__nav_comparison_daily_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 기본시세",
+    "name": "NAV 비교추이(분)",
+    "endpoint": "/uapi/etfetn/v1/quotations/nav-comparison-time-trend",
+    "slug": "domestic_stock__quotations__nav_comparison_time_trend",
+    "module_path": "api::domestic_stock::quotations::nav_comparison_time_trend",
+    "file_path": "src/api/domestic_stock/quotations/nav_comparison_time_trend.rs",
+    "spec_path": ".agent/specs/domestic_stock__quotations__nav_comparison_time_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 현재가 시세",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-elw-price",
+    "slug": "domestic_stock__elw__inquire_elw_price",
+    "module_path": "api::domestic_stock::elw::inquire_elw_price",
+    "file_path": "src/api/domestic_stock/elw/inquire_elw_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__inquire_elw_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 신규상장종목",
+    "endpoint": "/uapi/elw/v1/quotations/newly-listed",
+    "slug": "domestic_stock__elw__newly_listed",
+    "module_path": "api::domestic_stock::elw::newly_listed",
+    "file_path": "src/api/domestic_stock/elw/newly_listed.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__newly_listed.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 민감도 순위",
+    "endpoint": "/uapi/elw/v1/ranking/sensitivity",
+    "slug": "domestic_stock__elw__sensitivity",
+    "module_path": "api::domestic_stock::elw::sensitivity",
+    "file_path": "src/api/domestic_stock/elw/sensitivity.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__sensitivity.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 기초자산별 종목시세",
+    "endpoint": "/uapi/elw/v1/quotations/udrl-asset-price",
+    "slug": "domestic_stock__elw__udrl_asset_price",
+    "module_path": "api::domestic_stock::elw::udrl_asset_price",
+    "file_path": "src/api/domestic_stock/elw/udrl_asset_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__udrl_asset_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 종목검색",
+    "endpoint": "/uapi/elw/v1/quotations/cond-search",
+    "slug": "domestic_stock__elw__cond_search",
+    "module_path": "api::domestic_stock::elw::cond_search",
+    "file_path": "src/api/domestic_stock/elw/cond_search.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__cond_search.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 당일급변종목",
+    "endpoint": "/uapi/elw/v1/ranking/quick-change",
+    "slug": "domestic_stock__elw__quick_change",
+    "module_path": "api::domestic_stock::elw::quick_change",
+    "file_path": "src/api/domestic_stock/elw/quick_change.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__quick_change.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 기초자산 목록조회",
+    "endpoint": "/uapi/elw/v1/quotations/udrl-asset-list",
+    "slug": "domestic_stock__elw__udrl_asset_list",
+    "module_path": "api::domestic_stock::elw::udrl_asset_list",
+    "file_path": "src/api/domestic_stock/elw/udrl_asset_list.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__udrl_asset_list.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 비교대상종목조회",
+    "endpoint": "/uapi/elw/v1/quotations/compare-stocks",
+    "slug": "domestic_stock__elw__compare_stocks",
+    "module_path": "api::domestic_stock::elw::compare_stocks",
+    "file_path": "src/api/domestic_stock/elw/compare_stocks.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__compare_stocks.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW LP매매추이",
+    "endpoint": "/uapi/elw/v1/quotations/lp-trade-trend",
+    "slug": "domestic_stock__elw__lp_trade_trend",
+    "module_path": "api::domestic_stock::elw::lp_trade_trend",
+    "file_path": "src/api/domestic_stock/elw/lp_trade_trend.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__lp_trade_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 투자지표추이(체결)",
+    "endpoint": "/uapi/elw/v1/quotations/indicator-trend-ccnl",
+    "slug": "domestic_stock__elw__indicator_trend_ccnl",
+    "module_path": "api::domestic_stock::elw::indicator_trend_ccnl",
+    "file_path": "src/api/domestic_stock/elw/indicator_trend_ccnl.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__indicator_trend_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 투자지표추이(분별)",
+    "endpoint": "/uapi/elw/v1/quotations/indicator-trend-minute",
+    "slug": "domestic_stock__elw__indicator_trend_minute",
+    "module_path": "api::domestic_stock::elw::indicator_trend_minute",
+    "file_path": "src/api/domestic_stock/elw/indicator_trend_minute.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__indicator_trend_minute.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 투자지표추이(일별)",
+    "endpoint": "/uapi/elw/v1/quotations/indicator-trend-daily",
+    "slug": "domestic_stock__elw__indicator_trend_daily",
+    "module_path": "api::domestic_stock::elw::indicator_trend_daily",
+    "file_path": "src/api/domestic_stock/elw/indicator_trend_daily.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__indicator_trend_daily.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 변동성 추이(틱)",
+    "endpoint": "/uapi/elw/v1/quotations/volatility-trend-tick",
+    "slug": "domestic_stock__elw__volatility_trend_tick",
+    "module_path": "api::domestic_stock::elw::volatility_trend_tick",
+    "file_path": "src/api/domestic_stock/elw/volatility_trend_tick.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__volatility_trend_tick.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 변동성추이(체결)",
+    "endpoint": "/uapi/elw/v1/quotations/volatility-trend-ccnl",
+    "slug": "domestic_stock__elw__volatility_trend_ccnl",
+    "module_path": "api::domestic_stock::elw::volatility_trend_ccnl",
+    "file_path": "src/api/domestic_stock/elw/volatility_trend_ccnl.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__volatility_trend_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 변동성 추이(일별)",
+    "endpoint": "/uapi/elw/v1/quotations/volatility-trend-daily",
+    "slug": "domestic_stock__elw__volatility_trend_daily",
+    "module_path": "api::domestic_stock::elw::volatility_trend_daily",
+    "file_path": "src/api/domestic_stock/elw/volatility_trend_daily.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__volatility_trend_daily.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 민감도 추이(체결)",
+    "endpoint": "/uapi/elw/v1/quotations/sensitivity-trend-ccnl",
+    "slug": "domestic_stock__elw__sensitivity_trend_ccnl",
+    "module_path": "api::domestic_stock::elw::sensitivity_trend_ccnl",
+    "file_path": "src/api/domestic_stock/elw/sensitivity_trend_ccnl.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__sensitivity_trend_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 변동성 추이(분별)",
+    "endpoint": "/uapi/elw/v1/quotations/volatility-trend-minute",
+    "slug": "domestic_stock__elw__volatility_trend_minute",
+    "module_path": "api::domestic_stock::elw::volatility_trend_minute",
+    "file_path": "src/api/domestic_stock/elw/volatility_trend_minute.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__volatility_trend_minute.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 민감도 추이(일별)",
+    "endpoint": "/uapi/elw/v1/quotations/sensitivity-trend-daily",
+    "slug": "domestic_stock__elw__sensitivity_trend_daily",
+    "module_path": "api::domestic_stock::elw::sensitivity_trend_daily",
+    "file_path": "src/api/domestic_stock/elw/sensitivity_trend_daily.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__sensitivity_trend_daily.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 만기예정/만기종목",
+    "endpoint": "/uapi/elw/v1/quotations/expiration-stocks",
+    "slug": "domestic_stock__elw__expiration_stocks",
+    "module_path": "api::domestic_stock::elw::expiration_stocks",
+    "file_path": "src/api/domestic_stock/elw/expiration_stocks.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__expiration_stocks.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 지표순위",
+    "endpoint": "/uapi/elw/v1/ranking/indicator",
+    "slug": "domestic_stock__elw__indicator",
+    "module_path": "api::domestic_stock::elw::indicator",
+    "file_path": "src/api/domestic_stock/elw/indicator.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__indicator.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 상승률순위",
+    "endpoint": "/uapi/elw/v1/ranking/updown-rate",
+    "slug": "domestic_stock__elw__updown_rate",
+    "module_path": "api::domestic_stock::elw::updown_rate",
+    "file_path": "src/api/domestic_stock/elw/updown_rate.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__updown_rate.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] ELW 시세",
+    "name": "ELW 거래량순위",
+    "endpoint": "/uapi/elw/v1/ranking/volume-rank",
+    "slug": "domestic_stock__elw__volume_rank",
+    "module_path": "api::domestic_stock::elw::volume_rank",
+    "file_path": "src/api/domestic_stock/elw/volume_rank.rs",
+    "spec_path": ".agent/specs/domestic_stock__elw__volume_rank.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내업종 현재지수",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-index-price",
+    "slug": "domestic_stock__sector__inquire_index_price",
+    "module_path": "api::domestic_stock::sector::inquire_index_price",
+    "file_path": "src/api/domestic_stock/sector/inquire_index_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__inquire_index_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내업종 일자별지수",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-index-daily-price",
+    "slug": "domestic_stock__sector__inquire_index_daily_price",
+    "module_path": "api::domestic_stock::sector::inquire_index_daily_price",
+    "file_path": "src/api/domestic_stock/sector/inquire_index_daily_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__inquire_index_daily_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내업종 시간별지수(초)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-index-tickprice",
+    "slug": "domestic_stock__sector__inquire_index_tickprice",
+    "module_path": "api::domestic_stock::sector::inquire_index_tickprice",
+    "file_path": "src/api/domestic_stock/sector/inquire_index_tickprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__inquire_index_tickprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내업종 시간별지수(분)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-index-timeprice",
+    "slug": "domestic_stock__sector__inquire_index_timeprice",
+    "module_path": "api::domestic_stock::sector::inquire_index_timeprice",
+    "file_path": "src/api/domestic_stock/sector/inquire_index_timeprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__inquire_index_timeprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "업종 분봉조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-time-indexchartprice",
+    "slug": "domestic_stock__sector__inquire_time_indexchartprice",
+    "module_path": "api::domestic_stock::sector::inquire_time_indexchartprice",
+    "file_path": "src/api/domestic_stock/sector/inquire_time_indexchartprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__inquire_time_indexchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내주식업종기간별시세(일/주/월/년)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-daily-indexchartprice",
+    "slug": "domestic_stock__sector__inquire_daily_indexchartprice",
+    "module_path": "api::domestic_stock::sector::inquire_daily_indexchartprice",
+    "file_path": "src/api/domestic_stock/sector/inquire_daily_indexchartprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__inquire_daily_indexchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내업종 구분별전체시세",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-index-category-price",
+    "slug": "domestic_stock__sector__inquire_index_category_price",
+    "module_path": "api::domestic_stock::sector::inquire_index_category_price",
+    "file_path": "src/api/domestic_stock/sector/inquire_index_category_price.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__inquire_index_category_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내주식 예상체결지수 추이",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/exp-index-trend",
+    "slug": "domestic_stock__sector__exp_index_trend",
+    "module_path": "api::domestic_stock::sector::exp_index_trend",
+    "file_path": "src/api/domestic_stock/sector/exp_index_trend.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__exp_index_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내주식 예상체결 전체지수",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/exp-total-index",
+    "slug": "domestic_stock__sector__exp_total_index",
+    "module_path": "api::domestic_stock::sector::exp_total_index",
+    "file_path": "src/api/domestic_stock/sector/exp_total_index.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__exp_total_index.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "변동성완화장치(VI) 현황",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-vi-status",
+    "slug": "domestic_stock__sector__inquire_vi_status",
+    "module_path": "api::domestic_stock::sector::inquire_vi_status",
+    "file_path": "src/api/domestic_stock/sector/inquire_vi_status.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__inquire_vi_status.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "금리 종합(국내채권/금리)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/comp-interest",
+    "slug": "domestic_stock__sector__comp_interest",
+    "module_path": "api::domestic_stock::sector::comp_interest",
+    "file_path": "src/api/domestic_stock/sector/comp_interest.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__comp_interest.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "종합 시황/공시(제목)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/news-title",
+    "slug": "domestic_stock__sector__news_title",
+    "module_path": "api::domestic_stock::sector::news_title",
+    "file_path": "src/api/domestic_stock/sector/news_title.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__news_title.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내휴장일조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/chk-holiday",
+    "slug": "domestic_stock__sector__chk_holiday",
+    "module_path": "api::domestic_stock::sector::chk_holiday",
+    "file_path": "src/api/domestic_stock/sector/chk_holiday.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__chk_holiday.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 업종/기타",
+    "name": "국내선물 영업일조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/market-time",
+    "slug": "domestic_stock__sector__market_time",
+    "module_path": "api::domestic_stock::sector::market_time",
+    "file_path": "src/api/domestic_stock/sector/market_time.rs",
+    "spec_path": ".agent/specs/domestic_stock__sector__market_time.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "상품기본조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/search-info",
+    "slug": "domestic_stock__symbol_info__search_info",
+    "module_path": "api::domestic_stock::symbol_info::search_info",
+    "file_path": "src/api/domestic_stock/symbol_info/search_info.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__search_info.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "주식기본조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/search-stock-info",
+    "slug": "domestic_stock__symbol_info__search_stock_info",
+    "module_path": "api::domestic_stock::symbol_info::search_stock_info",
+    "file_path": "src/api/domestic_stock/symbol_info/search_stock_info.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__search_stock_info.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 대차대조표",
+    "endpoint": "/uapi/domestic-stock/v1/finance/balance-sheet",
+    "slug": "domestic_stock__symbol_info__balance_sheet",
+    "module_path": "api::domestic_stock::symbol_info::balance_sheet",
+    "file_path": "src/api/domestic_stock/symbol_info/balance_sheet.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__balance_sheet.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 손익계산서",
+    "endpoint": "/uapi/domestic-stock/v1/finance/income-statement",
+    "slug": "domestic_stock__symbol_info__income_statement",
+    "module_path": "api::domestic_stock::symbol_info::income_statement",
+    "file_path": "src/api/domestic_stock/symbol_info/income_statement.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__income_statement.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 재무비율",
+    "endpoint": "/uapi/domestic-stock/v1/finance/financial-ratio",
+    "slug": "domestic_stock__symbol_info__financial_ratio",
+    "module_path": "api::domestic_stock::symbol_info::financial_ratio",
+    "file_path": "src/api/domestic_stock/symbol_info/financial_ratio.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__financial_ratio.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 수익성비율",
+    "endpoint": "/uapi/domestic-stock/v1/finance/profit-ratio",
+    "slug": "domestic_stock__symbol_info__profit_ratio",
+    "module_path": "api::domestic_stock::symbol_info::profit_ratio",
+    "file_path": "src/api/domestic_stock/symbol_info/profit_ratio.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__profit_ratio.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 기타주요비율",
+    "endpoint": "/uapi/domestic-stock/v1/finance/other-major-ratios",
+    "slug": "domestic_stock__symbol_info__other_major_ratios",
+    "module_path": "api::domestic_stock::symbol_info::other_major_ratios",
+    "file_path": "src/api/domestic_stock/symbol_info/other_major_ratios.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__other_major_ratios.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 안정성비율",
+    "endpoint": "/uapi/domestic-stock/v1/finance/stability-ratio",
+    "slug": "domestic_stock__symbol_info__stability_ratio",
+    "module_path": "api::domestic_stock::symbol_info::stability_ratio",
+    "file_path": "src/api/domestic_stock/symbol_info/stability_ratio.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__stability_ratio.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 성장성비율",
+    "endpoint": "/uapi/domestic-stock/v1/finance/growth-ratio",
+    "slug": "domestic_stock__symbol_info__growth_ratio",
+    "module_path": "api::domestic_stock::symbol_info::growth_ratio",
+    "file_path": "src/api/domestic_stock/symbol_info/growth_ratio.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__growth_ratio.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 당사 신용가능종목",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/credit-by-company",
+    "slug": "domestic_stock__symbol_info__credit_by_company",
+    "module_path": "api::domestic_stock::symbol_info::credit_by_company",
+    "file_path": "src/api/domestic_stock/symbol_info/credit_by_company.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__credit_by_company.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(배당일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/dividend",
+    "slug": "domestic_stock__symbol_info__dividend",
+    "module_path": "api::domestic_stock::symbol_info::dividend",
+    "file_path": "src/api/domestic_stock/symbol_info/dividend.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__dividend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(주식매수청구일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/purreq",
+    "slug": "domestic_stock__symbol_info__purreq",
+    "module_path": "api::domestic_stock::symbol_info::purreq",
+    "file_path": "src/api/domestic_stock/symbol_info/purreq.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__purreq.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(합병/분할일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/merger-split",
+    "slug": "domestic_stock__symbol_info__merger_split",
+    "module_path": "api::domestic_stock::symbol_info::merger_split",
+    "file_path": "src/api/domestic_stock/symbol_info/merger_split.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__merger_split.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(액면교체일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/rev-split",
+    "slug": "domestic_stock__symbol_info__rev_split",
+    "module_path": "api::domestic_stock::symbol_info::rev_split",
+    "file_path": "src/api/domestic_stock/symbol_info/rev_split.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__rev_split.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(자본감소일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/cap-dcrs",
+    "slug": "domestic_stock__symbol_info__cap_dcrs",
+    "module_path": "api::domestic_stock::symbol_info::cap_dcrs",
+    "file_path": "src/api/domestic_stock/symbol_info/cap_dcrs.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__cap_dcrs.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(상장정보일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/list-info",
+    "slug": "domestic_stock__symbol_info__list_info",
+    "module_path": "api::domestic_stock::symbol_info::list_info",
+    "file_path": "src/api/domestic_stock/symbol_info/list_info.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__list_info.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(공모주청약일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/pub-offer",
+    "slug": "domestic_stock__symbol_info__pub_offer",
+    "module_path": "api::domestic_stock::symbol_info::pub_offer",
+    "file_path": "src/api/domestic_stock/symbol_info/pub_offer.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__pub_offer.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(실권주일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/forfeit",
+    "slug": "domestic_stock__symbol_info__forfeit",
+    "module_path": "api::domestic_stock::symbol_info::forfeit",
+    "file_path": "src/api/domestic_stock/symbol_info/forfeit.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__forfeit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(의무예치일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/mand-deposit",
+    "slug": "domestic_stock__symbol_info__mand_deposit",
+    "module_path": "api::domestic_stock::symbol_info::mand_deposit",
+    "file_path": "src/api/domestic_stock/symbol_info/mand_deposit.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__mand_deposit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(유상증자일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/paidin-capin",
+    "slug": "domestic_stock__symbol_info__paidin_capin",
+    "module_path": "api::domestic_stock::symbol_info::paidin_capin",
+    "file_path": "src/api/domestic_stock/symbol_info/paidin_capin.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__paidin_capin.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(무상증자일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/bonus-issue",
+    "slug": "domestic_stock__symbol_info__bonus_issue",
+    "module_path": "api::domestic_stock::symbol_info::bonus_issue",
+    "file_path": "src/api/domestic_stock/symbol_info/bonus_issue.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__bonus_issue.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "예탁원정보(주주총회일정)",
+    "endpoint": "/uapi/domestic-stock/v1/ksdinfo/sharehld-meet",
+    "slug": "domestic_stock__symbol_info__sharehld_meet",
+    "module_path": "api::domestic_stock::symbol_info::sharehld_meet",
+    "file_path": "src/api/domestic_stock/symbol_info/sharehld_meet.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__sharehld_meet.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 종목추정실적",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/estimate-perform",
+    "slug": "domestic_stock__symbol_info__estimate_perform",
+    "module_path": "api::domestic_stock::symbol_info::estimate_perform",
+    "file_path": "src/api/domestic_stock/symbol_info/estimate_perform.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__estimate_perform.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "당사 대주가능 종목",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/lendable-by-company",
+    "slug": "domestic_stock__symbol_info__lendable_by_company",
+    "module_path": "api::domestic_stock::symbol_info::lendable_by_company",
+    "file_path": "src/api/domestic_stock/symbol_info/lendable_by_company.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__lendable_by_company.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 종목투자의견",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/invest-opinion",
+    "slug": "domestic_stock__symbol_info__invest_opinion",
+    "module_path": "api::domestic_stock::symbol_info::invest_opinion",
+    "file_path": "src/api/domestic_stock/symbol_info/invest_opinion.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__invest_opinion.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 종목정보",
+    "name": "국내주식 증권사별 투자의견",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/invest-opbysec",
+    "slug": "domestic_stock__symbol_info__invest_opbysec",
+    "module_path": "api::domestic_stock::symbol_info::invest_opbysec",
+    "file_path": "src/api/domestic_stock/symbol_info/invest_opbysec.rs",
+    "spec_path": ".agent/specs/domestic_stock__symbol_info__invest_opbysec.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목조건검색 목록조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/psearch-title",
+    "slug": "domestic_stock__market_analysis__psearch_title",
+    "module_path": "api::domestic_stock::market_analysis::psearch_title",
+    "file_path": "src/api/domestic_stock/market_analysis/psearch_title.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__psearch_title.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목조건검색조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/psearch-result",
+    "slug": "domestic_stock__market_analysis__psearch_result",
+    "module_path": "api::domestic_stock::market_analysis::psearch_result",
+    "file_path": "src/api/domestic_stock/market_analysis/psearch_result.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__psearch_result.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "관심종목 그룹조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/intstock-grouplist",
+    "slug": "domestic_stock__market_analysis__intstock_grouplist",
+    "module_path": "api::domestic_stock::market_analysis::intstock_grouplist",
+    "file_path": "src/api/domestic_stock/market_analysis/intstock_grouplist.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__intstock_grouplist.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "관심종목(멀티종목) 시세조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/intstock-multprice",
+    "slug": "domestic_stock__market_analysis__intstock_multprice",
+    "module_path": "api::domestic_stock::market_analysis::intstock_multprice",
+    "file_path": "src/api/domestic_stock/market_analysis/intstock_multprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__intstock_multprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "관심종목 그룹별 종목조회",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/intstock-stocklist-by-group",
+    "slug": "domestic_stock__market_analysis__intstock_stocklist_by_group",
+    "module_path": "api::domestic_stock::market_analysis::intstock_stocklist_by_group",
+    "file_path": "src/api/domestic_stock/market_analysis/intstock_stocklist_by_group.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__intstock_stocklist_by_group.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내기관_외국인 매매종목가집계",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/foreign-institution-total",
+    "slug": "domestic_stock__market_analysis__foreign_institution_total",
+    "module_path": "api::domestic_stock::market_analysis::foreign_institution_total",
+    "file_path": "src/api/domestic_stock/market_analysis/foreign_institution_total.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__foreign_institution_total.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "외국계 매매종목 가집계",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/frgnmem-trade-estimate",
+    "slug": "domestic_stock__market_analysis__frgnmem_trade_estimate",
+    "module_path": "api::domestic_stock::market_analysis::frgnmem_trade_estimate",
+    "file_path": "src/api/domestic_stock/market_analysis/frgnmem_trade_estimate.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__frgnmem_trade_estimate.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목별 투자자매매동향(일별)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/investor-trade-by-stock-daily",
+    "slug": "domestic_stock__market_analysis__investor_trade_by_stock_daily",
+    "module_path": "api::domestic_stock::market_analysis::investor_trade_by_stock_daily",
+    "file_path": "src/api/domestic_stock/market_analysis/investor_trade_by_stock_daily.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__investor_trade_by_stock_daily.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "시장별 투자자매매동향(시세)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-investor-time-by-market",
+    "slug": "domestic_stock__market_analysis__inquire_investor_time_by_market",
+    "module_path": "api::domestic_stock::market_analysis::inquire_investor_time_by_market",
+    "file_path": "src/api/domestic_stock/market_analysis/inquire_investor_time_by_market.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__inquire_investor_time_by_market.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "시장별 투자자매매동향(일별)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-investor-daily-by-market",
+    "slug": "domestic_stock__market_analysis__inquire_investor_daily_by_market",
+    "module_path": "api::domestic_stock::market_analysis::inquire_investor_daily_by_market",
+    "file_path": "src/api/domestic_stock/market_analysis/inquire_investor_daily_by_market.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__inquire_investor_daily_by_market.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목별 외국계 순매수추이",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/frgnmem-pchs-trend",
+    "slug": "domestic_stock__market_analysis__frgnmem_pchs_trend",
+    "module_path": "api::domestic_stock::market_analysis::frgnmem_pchs_trend",
+    "file_path": "src/api/domestic_stock/market_analysis/frgnmem_pchs_trend.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__frgnmem_pchs_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "회원사 실시간 매매동향(틱)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/frgnmem-trade-trend",
+    "slug": "domestic_stock__market_analysis__frgnmem_trade_trend",
+    "module_path": "api::domestic_stock::market_analysis::frgnmem_trade_trend",
+    "file_path": "src/api/domestic_stock/market_analysis/frgnmem_trade_trend.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__frgnmem_trade_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "주식현재가 회원사 종목매매동향",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-member-daily",
+    "slug": "domestic_stock__market_analysis__inquire_member_daily",
+    "module_path": "api::domestic_stock::market_analysis::inquire_member_daily",
+    "file_path": "src/api/domestic_stock/market_analysis/inquire_member_daily.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__inquire_member_daily.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목별 프로그램매매추이(체결)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/program-trade-by-stock",
+    "slug": "domestic_stock__market_analysis__program_trade_by_stock",
+    "module_path": "api::domestic_stock::market_analysis::program_trade_by_stock",
+    "file_path": "src/api/domestic_stock/market_analysis/program_trade_by_stock.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__program_trade_by_stock.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목별 프로그램매매추이(일별)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/program-trade-by-stock-daily",
+    "slug": "domestic_stock__market_analysis__program_trade_by_stock_daily",
+    "module_path": "api::domestic_stock::market_analysis::program_trade_by_stock_daily",
+    "file_path": "src/api/domestic_stock/market_analysis/program_trade_by_stock_daily.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__program_trade_by_stock_daily.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목별 외인기관 추정가집계",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/investor-trend-estimate",
+    "slug": "domestic_stock__market_analysis__investor_trend_estimate",
+    "module_path": "api::domestic_stock::market_analysis::investor_trend_estimate",
+    "file_path": "src/api/domestic_stock/market_analysis/investor_trend_estimate.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__investor_trend_estimate.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목별일별매수매도체결량",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/inquire-daily-trade-volume",
+    "slug": "domestic_stock__market_analysis__inquire_daily_trade_volume",
+    "module_path": "api::domestic_stock::market_analysis::inquire_daily_trade_volume",
+    "file_path": "src/api/domestic_stock/market_analysis/inquire_daily_trade_volume.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__inquire_daily_trade_volume.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "프로그램매매 종합현황(시간)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/comp-program-trade-today",
+    "slug": "domestic_stock__market_analysis__comp_program_trade_today",
+    "module_path": "api::domestic_stock::market_analysis::comp_program_trade_today",
+    "file_path": "src/api/domestic_stock/market_analysis/comp_program_trade_today.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__comp_program_trade_today.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "프로그램매매 종합현황(일별)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/comp-program-trade-daily",
+    "slug": "domestic_stock__market_analysis__comp_program_trade_daily",
+    "module_path": "api::domestic_stock::market_analysis::comp_program_trade_daily",
+    "file_path": "src/api/domestic_stock/market_analysis/comp_program_trade_daily.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__comp_program_trade_daily.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "프로그램매매 투자자매매동향(당일)",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/investor-program-trade-today",
+    "slug": "domestic_stock__market_analysis__investor_program_trade_today",
+    "module_path": "api::domestic_stock::market_analysis::investor_program_trade_today",
+    "file_path": "src/api/domestic_stock/market_analysis/investor_program_trade_today.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__investor_program_trade_today.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내주식 신용잔고 일별추이",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/daily-credit-balance",
+    "slug": "domestic_stock__market_analysis__daily_credit_balance",
+    "module_path": "api::domestic_stock::market_analysis::daily_credit_balance",
+    "file_path": "src/api/domestic_stock/market_analysis/daily_credit_balance.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__daily_credit_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내주식 예상체결가 추이",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/exp-price-trend",
+    "slug": "domestic_stock__market_analysis__exp_price_trend",
+    "module_path": "api::domestic_stock::market_analysis::exp_price_trend",
+    "file_path": "src/api/domestic_stock/market_analysis/exp_price_trend.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__exp_price_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내주식 공매도 일별추이",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/daily-short-sale",
+    "slug": "domestic_stock__market_analysis__daily_short_sale",
+    "module_path": "api::domestic_stock::market_analysis::daily_short_sale",
+    "file_path": "src/api/domestic_stock/market_analysis/daily_short_sale.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__daily_short_sale.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내주식 시간외예상체결등락률",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/overtime-exp-trans-fluct",
+    "slug": "domestic_stock__market_analysis__overtime_exp_trans_fluct",
+    "module_path": "api::domestic_stock::market_analysis::overtime_exp_trans_fluct",
+    "file_path": "src/api/domestic_stock/market_analysis/overtime_exp_trans_fluct.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__overtime_exp_trans_fluct.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내주식 체결금액별 매매비중",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/tradprt-byamt",
+    "slug": "domestic_stock__market_analysis__tradprt_byamt",
+    "module_path": "api::domestic_stock::market_analysis::tradprt_byamt",
+    "file_path": "src/api/domestic_stock/market_analysis/tradprt_byamt.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__tradprt_byamt.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내 증시자금 종합",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/mktfunds",
+    "slug": "domestic_stock__market_analysis__mktfunds",
+    "module_path": "api::domestic_stock::market_analysis::mktfunds",
+    "file_path": "src/api/domestic_stock/market_analysis/mktfunds.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__mktfunds.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "종목별 일별 대차거래추이",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/daily-loan-trans",
+    "slug": "domestic_stock__market_analysis__daily_loan_trans",
+    "module_path": "api::domestic_stock::market_analysis::daily_loan_trans",
+    "file_path": "src/api/domestic_stock/market_analysis/daily_loan_trans.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__daily_loan_trans.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내주식 상하한가 포착",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/capture-uplowprice",
+    "slug": "domestic_stock__market_analysis__capture_uplowprice",
+    "module_path": "api::domestic_stock::market_analysis::capture_uplowprice",
+    "file_path": "src/api/domestic_stock/market_analysis/capture_uplowprice.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__capture_uplowprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 시세분석",
+    "name": "국내주식 매물대/거래비중",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/pbar-tratio",
+    "slug": "domestic_stock__market_analysis__pbar_tratio",
+    "module_path": "api::domestic_stock::market_analysis::pbar_tratio",
+    "file_path": "src/api/domestic_stock/market_analysis/pbar_tratio.rs",
+    "spec_path": ".agent/specs/domestic_stock__market_analysis__pbar_tratio.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "거래량순위",
+    "endpoint": "/uapi/domestic-stock/v1/quotations/volume-rank",
+    "slug": "domestic_stock__ranking__volume_rank",
+    "module_path": "api::domestic_stock::ranking::volume_rank",
+    "file_path": "src/api/domestic_stock/ranking/volume_rank.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__volume_rank.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 등락률 순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/fluctuation",
+    "slug": "domestic_stock__ranking__fluctuation",
+    "module_path": "api::domestic_stock::ranking::fluctuation",
+    "file_path": "src/api/domestic_stock/ranking/fluctuation.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__fluctuation.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 호가잔량 순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/quote-balance",
+    "slug": "domestic_stock__ranking__quote_balance",
+    "module_path": "api::domestic_stock::ranking::quote_balance",
+    "file_path": "src/api/domestic_stock/ranking/quote_balance.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__quote_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 수익자산지표 순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/profit-asset-index",
+    "slug": "domestic_stock__ranking__profit_asset_index",
+    "module_path": "api::domestic_stock::ranking::profit_asset_index",
+    "file_path": "src/api/domestic_stock/ranking/profit_asset_index.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__profit_asset_index.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 시가총액 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/market-cap",
+    "slug": "domestic_stock__ranking__market_cap",
+    "module_path": "api::domestic_stock::ranking::market_cap",
+    "file_path": "src/api/domestic_stock/ranking/market_cap.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__market_cap.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 재무비율 순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/finance-ratio",
+    "slug": "domestic_stock__ranking__finance_ratio",
+    "module_path": "api::domestic_stock::ranking::finance_ratio",
+    "file_path": "src/api/domestic_stock/ranking/finance_ratio.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__finance_ratio.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 시간외잔량 순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/after-hour-balance",
+    "slug": "domestic_stock__ranking__after_hour_balance",
+    "module_path": "api::domestic_stock::ranking::after_hour_balance",
+    "file_path": "src/api/domestic_stock/ranking/after_hour_balance.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__after_hour_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 우선주/괴리율 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/prefer-disparate-ratio",
+    "slug": "domestic_stock__ranking__prefer_disparate_ratio",
+    "module_path": "api::domestic_stock::ranking::prefer_disparate_ratio",
+    "file_path": "src/api/domestic_stock/ranking/prefer_disparate_ratio.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__prefer_disparate_ratio.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 이격도 순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/disparity",
+    "slug": "domestic_stock__ranking__disparity",
+    "module_path": "api::domestic_stock::ranking::disparity",
+    "file_path": "src/api/domestic_stock/ranking/disparity.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__disparity.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 시장가치 순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/market-value",
+    "slug": "domestic_stock__ranking__market_value",
+    "module_path": "api::domestic_stock::ranking::market_value",
+    "file_path": "src/api/domestic_stock/ranking/market_value.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__market_value.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 체결강도 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/volume-power",
+    "slug": "domestic_stock__ranking__volume_power",
+    "module_path": "api::domestic_stock::ranking::volume_power",
+    "file_path": "src/api/domestic_stock/ranking/volume_power.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__volume_power.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 관심종목등록 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/top-interest-stock",
+    "slug": "domestic_stock__ranking__top_interest_stock",
+    "module_path": "api::domestic_stock::ranking::top_interest_stock",
+    "file_path": "src/api/domestic_stock/ranking/top_interest_stock.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__top_interest_stock.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 예상체결 상승/하락상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/exp-trans-updown",
+    "slug": "domestic_stock__ranking__exp_trans_updown",
+    "module_path": "api::domestic_stock::ranking::exp_trans_updown",
+    "file_path": "src/api/domestic_stock/ranking/exp_trans_updown.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__exp_trans_updown.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 당사매매종목 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/traded-by-company",
+    "slug": "domestic_stock__ranking__traded_by_company",
+    "module_path": "api::domestic_stock::ranking::traded_by_company",
+    "file_path": "src/api/domestic_stock/ranking/traded_by_company.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__traded_by_company.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 신고/신저근접종목 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/near-new-highlow",
+    "slug": "domestic_stock__ranking__near_new_highlow",
+    "module_path": "api::domestic_stock::ranking::near_new_highlow",
+    "file_path": "src/api/domestic_stock/ranking/near_new_highlow.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__near_new_highlow.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 배당률 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/dividend-rate",
+    "slug": "domestic_stock__ranking__dividend_rate",
+    "module_path": "api::domestic_stock::ranking::dividend_rate",
+    "file_path": "src/api/domestic_stock/ranking/dividend_rate.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__dividend_rate.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 대량체결건수 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/bulk-trans-num",
+    "slug": "domestic_stock__ranking__bulk_trans_num",
+    "module_path": "api::domestic_stock::ranking::bulk_trans_num",
+    "file_path": "src/api/domestic_stock/ranking/bulk_trans_num.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__bulk_trans_num.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 신용잔고 상위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/credit-balance",
+    "slug": "domestic_stock__ranking__credit_balance",
+    "module_path": "api::domestic_stock::ranking::credit_balance",
+    "file_path": "src/api/domestic_stock/ranking/credit_balance.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__credit_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 공매도 상위종목",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/short-sale",
+    "slug": "domestic_stock__ranking__short_sale",
+    "module_path": "api::domestic_stock::ranking::short_sale",
+    "file_path": "src/api/domestic_stock/ranking/short_sale.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__short_sale.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 시간외등락율순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/overtime-fluctuation",
+    "slug": "domestic_stock__ranking__overtime_fluctuation",
+    "module_path": "api::domestic_stock::ranking::overtime_fluctuation",
+    "file_path": "src/api/domestic_stock/ranking/overtime_fluctuation.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__overtime_fluctuation.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "국내주식 시간외거래량순위",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/overtime-volume",
+    "slug": "domestic_stock__ranking__overtime_volume",
+    "module_path": "api::domestic_stock::ranking::overtime_volume",
+    "file_path": "src/api/domestic_stock/ranking/overtime_volume.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__overtime_volume.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 순위분석",
+    "name": "HTS조회상위20종목",
+    "endpoint": "/uapi/domestic-stock/v1/ranking/hts-top-view",
+    "slug": "domestic_stock__ranking__hts_top_view",
+    "module_path": "api::domestic_stock::ranking::hts_top_view",
+    "file_path": "src/api/domestic_stock/ranking/hts_top_view.rs",
+    "spec_path": ".agent/specs/domestic_stock__ranking__hts_top_view.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간체결가 (KRX)",
+    "endpoint": "/tryitout/H0STCNT0",
+    "slug": "domestic_stock__realtime__h0stcnt0",
+    "module_path": "api::domestic_stock::realtime::h0stcnt0",
+    "file_path": "src/api/domestic_stock/realtime/h0stcnt0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간호가 (KRX)",
+    "endpoint": "/tryitout/H0STASP0",
+    "slug": "domestic_stock__realtime__h0stasp0",
+    "module_path": "api::domestic_stock::realtime::h0stasp0",
+    "file_path": "src/api/domestic_stock/realtime/h0stasp0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간체결통보",
+    "endpoint": "/tryitout/H0STCNI0",
+    "slug": "domestic_stock__realtime__h0stcni0",
+    "module_path": "api::domestic_stock::realtime::h0stcni0",
+    "file_path": "src/api/domestic_stock/realtime/h0stcni0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stcni0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간예상체결 (KRX)",
+    "endpoint": "/tryitout/H0STANC0",
+    "slug": "domestic_stock__realtime__h0stanc0",
+    "module_path": "api::domestic_stock::realtime::h0stanc0",
+    "file_path": "src/api/domestic_stock/realtime/h0stanc0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stanc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간회원사 (KRX)",
+    "endpoint": "/tryitout/H0STMBC0",
+    "slug": "domestic_stock__realtime__h0stmbc0",
+    "module_path": "api::domestic_stock::realtime::h0stmbc0",
+    "file_path": "src/api/domestic_stock/realtime/h0stmbc0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stmbc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간프로그램매매 (KRX)",
+    "endpoint": "/tryitout/H0STPGM0",
+    "slug": "domestic_stock__realtime__h0stpgm0",
+    "module_path": "api::domestic_stock::realtime::h0stpgm0",
+    "file_path": "src/api/domestic_stock/realtime/h0stpgm0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stpgm0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 장운영정보 (KRX)",
+    "endpoint": "/tryitout/H0STMKO0",
+    "slug": "domestic_stock__realtime__h0stmko0",
+    "module_path": "api::domestic_stock::realtime::h0stmko0",
+    "file_path": "src/api/domestic_stock/realtime/h0stmko0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stmko0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 시간외 실시간호가 (KRX)",
+    "endpoint": "/tryitout/H0STOAA0",
+    "slug": "domestic_stock__realtime__h0stoaa0",
+    "module_path": "api::domestic_stock::realtime::h0stoaa0",
+    "file_path": "src/api/domestic_stock/realtime/h0stoaa0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stoaa0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 시간외 실시간체결가 (KRX)",
+    "endpoint": "/tryitout/H0STOUP0",
+    "slug": "domestic_stock__realtime__h0stoup0",
+    "module_path": "api::domestic_stock::realtime::h0stoup0",
+    "file_path": "src/api/domestic_stock/realtime/h0stoup0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stoup0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 시간외 실시간예상체결 (KRX)",
+    "endpoint": "/tryitout/H0STOAC0",
+    "slug": "domestic_stock__realtime__h0stoac0",
+    "module_path": "api::domestic_stock::realtime::h0stoac0",
+    "file_path": "src/api/domestic_stock/realtime/h0stoac0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stoac0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내지수 실시간체결",
+    "endpoint": "/tryitout/H0UPCNT0",
+    "slug": "domestic_stock__realtime__h0upcnt0",
+    "module_path": "api::domestic_stock::realtime::h0upcnt0",
+    "file_path": "src/api/domestic_stock/realtime/h0upcnt0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0upcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내지수 실시간예상체결",
+    "endpoint": "/tryitout/H0UPANC0",
+    "slug": "domestic_stock__realtime__h0upanc0",
+    "module_path": "api::domestic_stock::realtime::h0upanc0",
+    "file_path": "src/api/domestic_stock/realtime/h0upanc0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0upanc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내지수 실시간프로그램매매",
+    "endpoint": "/tryitout/H0UPPGM0",
+    "slug": "domestic_stock__realtime__h0uppgm0",
+    "module_path": "api::domestic_stock::realtime::h0uppgm0",
+    "file_path": "src/api/domestic_stock/realtime/h0uppgm0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0uppgm0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "ELW 실시간호가",
+    "endpoint": "/tryitout/H0EWASP0",
+    "slug": "domestic_stock__realtime__h0ewasp0",
+    "module_path": "api::domestic_stock::realtime::h0ewasp0",
+    "file_path": "src/api/domestic_stock/realtime/h0ewasp0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0ewasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "ELW 실시간체결가",
+    "endpoint": "/tryitout/H0EWCNT0",
+    "slug": "domestic_stock__realtime__h0ewcnt0",
+    "module_path": "api::domestic_stock::realtime::h0ewcnt0",
+    "file_path": "src/api/domestic_stock/realtime/h0ewcnt0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0ewcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "ELW 실시간예상체결",
+    "endpoint": "/tryitout/H0EWANC0",
+    "slug": "domestic_stock__realtime__h0ewanc0",
+    "module_path": "api::domestic_stock::realtime::h0ewanc0",
+    "file_path": "src/api/domestic_stock/realtime/h0ewanc0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0ewanc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내ETF NAV추이",
+    "endpoint": "/tryitout/H0STNAV0",
+    "slug": "domestic_stock__realtime__h0stnav0",
+    "module_path": "api::domestic_stock::realtime::h0stnav0",
+    "file_path": "src/api/domestic_stock/realtime/h0stnav0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0stnav0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간체결가 (통합)",
+    "endpoint": "/tryitout/H0UNCNT0",
+    "slug": "domestic_stock__realtime__h0uncnt0",
+    "module_path": "api::domestic_stock::realtime::h0uncnt0",
+    "file_path": "src/api/domestic_stock/realtime/h0uncnt0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0uncnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간호가 (통합)",
+    "endpoint": "/tryitout/H0UNASP0",
+    "slug": "domestic_stock__realtime__h0unasp0",
+    "module_path": "api::domestic_stock::realtime::h0unasp0",
+    "file_path": "src/api/domestic_stock/realtime/h0unasp0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0unasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간예상체결 (통합)",
+    "endpoint": "/tryitout/H0UNANC0",
+    "slug": "domestic_stock__realtime__h0unanc0",
+    "module_path": "api::domestic_stock::realtime::h0unanc0",
+    "file_path": "src/api/domestic_stock/realtime/h0unanc0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0unanc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간회원사 (통합)",
+    "endpoint": "/tryitout/H0UNMBC0",
+    "slug": "domestic_stock__realtime__h0unmbc0",
+    "module_path": "api::domestic_stock::realtime::h0unmbc0",
+    "file_path": "src/api/domestic_stock/realtime/h0unmbc0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0unmbc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간프로그램매매 (통합)",
+    "endpoint": "/tryitout/H0UNPGM0",
+    "slug": "domestic_stock__realtime__h0unpgm0",
+    "module_path": "api::domestic_stock::realtime::h0unpgm0",
+    "file_path": "src/api/domestic_stock/realtime/h0unpgm0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0unpgm0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 장운영정보 (통합)",
+    "endpoint": "/tryitout/H0UNMKO0",
+    "slug": "domestic_stock__realtime__h0unmko0",
+    "module_path": "api::domestic_stock::realtime::h0unmko0",
+    "file_path": "src/api/domestic_stock/realtime/h0unmko0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0unmko0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간체결가 (NXT)",
+    "endpoint": "/tryitout/H0NXCNT0",
+    "slug": "domestic_stock__realtime__h0nxcnt0",
+    "module_path": "api::domestic_stock::realtime::h0nxcnt0",
+    "file_path": "src/api/domestic_stock/realtime/h0nxcnt0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0nxcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간호가 (NXT)",
+    "endpoint": "/tryitout/H0NXASP0",
+    "slug": "domestic_stock__realtime__h0nxasp0",
+    "module_path": "api::domestic_stock::realtime::h0nxasp0",
+    "file_path": "src/api/domestic_stock/realtime/h0nxasp0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0nxasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간예상체결 (NXT)",
+    "endpoint": "/tryitout/H0NXANC0",
+    "slug": "domestic_stock__realtime__h0nxanc0",
+    "module_path": "api::domestic_stock::realtime::h0nxanc0",
+    "file_path": "src/api/domestic_stock/realtime/h0nxanc0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0nxanc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간회원사 (NXT)",
+    "endpoint": "/tryitout/H0NXMBC0",
+    "slug": "domestic_stock__realtime__h0nxmbc0",
+    "module_path": "api::domestic_stock::realtime::h0nxmbc0",
+    "file_path": "src/api/domestic_stock/realtime/h0nxmbc0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0nxmbc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 실시간프로그램매매 (NXT)",
+    "endpoint": "/tryitout/H0NXPGM0",
+    "slug": "domestic_stock__realtime__h0nxpgm0",
+    "module_path": "api::domestic_stock::realtime::h0nxpgm0",
+    "file_path": "src/api/domestic_stock/realtime/h0nxpgm0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0nxpgm0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내주식] 실시간시세",
+    "name": "국내주식 장운영정보 (NXT)",
+    "endpoint": "/tryitout/H0NXMKO0",
+    "slug": "domestic_stock__realtime__h0nxmko0",
+    "module_path": "api::domestic_stock::realtime::h0nxmko0",
+    "file_path": "src/api/domestic_stock/realtime/h0nxmko0.rs",
+    "spec_path": ".agent/specs/domestic_stock__realtime__h0nxmko0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 주문",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/order",
+    "slug": "futureoption_domestic__order_account__order",
+    "module_path": "api::futureoption_domestic::order_account::order",
+    "file_path": "src/api/futureoption_domestic/order_account/order.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 정정취소주문",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/order-rvsecncl",
+    "slug": "futureoption_domestic__order_account__order_rvsecncl",
+    "module_path": "api::futureoption_domestic::order_account::order_rvsecncl",
+    "file_path": "src/api/futureoption_domestic/order_account/order_rvsecncl.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__order_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 주문체결내역조회",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-ccnl",
+    "slug": "futureoption_domestic__order_account__inquire_ccnl",
+    "module_path": "api::futureoption_domestic::order_account::inquire_ccnl",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 잔고현황",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-balance",
+    "slug": "futureoption_domestic__order_account__inquire_balance",
+    "module_path": "api::futureoption_domestic::order_account::inquire_balance",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_balance.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 주문가능",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-psbl-order",
+    "slug": "futureoption_domestic__order_account__inquire_psbl_order",
+    "module_path": "api::futureoption_domestic::order_account::inquire_psbl_order",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_psbl_order.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_psbl_order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "(야간)선물옵션 주문체결 내역조회",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-ngt-ccnl",
+    "slug": "futureoption_domestic__order_account__inquire_ngt_ccnl",
+    "module_path": "api::futureoption_domestic::order_account::inquire_ngt_ccnl",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_ngt_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_ngt_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "(야간)선물옵션 잔고현황",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-ngt-balance",
+    "slug": "futureoption_domestic__order_account__inquire_ngt_balance",
+    "module_path": "api::futureoption_domestic::order_account::inquire_ngt_balance",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_ngt_balance.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_ngt_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "(야간)선물옵션 주문가능 조회",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-psbl-ngt-order",
+    "slug": "futureoption_domestic__order_account__inquire_psbl_ngt_order",
+    "module_path": "api::futureoption_domestic::order_account::inquire_psbl_ngt_order",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_psbl_ngt_order.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_psbl_ngt_order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "(야간)선물옵션 증거금 상세",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/ngt-margin-detail",
+    "slug": "futureoption_domestic__order_account__ngt_margin_detail",
+    "module_path": "api::futureoption_domestic::order_account::ngt_margin_detail",
+    "file_path": "src/api/futureoption_domestic/order_account/ngt_margin_detail.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__ngt_margin_detail.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 잔고정산손익내역",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-balance-settlement-pl",
+    "slug": "futureoption_domestic__order_account__inquire_balance_settlement_pl",
+    "module_path": "api::futureoption_domestic::order_account::inquire_balance_settlement_pl",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_balance_settlement_pl.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_balance_settlement_pl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 총자산현황",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-deposit",
+    "slug": "futureoption_domestic__order_account__inquire_deposit",
+    "module_path": "api::futureoption_domestic::order_account::inquire_deposit",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_deposit.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_deposit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 잔고평가손익내역",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-balance-valuation-pl",
+    "slug": "futureoption_domestic__order_account__inquire_balance_valuation_pl",
+    "module_path": "api::futureoption_domestic::order_account::inquire_balance_valuation_pl",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_balance_valuation_pl.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_balance_valuation_pl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 기준일체결내역",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-ccnl-bstime",
+    "slug": "futureoption_domestic__order_account__inquire_ccnl_bstime",
+    "module_path": "api::futureoption_domestic::order_account::inquire_ccnl_bstime",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_ccnl_bstime.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_ccnl_bstime.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션기간약정수수료일별",
+    "endpoint": "/uapi/domestic-futureoption/v1/trading/inquire-daily-amount-fee",
+    "slug": "futureoption_domestic__order_account__inquire_daily_amount_fee",
+    "module_path": "api::futureoption_domestic::order_account::inquire_daily_amount_fee",
+    "file_path": "src/api/futureoption_domestic/order_account/inquire_daily_amount_fee.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_daily_amount_fee.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 주문/계좌",
+    "name": "선물옵션 증거금률",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/margin-rate",
+    "slug": "futureoption_domestic__order_account__margin_rate",
+    "module_path": "api::futureoption_domestic::order_account::margin_rate",
+    "file_path": "src/api/futureoption_domestic/order_account/margin_rate.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__order_account__margin_rate.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "선물옵션 시세",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/inquire-price",
+    "slug": "futureoption_domestic__quotations__inquire_price",
+    "module_path": "api::futureoption_domestic::quotations::inquire_price",
+    "file_path": "src/api/futureoption_domestic/quotations/inquire_price.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__inquire_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "선물옵션 시세호가",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/inquire-asking-price",
+    "slug": "futureoption_domestic__quotations__inquire_asking_price",
+    "module_path": "api::futureoption_domestic::quotations::inquire_asking_price",
+    "file_path": "src/api/futureoption_domestic/quotations/inquire_asking_price.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__inquire_asking_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "선물옵션기간별시세(일/주/월/년)",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/inquire-daily-fuopchartprice",
+    "slug": "futureoption_domestic__quotations__inquire_daily_fuopchartprice",
+    "module_path": "api::futureoption_domestic::quotations::inquire_daily_fuopchartprice",
+    "file_path": "src/api/futureoption_domestic/quotations/inquire_daily_fuopchartprice.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__inquire_daily_fuopchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "선물옵션 분봉조회",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/inquire-time-fuopchartprice",
+    "slug": "futureoption_domestic__quotations__inquire_time_fuopchartprice",
+    "module_path": "api::futureoption_domestic::quotations::inquire_time_fuopchartprice",
+    "file_path": "src/api/futureoption_domestic/quotations/inquire_time_fuopchartprice.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__inquire_time_fuopchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "국내옵션전광판_옵션월물리스트",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/display-board-option-list",
+    "slug": "futureoption_domestic__quotations__display_board_option_list",
+    "module_path": "api::futureoption_domestic::quotations::display_board_option_list",
+    "file_path": "src/api/futureoption_domestic/quotations/display_board_option_list.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__display_board_option_list.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "국내선물 기초자산 시세",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/display-board-top",
+    "slug": "futureoption_domestic__quotations__display_board_top",
+    "module_path": "api::futureoption_domestic::quotations::display_board_top",
+    "file_path": "src/api/futureoption_domestic/quotations/display_board_top.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__display_board_top.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "국내옵션전광판_콜풋",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/display-board-callput",
+    "slug": "futureoption_domestic__quotations__display_board_callput",
+    "module_path": "api::futureoption_domestic::quotations::display_board_callput",
+    "file_path": "src/api/futureoption_domestic/quotations/display_board_callput.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__display_board_callput.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "국내옵션전광판_선물",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/display-board-futures",
+    "slug": "futureoption_domestic__quotations__display_board_futures",
+    "module_path": "api::futureoption_domestic::quotations::display_board_futures",
+    "file_path": "src/api/futureoption_domestic/quotations/display_board_futures.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__display_board_futures.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 기본시세",
+    "name": "선물옵션 일중예상체결추이",
+    "endpoint": "/uapi/domestic-futureoption/v1/quotations/exp-price-trend",
+    "slug": "futureoption_domestic__quotations__exp_price_trend",
+    "module_path": "api::futureoption_domestic::quotations::exp_price_trend",
+    "file_path": "src/api/futureoption_domestic/quotations/exp_price_trend.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__quotations__exp_price_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "지수선물 실시간호가",
+    "endpoint": "/tryitout/H0IFASP0",
+    "slug": "futureoption_domestic__realtime__h0ifasp0",
+    "module_path": "api::futureoption_domestic::realtime::h0ifasp0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0ifasp0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0ifasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "지수선물 실시간체결가",
+    "endpoint": "/tryitout/H0IFCNT0",
+    "slug": "futureoption_domestic__realtime__h0ifcnt0",
+    "module_path": "api::futureoption_domestic::realtime::h0ifcnt0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0ifcnt0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0ifcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "지수옵션 실시간호가",
+    "endpoint": "/tryitout/H0IOASP0",
+    "slug": "futureoption_domestic__realtime__h0ioasp0",
+    "module_path": "api::futureoption_domestic::realtime::h0ioasp0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0ioasp0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0ioasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "지수옵션  실시간체결가",
+    "endpoint": "/tryitout/H0IOCNT0",
+    "slug": "futureoption_domestic__realtime__h0iocnt0",
+    "module_path": "api::futureoption_domestic::realtime::h0iocnt0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0iocnt0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0iocnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "선물옵션 실시간체결통보",
+    "endpoint": "/tryitout/H0IFCNI0",
+    "slug": "futureoption_domestic__realtime__h0ifcni0",
+    "module_path": "api::futureoption_domestic::realtime::h0ifcni0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0ifcni0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0ifcni0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "상품선물 실시간호가",
+    "endpoint": "/tryitout/H0CFASP0",
+    "slug": "futureoption_domestic__realtime__h0cfasp0",
+    "module_path": "api::futureoption_domestic::realtime::h0cfasp0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0cfasp0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0cfasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "상품선물 실시간체결가",
+    "endpoint": "/tryitout/H0CFCNT0",
+    "slug": "futureoption_domestic__realtime__h0cfcnt0",
+    "module_path": "api::futureoption_domestic::realtime::h0cfcnt0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0cfcnt0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0cfcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "주식선물 실시간호가",
+    "endpoint": "/tryitout/H0ZFASP0",
+    "slug": "futureoption_domestic__realtime__h0zfasp0",
+    "module_path": "api::futureoption_domestic::realtime::h0zfasp0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0zfasp0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0zfasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "주식선물 실시간체결가",
+    "endpoint": "/tryitout/H0ZFCNT0",
+    "slug": "futureoption_domestic__realtime__h0zfcnt0",
+    "module_path": "api::futureoption_domestic::realtime::h0zfcnt0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0zfcnt0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0zfcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "주식선물 실시간예상체결",
+    "endpoint": "/tryitout/H0ZFANC0",
+    "slug": "futureoption_domestic__realtime__h0zfanc0",
+    "module_path": "api::futureoption_domestic::realtime::h0zfanc0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0zfanc0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0zfanc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "주식옵션 실시간호가",
+    "endpoint": "/tryitout/H0ZOASP0",
+    "slug": "futureoption_domestic__realtime__h0zoasp0",
+    "module_path": "api::futureoption_domestic::realtime::h0zoasp0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0zoasp0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0zoasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "주식옵션 실시간체결가",
+    "endpoint": "/tryitout/H0ZOCNT0",
+    "slug": "futureoption_domestic__realtime__h0zocnt0",
+    "module_path": "api::futureoption_domestic::realtime::h0zocnt0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0zocnt0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0zocnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "주식옵션 실시간예상체결",
+    "endpoint": "/tryitout/H0ZOANC0",
+    "slug": "futureoption_domestic__realtime__h0zoanc0",
+    "module_path": "api::futureoption_domestic::realtime::h0zoanc0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0zoanc0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0zoanc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "KRX야간옵션 실시간호가",
+    "endpoint": "/tryitout/H0EUASP0",
+    "slug": "futureoption_domestic__realtime__h0euasp0",
+    "module_path": "api::futureoption_domestic::realtime::h0euasp0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0euasp0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0euasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "KRX야간옵션 실시간체결가",
+    "endpoint": "/tryitout/H0EUCNT0",
+    "slug": "futureoption_domestic__realtime__h0eucnt0",
+    "module_path": "api::futureoption_domestic::realtime::h0eucnt0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0eucnt0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0eucnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "KRX야간옵션실시간예상체결",
+    "endpoint": "/tryitout/H0EUANC0",
+    "slug": "futureoption_domestic__realtime__h0euanc0",
+    "module_path": "api::futureoption_domestic::realtime::h0euanc0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0euanc0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0euanc0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "KRX야간옵션실시간체결통보",
+    "endpoint": "/tryitout/H0EUCNI0",
+    "slug": "futureoption_domestic__realtime__h0eucni0",
+    "module_path": "api::futureoption_domestic::realtime::h0eucni0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0eucni0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0eucni0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "KRX야간선물 실시간호가",
+    "endpoint": "/tryitout/H0MFASP0",
+    "slug": "futureoption_domestic__realtime__h0mfasp0",
+    "module_path": "api::futureoption_domestic::realtime::h0mfasp0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0mfasp0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0mfasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "KRX야간선물 실시간종목체결",
+    "endpoint": "/tryitout/H0MFCNT0",
+    "slug": "futureoption_domestic__realtime__h0mfcnt0",
+    "module_path": "api::futureoption_domestic::realtime::h0mfcnt0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0mfcnt0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0mfcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[국내선물옵션] 실시간시세",
+    "name": "KRX야간선물 실시간체결통보",
+    "endpoint": "/tryitout/H0MFCNI0",
+    "slug": "futureoption_domestic__realtime__h0mfcni0",
+    "module_path": "api::futureoption_domestic::realtime::h0mfcni0",
+    "file_path": "src/api/futureoption_domestic/realtime/h0mfcni0.rs",
+    "spec_path": ".agent/specs/futureoption_domestic__realtime__h0mfcni0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 주문",
+    "endpoint": "/uapi/overseas-stock/v1/trading/order",
+    "slug": "overseas_stock__order_account__order",
+    "module_path": "api::overseas_stock::order_account::order",
+    "file_path": "src/api/overseas_stock/order_account/order.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 정정취소주문",
+    "endpoint": "/uapi/overseas-stock/v1/trading/order-rvsecncl",
+    "slug": "overseas_stock__order_account__order_rvsecncl",
+    "module_path": "api::overseas_stock::order_account::order_rvsecncl",
+    "file_path": "src/api/overseas_stock/order_account/order_rvsecncl.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__order_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 예약주문접수",
+    "endpoint": "/uapi/overseas-stock/v1/trading/order-resv",
+    "slug": "overseas_stock__order_account__order_resv",
+    "module_path": "api::overseas_stock::order_account::order_resv",
+    "file_path": "src/api/overseas_stock/order_account/order_resv.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__order_resv.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 예약주문접수취소",
+    "endpoint": "/uapi/overseas-stock/v1/trading/order-resv-ccnl",
+    "slug": "overseas_stock__order_account__order_resv_ccnl",
+    "module_path": "api::overseas_stock::order_account::order_resv_ccnl",
+    "file_path": "src/api/overseas_stock/order_account/order_resv_ccnl.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__order_resv_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 매수가능금액조회",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-psamount",
+    "slug": "overseas_stock__order_account__inquire_psamount",
+    "module_path": "api::overseas_stock::order_account::inquire_psamount",
+    "file_path": "src/api/overseas_stock/order_account/inquire_psamount.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_psamount.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 미체결내역",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-nccs",
+    "slug": "overseas_stock__order_account__inquire_nccs",
+    "module_path": "api::overseas_stock::order_account::inquire_nccs",
+    "file_path": "src/api/overseas_stock/order_account/inquire_nccs.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_nccs.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 잔고",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-balance",
+    "slug": "overseas_stock__order_account__inquire_balance",
+    "module_path": "api::overseas_stock::order_account::inquire_balance",
+    "file_path": "src/api/overseas_stock/order_account/inquire_balance.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 주문체결내역",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-ccnl",
+    "slug": "overseas_stock__order_account__inquire_ccnl",
+    "module_path": "api::overseas_stock::order_account::inquire_ccnl",
+    "file_path": "src/api/overseas_stock/order_account/inquire_ccnl.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 체결기준현재잔고",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-present-balance",
+    "slug": "overseas_stock__order_account__inquire_present_balance",
+    "module_path": "api::overseas_stock::order_account::inquire_present_balance",
+    "file_path": "src/api/overseas_stock/order_account/inquire_present_balance.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_present_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 예약주문조회",
+    "endpoint": "/uapi/overseas-stock/v1/trading/order-resv-list",
+    "slug": "overseas_stock__order_account__order_resv_list",
+    "module_path": "api::overseas_stock::order_account::order_resv_list",
+    "file_path": "src/api/overseas_stock/order_account/order_resv_list.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__order_resv_list.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 결제기준잔고",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-paymt-stdr-balance",
+    "slug": "overseas_stock__order_account__inquire_paymt_stdr_balance",
+    "module_path": "api::overseas_stock::order_account::inquire_paymt_stdr_balance",
+    "file_path": "src/api/overseas_stock/order_account/inquire_paymt_stdr_balance.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_paymt_stdr_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 일별거래내역",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-period-trans",
+    "slug": "overseas_stock__order_account__inquire_period_trans",
+    "module_path": "api::overseas_stock::order_account::inquire_period_trans",
+    "file_path": "src/api/overseas_stock/order_account/inquire_period_trans.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_period_trans.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 기간손익",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-period-profit",
+    "slug": "overseas_stock__order_account__inquire_period_profit",
+    "module_path": "api::overseas_stock::order_account::inquire_period_profit",
+    "file_path": "src/api/overseas_stock/order_account/inquire_period_profit.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_period_profit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외증거금 통화별조회",
+    "endpoint": "/uapi/overseas-stock/v1/trading/foreign-margin",
+    "slug": "overseas_stock__order_account__foreign_margin",
+    "module_path": "api::overseas_stock::order_account::foreign_margin",
+    "file_path": "src/api/overseas_stock/order_account/foreign_margin.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__foreign_margin.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 미국주간주문",
+    "endpoint": "/uapi/overseas-stock/v1/trading/daytime-order",
+    "slug": "overseas_stock__order_account__daytime_order",
+    "module_path": "api::overseas_stock::order_account::daytime_order",
+    "file_path": "src/api/overseas_stock/order_account/daytime_order.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__daytime_order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 미국주간정정취소",
+    "endpoint": "/uapi/overseas-stock/v1/trading/daytime-order-rvsecncl",
+    "slug": "overseas_stock__order_account__daytime_order_rvsecncl",
+    "module_path": "api::overseas_stock::order_account::daytime_order_rvsecncl",
+    "file_path": "src/api/overseas_stock/order_account/daytime_order_rvsecncl.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__daytime_order_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 지정가주문번호조회",
+    "endpoint": "/uapi/overseas-stock/v1/trading/algo-ordno",
+    "slug": "overseas_stock__order_account__algo_ordno",
+    "module_path": "api::overseas_stock::order_account::algo_ordno",
+    "file_path": "src/api/overseas_stock/order_account/algo_ordno.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__algo_ordno.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 주문/계좌",
+    "name": "해외주식 지정가체결내역조회",
+    "endpoint": "/uapi/overseas-stock/v1/trading/inquire-algo-ccnl",
+    "slug": "overseas_stock__order_account__inquire_algo_ccnl",
+    "module_path": "api::overseas_stock::order_account::inquire_algo_ccnl",
+    "file_path": "src/api/overseas_stock/order_account/inquire_algo_ccnl.rs",
+    "spec_path": ".agent/specs/overseas_stock__order_account__inquire_algo_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 현재가상세",
+    "endpoint": "/uapi/overseas-price/v1/quotations/price-detail",
+    "slug": "overseas_stock__quotations__price_detail",
+    "module_path": "api::overseas_stock::quotations::price_detail",
+    "file_path": "src/api/overseas_stock/quotations/price_detail.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__price_detail.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 현재가 호가",
+    "endpoint": "/uapi/overseas-price/v1/quotations/inquire-asking-price",
+    "slug": "overseas_stock__quotations__inquire_asking_price",
+    "module_path": "api::overseas_stock::quotations::inquire_asking_price",
+    "file_path": "src/api/overseas_stock/quotations/inquire_asking_price.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__inquire_asking_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 현재체결가",
+    "endpoint": "/uapi/overseas-price/v1/quotations/price",
+    "slug": "overseas_stock__quotations__price",
+    "module_path": "api::overseas_stock::quotations::price",
+    "file_path": "src/api/overseas_stock/quotations/price.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 체결추이",
+    "endpoint": "/uapi/overseas-price/v1/quotations/inquire-ccnl",
+    "slug": "overseas_stock__quotations__inquire_ccnl",
+    "module_path": "api::overseas_stock::quotations::inquire_ccnl",
+    "file_path": "src/api/overseas_stock/quotations/inquire_ccnl.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__inquire_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식분봉조회",
+    "endpoint": "/uapi/overseas-price/v1/quotations/inquire-time-itemchartprice",
+    "slug": "overseas_stock__quotations__inquire_time_itemchartprice",
+    "module_path": "api::overseas_stock::quotations::inquire_time_itemchartprice",
+    "file_path": "src/api/overseas_stock/quotations/inquire_time_itemchartprice.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__inquire_time_itemchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외지수분봉조회",
+    "endpoint": "/uapi/overseas-price/v1/quotations/inquire-time-indexchartprice",
+    "slug": "overseas_stock__quotations__inquire_time_indexchartprice",
+    "module_path": "api::overseas_stock::quotations::inquire_time_indexchartprice",
+    "file_path": "src/api/overseas_stock/quotations/inquire_time_indexchartprice.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__inquire_time_indexchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 기간별시세",
+    "endpoint": "/uapi/overseas-price/v1/quotations/dailyprice",
+    "slug": "overseas_stock__quotations__dailyprice",
+    "module_path": "api::overseas_stock::quotations::dailyprice",
+    "file_path": "src/api/overseas_stock/quotations/dailyprice.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__dailyprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 종목/지수/환율기간별시세(일/주/월/년)",
+    "endpoint": "/uapi/overseas-price/v1/quotations/inquire-daily-chartprice",
+    "slug": "overseas_stock__quotations__inquire_daily_chartprice",
+    "module_path": "api::overseas_stock::quotations::inquire_daily_chartprice",
+    "file_path": "src/api/overseas_stock/quotations/inquire_daily_chartprice.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__inquire_daily_chartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식조건검색",
+    "endpoint": "/uapi/overseas-price/v1/quotations/inquire-search",
+    "slug": "overseas_stock__quotations__inquire_search",
+    "module_path": "api::overseas_stock::quotations::inquire_search",
+    "file_path": "src/api/overseas_stock/quotations/inquire_search.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__inquire_search.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외결제일자조회",
+    "endpoint": "/uapi/overseas-stock/v1/quotations/countries-holiday",
+    "slug": "overseas_stock__quotations__countries_holiday",
+    "module_path": "api::overseas_stock::quotations::countries_holiday",
+    "file_path": "src/api/overseas_stock/quotations/countries_holiday.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__countries_holiday.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 상품기본정보",
+    "endpoint": "/uapi/overseas-price/v1/quotations/search-info",
+    "slug": "overseas_stock__quotations__search_info",
+    "module_path": "api::overseas_stock::quotations::search_info",
+    "file_path": "src/api/overseas_stock/quotations/search_info.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__search_info.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 업종별시세",
+    "endpoint": "/uapi/overseas-price/v1/quotations/industry-theme",
+    "slug": "overseas_stock__quotations__industry_theme",
+    "module_path": "api::overseas_stock::quotations::industry_theme",
+    "file_path": "src/api/overseas_stock/quotations/industry_theme.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__industry_theme.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 업종별코드조회",
+    "endpoint": "/uapi/overseas-price/v1/quotations/industry-price",
+    "slug": "overseas_stock__quotations__industry_price",
+    "module_path": "api::overseas_stock::quotations::industry_price",
+    "file_path": "src/api/overseas_stock/quotations/industry_price.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__industry_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 기본시세",
+    "name": "해외주식 복수종목 시세조회",
+    "endpoint": "/uapi/overseas-price/v1/quotations/multprice",
+    "slug": "overseas_stock__quotations__multprice",
+    "module_path": "api::overseas_stock::quotations::multprice",
+    "file_path": "src/api/overseas_stock/quotations/multprice.rs",
+    "spec_path": ".agent/specs/overseas_stock__quotations__multprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 가격급등락",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/price-fluct",
+    "slug": "overseas_stock__market_analysis__price_fluct",
+    "module_path": "api::overseas_stock::market_analysis::price_fluct",
+    "file_path": "src/api/overseas_stock/market_analysis/price_fluct.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__price_fluct.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 거래량급증",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/volume-surge",
+    "slug": "overseas_stock__market_analysis__volume_surge",
+    "module_path": "api::overseas_stock::market_analysis::volume_surge",
+    "file_path": "src/api/overseas_stock/market_analysis/volume_surge.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__volume_surge.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 매수체결강도상위",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/volume-power",
+    "slug": "overseas_stock__market_analysis__volume_power",
+    "module_path": "api::overseas_stock::market_analysis::volume_power",
+    "file_path": "src/api/overseas_stock/market_analysis/volume_power.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__volume_power.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 상승율/하락율",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/updown-rate",
+    "slug": "overseas_stock__market_analysis__updown_rate",
+    "module_path": "api::overseas_stock::market_analysis::updown_rate",
+    "file_path": "src/api/overseas_stock/market_analysis/updown_rate.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__updown_rate.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 신고/신저가",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/new-highlow",
+    "slug": "overseas_stock__market_analysis__new_highlow",
+    "module_path": "api::overseas_stock::market_analysis::new_highlow",
+    "file_path": "src/api/overseas_stock/market_analysis/new_highlow.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__new_highlow.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 거래량순위",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/trade-vol",
+    "slug": "overseas_stock__market_analysis__trade_vol",
+    "module_path": "api::overseas_stock::market_analysis::trade_vol",
+    "file_path": "src/api/overseas_stock/market_analysis/trade_vol.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__trade_vol.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 거래대금순위",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/trade-pbmn",
+    "slug": "overseas_stock__market_analysis__trade_pbmn",
+    "module_path": "api::overseas_stock::market_analysis::trade_pbmn",
+    "file_path": "src/api/overseas_stock/market_analysis/trade_pbmn.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__trade_pbmn.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 거래증가율순위",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/trade-growth",
+    "slug": "overseas_stock__market_analysis__trade_growth",
+    "module_path": "api::overseas_stock::market_analysis::trade_growth",
+    "file_path": "src/api/overseas_stock/market_analysis/trade_growth.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__trade_growth.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 거래회전율순위",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/trade-turnover",
+    "slug": "overseas_stock__market_analysis__trade_turnover",
+    "module_path": "api::overseas_stock::market_analysis::trade_turnover",
+    "file_path": "src/api/overseas_stock/market_analysis/trade_turnover.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__trade_turnover.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 시가총액순위",
+    "endpoint": "/uapi/overseas-stock/v1/ranking/market-cap",
+    "slug": "overseas_stock__market_analysis__market_cap",
+    "module_path": "api::overseas_stock::market_analysis::market_cap",
+    "file_path": "src/api/overseas_stock/market_analysis/market_cap.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__market_cap.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 기간별권리조회",
+    "endpoint": "/uapi/overseas-price/v1/quotations/period-rights",
+    "slug": "overseas_stock__market_analysis__period_rights",
+    "module_path": "api::overseas_stock::market_analysis::period_rights",
+    "file_path": "src/api/overseas_stock/market_analysis/period_rights.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__period_rights.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외뉴스종합(제목)",
+    "endpoint": "/uapi/overseas-price/v1/quotations/news-title",
+    "slug": "overseas_stock__market_analysis__news_title",
+    "module_path": "api::overseas_stock::market_analysis::news_title",
+    "file_path": "src/api/overseas_stock/market_analysis/news_title.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__news_title.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외주식 권리종합",
+    "endpoint": "/uapi/overseas-price/v1/quotations/rights-by-ice",
+    "slug": "overseas_stock__market_analysis__rights_by_ice",
+    "module_path": "api::overseas_stock::market_analysis::rights_by_ice",
+    "file_path": "src/api/overseas_stock/market_analysis/rights_by_ice.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__rights_by_ice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "당사 해외주식담보대출 가능 종목",
+    "endpoint": "/uapi/overseas-price/v1/quotations/colable-by-company",
+    "slug": "overseas_stock__market_analysis__colable_by_company",
+    "module_path": "api::overseas_stock::market_analysis::colable_by_company",
+    "file_path": "src/api/overseas_stock/market_analysis/colable_by_company.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__colable_by_company.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 시세분석",
+    "name": "해외속보(제목)",
+    "endpoint": "/uapi/overseas-price/v1/quotations/brknews-title",
+    "slug": "overseas_stock__market_analysis__brknews_title",
+    "module_path": "api::overseas_stock::market_analysis::brknews_title",
+    "file_path": "src/api/overseas_stock/market_analysis/brknews_title.rs",
+    "spec_path": ".agent/specs/overseas_stock__market_analysis__brknews_title.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 실시간시세",
+    "name": "해외주식 실시간호가",
+    "endpoint": "/tryitout/HDFSASP0",
+    "slug": "overseas_stock__realtime__hdfsasp0",
+    "module_path": "api::overseas_stock::realtime::hdfsasp0",
+    "file_path": "src/api/overseas_stock/realtime/hdfsasp0.rs",
+    "spec_path": ".agent/specs/overseas_stock__realtime__hdfsasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 실시간시세",
+    "name": "해외주식 지연호가(아시아)",
+    "endpoint": "/tryitout/HDFSASP1",
+    "slug": "overseas_stock__realtime__hdfsasp1",
+    "module_path": "api::overseas_stock::realtime::hdfsasp1",
+    "file_path": "src/api/overseas_stock/realtime/hdfsasp1.rs",
+    "spec_path": ".agent/specs/overseas_stock__realtime__hdfsasp1.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 실시간시세",
+    "name": "해외주식 실시간지연체결가",
+    "endpoint": "/tryitout/HDFSCNT0",
+    "slug": "overseas_stock__realtime__hdfscnt0",
+    "module_path": "api::overseas_stock::realtime::hdfscnt0",
+    "file_path": "src/api/overseas_stock/realtime/hdfscnt0.rs",
+    "spec_path": ".agent/specs/overseas_stock__realtime__hdfscnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외주식] 실시간시세",
+    "name": "해외주식 실시간체결통보",
+    "endpoint": "/tryitout/H0GSCNI0",
+    "slug": "overseas_stock__realtime__h0gscni0",
+    "module_path": "api::overseas_stock::realtime::h0gscni0",
+    "file_path": "src/api/overseas_stock/realtime/h0gscni0.rs",
+    "spec_path": ".agent/specs/overseas_stock__realtime__h0gscni0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 주문",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/order",
+    "slug": "futureoption_overseas__order_account__order",
+    "module_path": "api::futureoption_overseas::order_account::order",
+    "file_path": "src/api/futureoption_overseas/order_account/order.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 정정취소주문",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/order-rvsecncl",
+    "slug": "futureoption_overseas__order_account__order_rvsecncl",
+    "module_path": "api::futureoption_overseas::order_account::order_rvsecncl",
+    "file_path": "src/api/futureoption_overseas/order_account/order_rvsecncl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__order_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 당일주문내역조회",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/inquire-ccld",
+    "slug": "futureoption_overseas__order_account__inquire_ccld",
+    "module_path": "api::futureoption_overseas::order_account::inquire_ccld",
+    "file_path": "src/api/futureoption_overseas/order_account/inquire_ccld.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_ccld.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 미결제내역조회(잔고)",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/inquire-unpd",
+    "slug": "futureoption_overseas__order_account__inquire_unpd",
+    "module_path": "api::futureoption_overseas::order_account::inquire_unpd",
+    "file_path": "src/api/futureoption_overseas/order_account/inquire_unpd.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_unpd.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 주문가능조회",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/inquire-psamount",
+    "slug": "futureoption_overseas__order_account__inquire_psamount",
+    "module_path": "api::futureoption_overseas::order_account::inquire_psamount",
+    "file_path": "src/api/futureoption_overseas/order_account/inquire_psamount.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_psamount.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 기간계좌손익 일별",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/inquire-period-ccld",
+    "slug": "futureoption_overseas__order_account__inquire_period_ccld",
+    "module_path": "api::futureoption_overseas::order_account::inquire_period_ccld",
+    "file_path": "src/api/futureoption_overseas/order_account/inquire_period_ccld.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_period_ccld.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 일별 체결내역",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/inquire-daily-ccld",
+    "slug": "futureoption_overseas__order_account__inquire_daily_ccld",
+    "module_path": "api::futureoption_overseas::order_account::inquire_daily_ccld",
+    "file_path": "src/api/futureoption_overseas/order_account/inquire_daily_ccld.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_daily_ccld.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 예수금현황",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/inquire-deposit",
+    "slug": "futureoption_overseas__order_account__inquire_deposit",
+    "module_path": "api::futureoption_overseas::order_account::inquire_deposit",
+    "file_path": "src/api/futureoption_overseas/order_account/inquire_deposit.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_deposit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 일별 주문내역",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/inquire-daily-order",
+    "slug": "futureoption_overseas__order_account__inquire_daily_order",
+    "module_path": "api::futureoption_overseas::order_account::inquire_daily_order",
+    "file_path": "src/api/futureoption_overseas/order_account/inquire_daily_order.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_daily_order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 기간계좌거래내역",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/inquire-period-trans",
+    "slug": "futureoption_overseas__order_account__inquire_period_trans",
+    "module_path": "api::futureoption_overseas::order_account::inquire_period_trans",
+    "file_path": "src/api/futureoption_overseas/order_account/inquire_period_trans.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_period_trans.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 주문/계좌",
+    "name": "해외선물옵션 증거금상세",
+    "endpoint": "/uapi/overseas-futureoption/v1/trading/margin-detail",
+    "slug": "futureoption_overseas__order_account__margin_detail",
+    "module_path": "api::futureoption_overseas::order_account::margin_detail",
+    "file_path": "src/api/futureoption_overseas/order_account/margin_detail.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__order_account__margin_detail.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물종목현재가",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/inquire-price",
+    "slug": "futureoption_overseas__quotations__inquire_price",
+    "module_path": "api::futureoption_overseas::quotations::inquire_price",
+    "file_path": "src/api/futureoption_overseas/quotations/inquire_price.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__inquire_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물종목상세",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/stock-detail",
+    "slug": "futureoption_overseas__quotations__stock_detail",
+    "module_path": "api::futureoption_overseas::quotations::stock_detail",
+    "file_path": "src/api/futureoption_overseas/quotations/stock_detail.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__stock_detail.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물 호가",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/inquire-asking-price",
+    "slug": "futureoption_overseas__quotations__inquire_asking_price",
+    "module_path": "api::futureoption_overseas::quotations::inquire_asking_price",
+    "file_path": "src/api/futureoption_overseas/quotations/inquire_asking_price.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__inquire_asking_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물 분봉조회",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/inquire-time-futurechartprice",
+    "slug": "futureoption_overseas__quotations__inquire_time_futurechartprice",
+    "module_path": "api::futureoption_overseas::quotations::inquire_time_futurechartprice",
+    "file_path": "src/api/futureoption_overseas/quotations/inquire_time_futurechartprice.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__inquire_time_futurechartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물 체결추이(틱)",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/tick-ccnl",
+    "slug": "futureoption_overseas__quotations__tick_ccnl",
+    "module_path": "api::futureoption_overseas::quotations::tick_ccnl",
+    "file_path": "src/api/futureoption_overseas/quotations/tick_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__tick_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물 체결추이(주간)",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/weekly-ccnl",
+    "slug": "futureoption_overseas__quotations__weekly_ccnl",
+    "module_path": "api::futureoption_overseas::quotations::weekly_ccnl",
+    "file_path": "src/api/futureoption_overseas/quotations/weekly_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__weekly_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물 체결추이(일간)",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/daily-ccnl",
+    "slug": "futureoption_overseas__quotations__daily_ccnl",
+    "module_path": "api::futureoption_overseas::quotations::daily_ccnl",
+    "file_path": "src/api/futureoption_overseas/quotations/daily_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__daily_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물 체결추이(월간)",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/monthly-ccnl",
+    "slug": "futureoption_overseas__quotations__monthly_ccnl",
+    "module_path": "api::futureoption_overseas::quotations::monthly_ccnl",
+    "file_path": "src/api/futureoption_overseas/quotations/monthly_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__monthly_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물 상품기본정보",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/search-contract-detail",
+    "slug": "futureoption_overseas__quotations__search_contract_detail",
+    "module_path": "api::futureoption_overseas::quotations::search_contract_detail",
+    "file_path": "src/api/futureoption_overseas/quotations/search_contract_detail.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__search_contract_detail.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물 미결제추이",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/investor-unpd-trend",
+    "slug": "futureoption_overseas__quotations__investor_unpd_trend",
+    "module_path": "api::futureoption_overseas::quotations::investor_unpd_trend",
+    "file_path": "src/api/futureoption_overseas/quotations/investor_unpd_trend.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__investor_unpd_trend.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션종목현재가",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/opt-price",
+    "slug": "futureoption_overseas__quotations__opt_price",
+    "module_path": "api::futureoption_overseas::quotations::opt_price",
+    "file_path": "src/api/futureoption_overseas/quotations/opt_price.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__opt_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션종목상세",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/opt-detail",
+    "slug": "futureoption_overseas__quotations__opt_detail",
+    "module_path": "api::futureoption_overseas::quotations::opt_detail",
+    "file_path": "src/api/futureoption_overseas/quotations/opt_detail.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__opt_detail.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션 호가",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/opt-asking-price",
+    "slug": "futureoption_overseas__quotations__opt_asking_price",
+    "module_path": "api::futureoption_overseas::quotations::opt_asking_price",
+    "file_path": "src/api/futureoption_overseas/quotations/opt_asking_price.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__opt_asking_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션 분봉조회",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/inquire-time-optchartprice",
+    "slug": "futureoption_overseas__quotations__inquire_time_optchartprice",
+    "module_path": "api::futureoption_overseas::quotations::inquire_time_optchartprice",
+    "file_path": "src/api/futureoption_overseas/quotations/inquire_time_optchartprice.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__inquire_time_optchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션 체결추이(틱)",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/opt-tick-ccnl",
+    "slug": "futureoption_overseas__quotations__opt_tick_ccnl",
+    "module_path": "api::futureoption_overseas::quotations::opt_tick_ccnl",
+    "file_path": "src/api/futureoption_overseas/quotations/opt_tick_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__opt_tick_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션 체결추이(일간)",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/opt-daily-ccnl",
+    "slug": "futureoption_overseas__quotations__opt_daily_ccnl",
+    "module_path": "api::futureoption_overseas::quotations::opt_daily_ccnl",
+    "file_path": "src/api/futureoption_overseas/quotations/opt_daily_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__opt_daily_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션 체결추이(주간)",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/opt-weekly-ccnl",
+    "slug": "futureoption_overseas__quotations__opt_weekly_ccnl",
+    "module_path": "api::futureoption_overseas::quotations::opt_weekly_ccnl",
+    "file_path": "src/api/futureoption_overseas/quotations/opt_weekly_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__opt_weekly_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션 체결추이(월간)",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/opt-monthly-ccnl",
+    "slug": "futureoption_overseas__quotations__opt_monthly_ccnl",
+    "module_path": "api::futureoption_overseas::quotations::opt_monthly_ccnl",
+    "file_path": "src/api/futureoption_overseas/quotations/opt_monthly_ccnl.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__opt_monthly_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외옵션 상품기본정보",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/search-opt-detail",
+    "slug": "futureoption_overseas__quotations__search_opt_detail",
+    "module_path": "api::futureoption_overseas::quotations::search_opt_detail",
+    "file_path": "src/api/futureoption_overseas/quotations/search_opt_detail.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__search_opt_detail.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션] 기본시세",
+    "name": "해외선물옵션 장운영시간",
+    "endpoint": "/uapi/overseas-futureoption/v1/quotations/market-time",
+    "slug": "futureoption_overseas__quotations__market_time",
+    "module_path": "api::futureoption_overseas::quotations::market_time",
+    "file_path": "src/api/futureoption_overseas/quotations/market_time.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__quotations__market_time.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션]실시간시세",
+    "name": "해외선물옵션 실시간체결가",
+    "endpoint": "/tryitout/HDFFF020",
+    "slug": "futureoption_overseas__realtime__hdfff020",
+    "module_path": "api::futureoption_overseas::realtime::hdfff020",
+    "file_path": "src/api/futureoption_overseas/realtime/hdfff020.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__realtime__hdfff020.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션]실시간시세",
+    "name": "해외선물옵션 실시간호가",
+    "endpoint": "/tryitout/HDFFF010",
+    "slug": "futureoption_overseas__realtime__hdfff010",
+    "module_path": "api::futureoption_overseas::realtime::hdfff010",
+    "file_path": "src/api/futureoption_overseas/realtime/hdfff010.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__realtime__hdfff010.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션]실시간시세",
+    "name": "해외선물옵션 실시간주문내역통보",
+    "endpoint": "/tryitout/HDFFF1C0",
+    "slug": "futureoption_overseas__realtime__hdfff1c0",
+    "module_path": "api::futureoption_overseas::realtime::hdfff1c0",
+    "file_path": "src/api/futureoption_overseas/realtime/hdfff1c0.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__realtime__hdfff1c0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[해외선물옵션]실시간시세",
+    "name": "해외선물옵션 실시간체결내역통보",
+    "endpoint": "/tryitout/HDFFF2C0",
+    "slug": "futureoption_overseas__realtime__hdfff2c0",
+    "module_path": "api::futureoption_overseas::realtime::hdfff2c0",
+    "file_path": "src/api/futureoption_overseas/realtime/hdfff2c0.rs",
+    "spec_path": ".agent/specs/futureoption_overseas__realtime__hdfff2c0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 주문/계좌",
+    "name": "장내채권 매수주문",
+    "endpoint": "/uapi/domestic-bond/v1/trading/buy",
+    "slug": "bond__order_account__buy",
+    "module_path": "api::bond::order_account::buy",
+    "file_path": "src/api/bond/order_account/buy.rs",
+    "spec_path": ".agent/specs/bond__order_account__buy.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 주문/계좌",
+    "name": "장내채권 매도주문",
+    "endpoint": "/uapi/domestic-bond/v1/trading/sell",
+    "slug": "bond__order_account__sell",
+    "module_path": "api::bond::order_account::sell",
+    "file_path": "src/api/bond/order_account/sell.rs",
+    "spec_path": ".agent/specs/bond__order_account__sell.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 주문/계좌",
+    "name": "장내채권 정정취소주문",
+    "endpoint": "/uapi/domestic-bond/v1/trading/order-rvsecncl",
+    "slug": "bond__order_account__order_rvsecncl",
+    "module_path": "api::bond::order_account::order_rvsecncl",
+    "file_path": "src/api/bond/order_account/order_rvsecncl.rs",
+    "spec_path": ".agent/specs/bond__order_account__order_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 주문/계좌",
+    "name": "채권정정취소가능주문조회",
+    "endpoint": "/uapi/domestic-bond/v1/trading/inquire-psbl-rvsecncl",
+    "slug": "bond__order_account__inquire_psbl_rvsecncl",
+    "module_path": "api::bond::order_account::inquire_psbl_rvsecncl",
+    "file_path": "src/api/bond/order_account/inquire_psbl_rvsecncl.rs",
+    "spec_path": ".agent/specs/bond__order_account__inquire_psbl_rvsecncl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 주문/계좌",
+    "name": "장내채권 주문체결내역",
+    "endpoint": "/uapi/domestic-bond/v1/trading/inquire-daily-ccld",
+    "slug": "bond__order_account__inquire_daily_ccld",
+    "module_path": "api::bond::order_account::inquire_daily_ccld",
+    "file_path": "src/api/bond/order_account/inquire_daily_ccld.rs",
+    "spec_path": ".agent/specs/bond__order_account__inquire_daily_ccld.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 주문/계좌",
+    "name": "장내채권 잔고조회",
+    "endpoint": "/uapi/domestic-bond/v1/trading/inquire-balance",
+    "slug": "bond__order_account__inquire_balance",
+    "module_path": "api::bond::order_account::inquire_balance",
+    "file_path": "src/api/bond/order_account/inquire_balance.rs",
+    "spec_path": ".agent/specs/bond__order_account__inquire_balance.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 주문/계좌",
+    "name": "장내채권 매수가능조회",
+    "endpoint": "/uapi/domestic-bond/v1/trading/inquire-psbl-order",
+    "slug": "bond__order_account__inquire_psbl_order",
+    "module_path": "api::bond::order_account::inquire_psbl_order",
+    "file_path": "src/api/bond/order_account/inquire_psbl_order.rs",
+    "spec_path": ".agent/specs/bond__order_account__inquire_psbl_order.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 기본시세",
+    "name": "장내채권현재가(호가)",
+    "endpoint": "/uapi/domestic-bond/v1/quotations/inquire-asking-price",
+    "slug": "bond__quotations__inquire_asking_price",
+    "module_path": "api::bond::quotations::inquire_asking_price",
+    "file_path": "src/api/bond/quotations/inquire_asking_price.rs",
+    "spec_path": ".agent/specs/bond__quotations__inquire_asking_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 기본시세",
+    "name": "장내채권현재가(시세)",
+    "endpoint": "/uapi/domestic-bond/v1/quotations/inquire-price",
+    "slug": "bond__quotations__inquire_price",
+    "module_path": "api::bond::quotations::inquire_price",
+    "file_path": "src/api/bond/quotations/inquire_price.rs",
+    "spec_path": ".agent/specs/bond__quotations__inquire_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 기본시세",
+    "name": "장내채권현재가(체결)",
+    "endpoint": "/uapi/domestic-bond/v1/quotations/inquire-ccnl",
+    "slug": "bond__quotations__inquire_ccnl",
+    "module_path": "api::bond::quotations::inquire_ccnl",
+    "file_path": "src/api/bond/quotations/inquire_ccnl.rs",
+    "spec_path": ".agent/specs/bond__quotations__inquire_ccnl.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 기본시세",
+    "name": "장내채권현재가(일별)",
+    "endpoint": "/uapi/domestic-bond/v1/quotations/inquire-daily-price",
+    "slug": "bond__quotations__inquire_daily_price",
+    "module_path": "api::bond::quotations::inquire_daily_price",
+    "file_path": "src/api/bond/quotations/inquire_daily_price.rs",
+    "spec_path": ".agent/specs/bond__quotations__inquire_daily_price.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 기본시세",
+    "name": "장내채권 기간별시세(일)",
+    "endpoint": "/uapi/domestic-bond/v1/quotations/inquire-daily-itemchartprice",
+    "slug": "bond__quotations__inquire_daily_itemchartprice",
+    "module_path": "api::bond::quotations::inquire_daily_itemchartprice",
+    "file_path": "src/api/bond/quotations/inquire_daily_itemchartprice.rs",
+    "spec_path": ".agent/specs/bond__quotations__inquire_daily_itemchartprice.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 기본시세",
+    "name": "장내채권 평균단가조회",
+    "endpoint": "/uapi/domestic-bond/v1/quotations/avg-unit",
+    "slug": "bond__quotations__avg_unit",
+    "module_path": "api::bond::quotations::avg_unit",
+    "file_path": "src/api/bond/quotations/avg_unit.rs",
+    "spec_path": ".agent/specs/bond__quotations__avg_unit.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 기본시세",
+    "name": "장내채권 발행정보",
+    "endpoint": "/uapi/domestic-bond/v1/quotations/issue-info",
+    "slug": "bond__quotations__issue_info",
+    "module_path": "api::bond::quotations::issue_info",
+    "file_path": "src/api/bond/quotations/issue_info.rs",
+    "spec_path": ".agent/specs/bond__quotations__issue_info.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 기본시세",
+    "name": "장내채권 기본조회",
+    "endpoint": "/uapi/domestic-bond/v1/quotations/search-bond-info",
+    "slug": "bond__quotations__search_bond_info",
+    "module_path": "api::bond::quotations::search_bond_info",
+    "file_path": "src/api/bond/quotations/search_bond_info.rs",
+    "spec_path": ".agent/specs/bond__quotations__search_bond_info.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 실시간시세",
+    "name": "일반채권 실시간체결가",
+    "endpoint": "/tryitout/H0BJCNT0",
+    "slug": "bond__realtime__h0bjcnt0",
+    "module_path": "api::bond::realtime::h0bjcnt0",
+    "file_path": "src/api/bond/realtime/h0bjcnt0.rs",
+    "spec_path": ".agent/specs/bond__realtime__h0bjcnt0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 실시간시세",
+    "name": "일반채권 실시간호가",
+    "endpoint": "/tryitout/H0BJASP0",
+    "slug": "bond__realtime__h0bjasp0",
+    "module_path": "api::bond::realtime::h0bjasp0",
+    "file_path": "src/api/bond/realtime/h0bjasp0.rs",
+    "spec_path": ".agent/specs/bond__realtime__h0bjasp0.md",
+    "status": "pending"
+  },
+  {
+    "category": "[장내채권] 실시간시세",
+    "name": "채권지수 실시간체결가",
+    "endpoint": "/tryitout/H0BICNT0",
+    "slug": "bond__realtime__h0bicnt0",
+    "module_path": "api::bond::realtime::h0bicnt0",
+    "file_path": "src/api/bond/realtime/h0bicnt0.rs",
+    "spec_path": ".agent/specs/bond__realtime__h0bicnt0.md",
+    "status": "pending"
+  }
+]

@@ -1,0 +1,55 @@
+# Ralph Loop — 교훈 (lessons learned)
+
+> 매 iteration 시작 시 반드시 읽을 것. 새 실수 발생 시 하단에 누적.
+
+---
+
+## 초기 규칙 (사전 설정됨)
+
+### L01. registry는 single source of truth
+`tasks/api-registry.json`의 `status` 필드만 믿는다. 파일 존재 여부로 판단하지 말 것 — 레이스/손상 가능.
+
+### L02. cargo check 실패 3회 → 중단
+무한 수정 루프 방지. 3회 실패 시 `status=blocked`로 표기하고 이 파일에 원인 기록.
+
+### L03. 실시간(WebSocket) 카테고리는 `call()` 함수 없음
+`.agent/rust-patterns.md`의 실시간 섹션 참조. `subscribe_payload` + `parse_frame` + `Response`만 제공.
+
+### L04. POST body는 영문 필드 대문자 rename 필수
+`#[serde(rename = "CANO")]` 등. 잊으면 KIS가 400 반환 (그러나 compile은 통과 — 이 문제는 실제 호출 시에만 드러남).
+
+### L05. 응답 필드는 String + `#[serde(default)]`
+정수/금액도 String. KIS가 빈 문자열 돌려주는 경우가 흔하며, `u64`로 선언하면 역직렬화 실패.
+
+---
+
+## iteration 누적 교훈
+
+<!-- Ralph Loop가 실수할 때마다 아래에 추가. 형식:
+### L0X. <제목>
+**상황**: <어떤 API에서 어떤 실수>
+**원인**: ...
+**규칙**: 다음부터는 ...
+-->
+
+### L06. OAuth 토큰 발급/폐기 API는 KisClient 사용 금지
+**상황**: 첫 iteration(`oauth__tokenp`)에서 발견. `KisClient::post_json`은 항상 `authorization: Bearer <token>` 헤더를 붙이는데, 이 API는 **토큰 발급/폐기**이므로 Bearer를 붙이면 안 된다.
+**규칙**:
+- `/oauth2/tokenP`, `/oauth2/revokeP`, `/oauth2/Approval`, `/uapi/hashkey` 는 `reqwest::Client::new()`로 직접 POST.
+- 시그니처는 `pub async fn call(is_mock: bool, req: &Request) -> Result<Response>` (KisClient 대신 `is_mock: bool`만 받음).
+- `use crate::client::{BASE_URL_MOCK, BASE_URL_PROD};` 로 도메인 상수만 빌림.
+
+### L07. 응답 필드에 `Number` 타입이 있으면 `i64` 허용
+**상황**: `oauth__tokenp`의 `expires_in`이 `Number, Length 10` (예: 7776000).
+**규칙**:
+- 스펙 Type이 `Number`이고 분명히 정수인 경우 `#[serde(default)] pub field: i64` 사용 가능.
+- 애매하면 여전히 `String`이 안전 (KIS는 Number 표기해놓고 문자열 돌려주는 케이스도 있음).
+- 확신 없으면 `String` 고수.
+
+### L08. tokenp는 Response에 `Option<>` 감싸지 않음
+**상황**: 토큰 발급 API는 성공 응답이 `{access_token, token_type, expires_in, access_token_token_expired}` 네 필드가 반드시 채워짐. `ApiResponse`(rt_cd/output 래퍼) 형태가 아니라 **평면 JSON**으로 옴.
+**규칙**:
+- `resp.output`에서 꺼내지 말고 `serde_json::from_str(&body)`로 직접 파싱.
+- 즉, 토큰 발급류는 `ApiResponse` 래퍼를 통하지 **않는다**.
+- 이 패턴은 OAuth 카테고리 4개(tokenP, revokeP, Approval, hashkey)에만 적용. 다른 API는 전부 `ApiResponse`를 통과함.
+

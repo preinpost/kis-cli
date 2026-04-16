@@ -1,0 +1,6 @@
+/target
+.kis_token.json
+.kis_ws_token.json
+
+# Ralph Loop 부산물
+.agent/specs/*.FAILED.md
