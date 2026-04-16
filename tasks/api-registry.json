@@ -867,7 +867,7 @@
     "module_path": "api::domestic_stock::symbol_info::balance_sheet",
     "file_path": "src/api/domestic_stock/symbol_info/balance_sheet.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__balance_sheet.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -877,7 +877,7 @@
     "module_path": "api::domestic_stock::symbol_info::income_statement",
     "file_path": "src/api/domestic_stock/symbol_info/income_statement.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__income_statement.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
@@ -887,7 +887,7 @@
     "module_path": "api::domestic_stock::symbol_info::financial_ratio",
     "file_path": "src/api/domestic_stock/symbol_info/financial_ratio.rs",
     "spec_path": ".agent/specs/domestic_stock__symbol_info__financial_ratio.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
