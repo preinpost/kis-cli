@@ -4,3 +4,4 @@
 pub mod inquire_elw_price;
 pub mod newly_listed;
 pub mod sensitivity;
+pub mod udrl_asset_price;
