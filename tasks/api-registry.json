@@ -17,7 +17,7 @@
     "module_path": "api::oauth::revokep",
     "file_path": "src/api/oauth/revokep.rs",
     "spec_path": ".agent/specs/oauth__revokep.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "OAuth인증",
