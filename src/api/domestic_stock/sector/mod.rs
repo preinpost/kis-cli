@@ -3,6 +3,8 @@
 
 pub mod chk_holiday;
 pub mod comp_interest;
+pub mod exp_index_trend;
+pub mod exp_total_index;
 pub mod inquire_index_daily_price;
 pub mod inquire_index_price;
 pub mod inquire_index_tickprice;

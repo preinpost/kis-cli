@@ -777,7 +777,7 @@
     "module_path": "api::domestic_stock::sector::exp_index_trend",
     "file_path": "src/api/domestic_stock/sector/exp_index_trend.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__exp_index_trend.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",
@@ -787,7 +787,7 @@
     "module_path": "api::domestic_stock::sector::exp_total_index",
     "file_path": "src/api/domestic_stock/sector/exp_total_index.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__exp_total_index.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",
