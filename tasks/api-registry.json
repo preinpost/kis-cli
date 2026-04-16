@@ -2397,7 +2397,7 @@
     "module_path": "api::overseas_stock::order_account::inquire_nccs",
     "file_path": "src/api/overseas_stock/order_account/inquire_nccs.rs",
     "spec_path": ".agent/specs/overseas_stock__order_account__inquire_nccs.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 주문/계좌",
@@ -2407,7 +2407,7 @@
     "module_path": "api::overseas_stock::order_account::inquire_balance",
     "file_path": "src/api/overseas_stock/order_account/inquire_balance.rs",
     "spec_path": ".agent/specs/overseas_stock__order_account__inquire_balance.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 주문/계좌",
@@ -2417,7 +2417,7 @@
     "module_path": "api::overseas_stock::order_account::inquire_ccnl",
     "file_path": "src/api/overseas_stock/order_account/inquire_ccnl.rs",
     "spec_path": ".agent/specs/overseas_stock__order_account__inquire_ccnl.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 주문/계좌",
