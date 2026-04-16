@@ -1,0 +1,147 @@
+//! 국내주식 시간외 실시간호가 (KRX) — WebSocket /tryitout/H0STOAA0
+//!
+//! 스펙: .agent/specs/domestic_stock__realtime__h0stoaa0.md
+//! 실시간 WebSocket API. 모의투자 미지원.
+
+use anyhow::{anyhow, Result};
+use serde::Deserialize;
+
+pub const TR_ID: &str = "H0STOAA0";
+
+pub fn subscribe_payload(approval_key: &str, custtype: &str, tr_type: &str, tr_key: &str) -> serde_json::Value {
+    serde_json::json!({
+        "header": {
+            "approval_key": approval_key,
+            "custtype": custtype,
+            "tr_type": tr_type,
+            "content-type": "utf-8",
+        },
+        "body": {
+            "input": {
+                "tr_id": TR_ID,
+                "tr_key": tr_key,
+            },
+        },
+    })
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Response {
+    pub mksc_shrn_iscd: String,
+    pub bsop_hour: String,
+    pub hour_cls_code: String,
+    pub askp1: String,
+    pub askp2: String,
+    pub askp3: String,
+    pub askp4: String,
+    pub askp5: String,
+    pub askp6: String,
+    pub askp7: String,
+    pub askp8: String,
+    pub askp9: String,
+    pub bidp1: String,
+    pub bidp2: String,
+    pub bidp3: String,
+    pub bidp4: String,
+    pub bidp5: String,
+    pub bidp6: String,
+    pub bidp7: String,
+    pub bidp8: String,
+    pub bidp9: String,
+    pub askp_rsqn1: String,
+    pub askp_rsqn2: String,
+    pub askp_rsqn3: String,
+    pub askp_rsqn4: String,
+    pub askp_rsqn5: String,
+    pub askp_rsqn6: String,
+    pub askp_rsqn7: String,
+    pub askp_rsqn8: String,
+    pub askp_rsqn9: String,
+    pub bidp_rsqn1: String,
+    pub bidp_rsqn2: String,
+    pub bidp_rsqn3: String,
+    pub bidp_rsqn4: String,
+    pub bidp_rsqn5: String,
+    pub bidp_rsqn6: String,
+    pub bidp_rsqn7: String,
+    pub bidp_rsqn8: String,
+    pub bidp_rsqn9: String,
+    pub total_askp_rsqn: String,
+    pub total_bidp_rsqn: String,
+    pub ovtm_total_askp_rsqn: String,
+    pub ovtm_total_bidp_rsqn: String,
+    pub antc_cnpr: String,
+    pub antc_cnqn: String,
+    pub antc_vol: String,
+    pub antc_cntg_vrss: String,
+    pub antc_cntg_vrss_sign: String,
+    pub antc_cntg_prdy_ctrt: String,
+    pub acml_vol: String,
+    pub total_askp_rsqn_icdc: String,
+    pub total_bidp_rsqn_icdc: String,
+    pub ovtm_total_askp_icdc: String,
+    pub ovtm_total_bidp_icdc: String,
+}
+
+pub fn parse_frame(data: &str) -> Result<Response> {
+    let f: Vec<&str> = data.split('^').collect();
+    if f.len() < 54 {
+        return Err(anyhow!("필드 수 부족: {} < 54", f.len()));
+    }
+    Ok(Response {
+        mksc_shrn_iscd: f[0].to_string(),
+        bsop_hour: f[1].to_string(),
+        hour_cls_code: f[2].to_string(),
+        askp1: f[3].to_string(),
+        askp2: f[4].to_string(),
+        askp3: f[5].to_string(),
+        askp4: f[6].to_string(),
+        askp5: f[7].to_string(),
+        askp6: f[8].to_string(),
+        askp7: f[9].to_string(),
+        askp8: f[10].to_string(),
+        askp9: f[11].to_string(),
+        bidp1: f[12].to_string(),
+        bidp2: f[13].to_string(),
+        bidp3: f[14].to_string(),
+        bidp4: f[15].to_string(),
+        bidp5: f[16].to_string(),
+        bidp6: f[17].to_string(),
+        bidp7: f[18].to_string(),
+        bidp8: f[19].to_string(),
+        bidp9: f[20].to_string(),
+        askp_rsqn1: f[21].to_string(),
+        askp_rsqn2: f[22].to_string(),
+        askp_rsqn3: f[23].to_string(),
+        askp_rsqn4: f[24].to_string(),
+        askp_rsqn5: f[25].to_string(),
+        askp_rsqn6: f[26].to_string(),
+        askp_rsqn7: f[27].to_string(),
+        askp_rsqn8: f[28].to_string(),
+        askp_rsqn9: f[29].to_string(),
+        bidp_rsqn1: f[30].to_string(),
+        bidp_rsqn2: f[31].to_string(),
+        bidp_rsqn3: f[32].to_string(),
+        bidp_rsqn4: f[33].to_string(),
+        bidp_rsqn5: f[34].to_string(),
+        bidp_rsqn6: f[35].to_string(),
+        bidp_rsqn7: f[36].to_string(),
+        bidp_rsqn8: f[37].to_string(),
+        bidp_rsqn9: f[38].to_string(),
+        total_askp_rsqn: f[39].to_string(),
+        total_bidp_rsqn: f[40].to_string(),
+        ovtm_total_askp_rsqn: f[41].to_string(),
+        ovtm_total_bidp_rsqn: f[42].to_string(),
+        antc_cnpr: f[43].to_string(),
+        antc_cnqn: f[44].to_string(),
+        antc_vol: f[45].to_string(),
+        antc_cntg_vrss: f[46].to_string(),
+        antc_cntg_vrss_sign: f[47].to_string(),
+        antc_cntg_prdy_ctrt: f[48].to_string(),
+        acml_vol: f[49].to_string(),
+        total_askp_rsqn_icdc: f[50].to_string(),
+        total_bidp_rsqn_icdc: f[51].to_string(),
+        ovtm_total_askp_icdc: f[52].to_string(),
+        ovtm_total_bidp_icdc: f[53].to_string(),
+    })
+}
