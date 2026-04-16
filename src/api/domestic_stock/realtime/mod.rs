@@ -4,6 +4,7 @@
 pub mod h0ewanc0;
 pub mod h0ewasp0;
 pub mod h0ewcnt0;
+pub mod h0nxcnt0;
 pub mod h0stanc0;
 pub mod h0stasp0;
 pub mod h0stcni0;
@@ -19,6 +20,8 @@ pub mod h0unanc0;
 pub mod h0unasp0;
 pub mod h0uncnt0;
 pub mod h0unmbc0;
+pub mod h0unmko0;
+pub mod h0unpgm0;
 pub mod h0upanc0;
 pub mod h0upcnt0;
 pub mod h0uppgm0;
