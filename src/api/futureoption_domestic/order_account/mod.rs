@@ -3,5 +3,8 @@
 
 pub mod inquire_balance;
 pub mod inquire_ccnl;
+pub mod inquire_ngt_balance;
+pub mod inquire_ngt_ccnl;
+pub mod inquire_psbl_order;
 pub mod order;
 pub mod order_rvsecncl;

@@ -1947,7 +1947,7 @@
     "module_path": "api::futureoption_domestic::order_account::inquire_psbl_order",
     "file_path": "src/api/futureoption_domestic/order_account/inquire_psbl_order.rs",
     "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_psbl_order.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 주문/계좌",
@@ -1957,7 +1957,7 @@
     "module_path": "api::futureoption_domestic::order_account::inquire_ngt_ccnl",
     "file_path": "src/api/futureoption_domestic/order_account/inquire_ngt_ccnl.rs",
     "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_ngt_ccnl.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 주문/계좌",
@@ -1967,7 +1967,7 @@
     "module_path": "api::futureoption_domestic::order_account::inquire_ngt_balance",
     "file_path": "src/api/futureoption_domestic/order_account/inquire_ngt_balance.rs",
     "spec_path": ".agent/specs/futureoption_domestic__order_account__inquire_ngt_balance.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 주문/계좌",
