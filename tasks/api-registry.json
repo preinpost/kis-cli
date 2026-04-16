@@ -2097,7 +2097,7 @@
     "module_path": "api::futureoption_domestic::quotations::display_board_option_list",
     "file_path": "src/api/futureoption_domestic/quotations/display_board_option_list.rs",
     "spec_path": ".agent/specs/futureoption_domestic__quotations__display_board_option_list.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 기본시세",
@@ -2107,7 +2107,7 @@
     "module_path": "api::futureoption_domestic::quotations::display_board_top",
     "file_path": "src/api/futureoption_domestic/quotations/display_board_top.rs",
     "spec_path": ".agent/specs/futureoption_domestic__quotations__display_board_top.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 기본시세",
@@ -2117,7 +2117,7 @@
     "module_path": "api::futureoption_domestic::quotations::display_board_callput",
     "file_path": "src/api/futureoption_domestic/quotations/display_board_callput.rs",
     "spec_path": ".agent/specs/futureoption_domestic__quotations__display_board_callput.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내선물옵션] 기본시세",
