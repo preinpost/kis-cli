@@ -1407,7 +1407,7 @@
     "module_path": "api::domestic_stock::ranking::fluctuation",
     "file_path": "src/api/domestic_stock/ranking/fluctuation.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__fluctuation.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1417,7 +1417,7 @@
     "module_path": "api::domestic_stock::ranking::quote_balance",
     "file_path": "src/api/domestic_stock/ranking/quote_balance.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__quote_balance.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1427,7 +1427,7 @@
     "module_path": "api::domestic_stock::ranking::profit_asset_index",
     "file_path": "src/api/domestic_stock/ranking/profit_asset_index.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__profit_asset_index.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
