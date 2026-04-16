@@ -807,7 +807,7 @@
     "module_path": "api::domestic_stock::sector::comp_interest",
     "file_path": "src/api/domestic_stock/sector/comp_interest.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__comp_interest.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",
@@ -827,7 +827,7 @@
     "module_path": "api::domestic_stock::sector::chk_holiday",
     "file_path": "src/api/domestic_stock/sector/chk_holiday.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__chk_holiday.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 업종/기타",
@@ -837,7 +837,7 @@
     "module_path": "api::domestic_stock::sector::market_time",
     "file_path": "src/api/domestic_stock/sector/market_time.rs",
     "spec_path": ".agent/specs/domestic_stock__sector__market_time.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 종목정보",
