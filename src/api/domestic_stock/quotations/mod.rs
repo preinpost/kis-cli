@@ -3,8 +3,10 @@
 
 pub mod inquire_asking_price_exp_ccn;
 pub mod inquire_ccnl;
+pub mod inquire_daily_itemchartprice;
 pub mod inquire_daily_price;
 pub mod inquire_investor;
 pub mod inquire_member;
+pub mod inquire_time_itemchartprice;
 pub mod inquire_price;
 pub mod inquire_price_2;

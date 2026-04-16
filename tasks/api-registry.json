@@ -347,7 +347,7 @@
     "module_path": "api::domestic_stock::quotations::inquire_daily_itemchartprice",
     "file_path": "src/api/domestic_stock/quotations/inquire_daily_itemchartprice.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__inquire_daily_itemchartprice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
@@ -357,7 +357,7 @@
     "module_path": "api::domestic_stock::quotations::inquire_time_itemchartprice",
     "file_path": "src/api/domestic_stock/quotations/inquire_time_itemchartprice.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__inquire_time_itemchartprice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
