@@ -487,7 +487,7 @@
     "module_path": "api::domestic_stock::elw::inquire_elw_price",
     "file_path": "src/api/domestic_stock/elw/inquire_elw_price.rs",
     "spec_path": ".agent/specs/domestic_stock__elw__inquire_elw_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] ELW 시세",
