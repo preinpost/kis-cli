@@ -1527,7 +1527,7 @@
     "module_path": "api::domestic_stock::ranking::traded_by_company",
     "file_path": "src/api/domestic_stock/ranking/traded_by_company.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__traded_by_company.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1537,7 +1537,7 @@
     "module_path": "api::domestic_stock::ranking::near_new_highlow",
     "file_path": "src/api/domestic_stock/ranking/near_new_highlow.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__near_new_highlow.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
@@ -1547,7 +1547,7 @@
     "module_path": "api::domestic_stock::ranking::dividend_rate",
     "file_path": "src/api/domestic_stock/ranking/dividend_rate.rs",
     "spec_path": ".agent/specs/domestic_stock__ranking__dividend_rate.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 순위분석",
