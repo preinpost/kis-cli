@@ -13,3 +13,6 @@ pub mod quick_change;
 pub mod sensitivity;
 pub mod udrl_asset_list;
 pub mod udrl_asset_price;
+pub mod volatility_trend_ccnl;
+pub mod volatility_trend_daily;
+pub mod volatility_trend_tick;
