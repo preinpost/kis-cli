@@ -277,7 +277,7 @@
     "module_path": "api::domestic_stock::quotations::inquire_price",
     "file_path": "src/api/domestic_stock/quotations/inquire_price.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__inquire_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
@@ -287,7 +287,7 @@
     "module_path": "api::domestic_stock::quotations::inquire_price_2",
     "file_path": "src/api/domestic_stock/quotations/inquire_price_2.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__inquire_price_2.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
@@ -297,7 +297,7 @@
     "module_path": "api::domestic_stock::quotations::inquire_ccnl",
     "file_path": "src/api/domestic_stock/quotations/inquire_ccnl.rs",
     "spec_path": ".agent/specs/domestic_stock__quotations__inquire_ccnl.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[국내주식] 기본시세",
