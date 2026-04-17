@@ -2457,7 +2457,7 @@
     "module_path": "api::overseas_stock::order_account::inquire_period_trans",
     "file_path": "src/api/overseas_stock/order_account/inquire_period_trans.rs",
     "spec_path": ".agent/specs/overseas_stock__order_account__inquire_period_trans.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 주문/계좌",
@@ -2467,7 +2467,7 @@
     "module_path": "api::overseas_stock::order_account::inquire_period_profit",
     "file_path": "src/api/overseas_stock/order_account/inquire_period_profit.rs",
     "spec_path": ".agent/specs/overseas_stock__order_account__inquire_period_profit.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 주문/계좌",
@@ -2477,7 +2477,7 @@
     "module_path": "api::overseas_stock::order_account::foreign_margin",
     "file_path": "src/api/overseas_stock/order_account/foreign_margin.rs",
     "spec_path": ".agent/specs/overseas_stock__order_account__foreign_margin.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 주문/계좌",
