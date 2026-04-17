@@ -3037,7 +3037,7 @@
     "module_path": "api::futureoption_overseas::quotations::monthly_ccnl",
     "file_path": "src/api/futureoption_overseas/quotations/monthly_ccnl.rs",
     "spec_path": ".agent/specs/futureoption_overseas__quotations__monthly_ccnl.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 기본시세",
@@ -3047,7 +3047,7 @@
     "module_path": "api::futureoption_overseas::quotations::search_contract_detail",
     "file_path": "src/api/futureoption_overseas/quotations/search_contract_detail.rs",
     "spec_path": ".agent/specs/futureoption_overseas__quotations__search_contract_detail.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 기본시세",
@@ -3057,7 +3057,7 @@
     "module_path": "api::futureoption_overseas::quotations::investor_unpd_trend",
     "file_path": "src/api/futureoption_overseas/quotations/investor_unpd_trend.rs",
     "spec_path": ".agent/specs/futureoption_overseas__quotations__investor_unpd_trend.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 기본시세",
