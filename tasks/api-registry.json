@@ -2757,7 +2757,7 @@
     "module_path": "api::overseas_stock::market_analysis::market_cap",
     "file_path": "src/api/overseas_stock/market_analysis/market_cap.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__market_cap.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2767,7 +2767,7 @@
     "module_path": "api::overseas_stock::market_analysis::period_rights",
     "file_path": "src/api/overseas_stock/market_analysis/period_rights.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__period_rights.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2777,7 +2777,7 @@
     "module_path": "api::overseas_stock::market_analysis::news_title",
     "file_path": "src/api/overseas_stock/market_analysis/news_title.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__news_title.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
