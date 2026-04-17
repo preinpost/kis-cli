@@ -3,6 +3,9 @@
 
 pub mod new_highlow;
 pub mod price_fluct;
+pub mod trade_growth;
+pub mod trade_pbmn;
+pub mod trade_turnover;
 pub mod trade_vol;
 pub mod updown_rate;
 pub mod volume_power;

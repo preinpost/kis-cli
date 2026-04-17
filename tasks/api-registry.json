@@ -2727,7 +2727,7 @@
     "module_path": "api::overseas_stock::market_analysis::trade_pbmn",
     "file_path": "src/api/overseas_stock/market_analysis/trade_pbmn.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__trade_pbmn.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2737,7 +2737,7 @@
     "module_path": "api::overseas_stock::market_analysis::trade_growth",
     "file_path": "src/api/overseas_stock/market_analysis/trade_growth.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__trade_growth.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2747,7 +2747,7 @@
     "module_path": "api::overseas_stock::market_analysis::trade_turnover",
     "file_path": "src/api/overseas_stock/market_analysis/trade_turnover.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__trade_turnover.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
