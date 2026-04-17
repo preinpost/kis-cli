@@ -2697,7 +2697,7 @@
     "module_path": "api::overseas_stock::market_analysis::updown_rate",
     "file_path": "src/api/overseas_stock/market_analysis/updown_rate.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__updown_rate.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2707,7 +2707,7 @@
     "module_path": "api::overseas_stock::market_analysis::new_highlow",
     "file_path": "src/api/overseas_stock/market_analysis/new_highlow.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__new_highlow.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2717,7 +2717,7 @@
     "module_path": "api::overseas_stock::market_analysis::trade_vol",
     "file_path": "src/api/overseas_stock/market_analysis/trade_vol.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__trade_vol.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
