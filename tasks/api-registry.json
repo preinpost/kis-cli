@@ -2847,7 +2847,7 @@
     "module_path": "api::overseas_stock::realtime::h0gscni0",
     "file_path": "src/api/overseas_stock/realtime/h0gscni0.rs",
     "spec_path": ".agent/specs/overseas_stock__realtime__h0gscni0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 주문/계좌",
