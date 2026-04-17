@@ -2787,7 +2787,7 @@
     "module_path": "api::overseas_stock::market_analysis::rights_by_ice",
     "file_path": "src/api/overseas_stock/market_analysis/rights_by_ice.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__rights_by_ice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2797,7 +2797,7 @@
     "module_path": "api::overseas_stock::market_analysis::colable_by_company",
     "file_path": "src/api/overseas_stock/market_analysis/colable_by_company.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__colable_by_company.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2807,7 +2807,7 @@
     "module_path": "api::overseas_stock::market_analysis::brknews_title",
     "file_path": "src/api/overseas_stock/market_analysis/brknews_title.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__brknews_title.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 실시간시세",
