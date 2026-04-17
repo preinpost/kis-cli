@@ -1,3 +1,4 @@
+mod analysis;
 mod api;
 mod client;
 mod commands;
@@ -6,6 +7,7 @@ mod error;
 mod models;
 mod symbols;
 mod token;
+mod viewer;
 mod ws;
 
 use std::io::{self, Write};
@@ -55,6 +57,26 @@ enum Commands {
     Fo {
         #[command(subcommand)]
         action: FoAction,
+    },
+
+    /// 기술적 분석 (MA/RSI/MACD/볼린저/일목균형표)
+    Analyze {
+        /// 종목명 또는 코드
+        symbol: String,
+        /// 해외 종목 분석 (기본: 국내)
+        #[arg(long)]
+        usa: bool,
+        /// JSON 덤프 (LLM 해석용)
+        #[arg(long)]
+        json: bool,
+        /// 차트 창 띄우기 (wry 네이티브 뷰어)
+        #[arg(long)]
+        chart: bool,
+        /// HTML 파일 저장 (경로 지정)
+        #[arg(long)]
+        save: Option<String>,
+        #[arg(long)]
+        pick: Option<usize>,
     },
 }
 
@@ -321,10 +343,57 @@ fn build_client() -> Result<KisClient> {
     Ok(KisClient::with_mock(cfg.credentials, cfg.is_mock))
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    // --chart는 wry 창을 main 스레드에서 띄워야 함 (macOS AppKit 요구).
+    // 비동기 prep만 런타임에서 돌리고 이벤트 루프는 main 스레드에서 블로킹.
+    if let Commands::Analyze { symbol, usa, chart: true, pick, .. } = &cli.command {
+        return run_chart_viewer(symbol, *usa, *pick);
+    }
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+    rt.block_on(async_main(cli))
+}
+
+fn run_chart_viewer(symbol: &str, usa: bool, pick: Option<usize>) -> Result<()> {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+    let mode = if usa { symbols::ResolveMode::Overseas } else { symbols::ResolveMode::Domestic };
+
+    let (title, html, client, sym_code, sym_name, series) = rt.block_on(async {
+        let client = std::sync::Arc::new(build_client()?);
+        let (sym, series, _report, html) =
+            commands::analyze::prepare(&client, symbol, mode, pick).await?;
+        let title = format!("[{}] {} — kis-cli", sym.code, sym.name_kr);
+        let name = if !sym.name_kr.is_empty() { sym.name_kr.clone() } else { sym.name_en.clone() };
+        Ok::<_, anyhow::Error>((title, html, client, sym.code, name, series))
+    })?;
+
+    // 심볼 DB 공유용 (검색 IPC에서 사용)
+    let store = symbols::Store::open(&config::symbols_db_path()?)?;
+
+    let ctx = viewer::ViewerCtx {
+        rt: rt.handle().clone(),
+        client,
+        store: std::sync::Arc::new(std::sync::Mutex::new(store)),
+        state: std::sync::Arc::new(std::sync::Mutex::new(viewer::ViewerState {
+            series,
+            period: 'D',
+            symbol_code: sym_code,
+            symbol_name: sym_name,
+            mode,
+        })),
+    };
+    // 런타임은 프로세스 종료까지 유지 (IPC 핸들러가 spawn).
+    let _rt_guard = rt;
+    viewer::launch(&title, &html, ctx)
+}
+
+async fn async_main(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Auth => commands::auth::run(&build_client()?).await,
 
@@ -352,6 +421,13 @@ async fn main() -> Result<()> {
             FoAction::Dome { action } => dispatch_dome_fo(action).await,
             FoAction::Usa { action } => dispatch_usa_fo(action).await,
         },
+
+        Commands::Analyze { symbol, usa, json, chart: _, save, pick } => {
+            // chart=true 경로는 main()에서 이미 가로챘다 (wry 창). 여기선 json/save만.
+            let client = build_client()?;
+            let mode = if usa { symbols::ResolveMode::Overseas } else { symbols::ResolveMode::Domestic };
+            commands::analyze::run(&client, &symbol, mode, json, save, pick).await
+        }
     }
 }
 
