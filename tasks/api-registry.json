@@ -2917,7 +2917,7 @@
     "module_path": "api::futureoption_overseas::order_account::inquire_daily_ccld",
     "file_path": "src/api/futureoption_overseas/order_account/inquire_daily_ccld.rs",
     "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_daily_ccld.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 주문/계좌",
@@ -2927,7 +2927,7 @@
     "module_path": "api::futureoption_overseas::order_account::inquire_deposit",
     "file_path": "src/api/futureoption_overseas/order_account/inquire_deposit.rs",
     "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_deposit.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 주문/계좌",
@@ -2937,7 +2937,7 @@
     "module_path": "api::futureoption_overseas::order_account::inquire_daily_order",
     "file_path": "src/api/futureoption_overseas/order_account/inquire_daily_order.rs",
     "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_daily_order.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 주문/계좌",
