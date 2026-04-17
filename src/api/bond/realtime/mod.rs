@@ -1,4 +1,6 @@
 // 카테고리: [장내채권] 실시간시세
 // 각 엔드포인트 모듈은 Ralph Loop가 추가한다.
 
+pub mod h0bicnt0;
+pub mod h0bjasp0;
 pub mod h0bjcnt0;

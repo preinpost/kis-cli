@@ -3367,7 +3367,7 @@
     "module_path": "api::bond::realtime::h0bjasp0",
     "file_path": "src/api/bond/realtime/h0bjasp0.rs",
     "spec_path": ".agent/specs/bond__realtime__h0bjasp0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 실시간시세",
@@ -3377,6 +3377,6 @@
     "module_path": "api::bond::realtime::h0bicnt0",
     "file_path": "src/api/bond/realtime/h0bicnt0.rs",
     "spec_path": ".agent/specs/bond__realtime__h0bicnt0.md",
-    "status": "pending"
+    "status": "done"
   }
 ]
