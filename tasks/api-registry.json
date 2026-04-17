@@ -2817,7 +2817,7 @@
     "module_path": "api::overseas_stock::realtime::hdfsasp0",
     "file_path": "src/api/overseas_stock/realtime/hdfsasp0.rs",
     "spec_path": ".agent/specs/overseas_stock__realtime__hdfsasp0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 실시간시세",
@@ -2827,7 +2827,7 @@
     "module_path": "api::overseas_stock::realtime::hdfsasp1",
     "file_path": "src/api/overseas_stock/realtime/hdfsasp1.rs",
     "spec_path": ".agent/specs/overseas_stock__realtime__hdfsasp1.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 실시간시세",
@@ -2837,7 +2837,7 @@
     "module_path": "api::overseas_stock::realtime::hdfscnt0",
     "file_path": "src/api/overseas_stock/realtime/hdfscnt0.rs",
     "spec_path": ".agent/specs/overseas_stock__realtime__hdfscnt0.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 실시간시세",
