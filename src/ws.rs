@@ -15,6 +15,12 @@ const WS_URL_REAL: &str = "ws://ops.koreainvestment.com:21000";
 /// 국내주식 실시간체결 TR_ID
 const WS_TR_ID_DOMESTIC_CCNL: &str = "H0STCNT0";
 
+/// 해외주식 실시간체결 TR_ID
+const WS_TR_ID_OVERSEAS_CCNL: &str = "HDFSCNT0";
+
+/// KRX 야간선물 실시간체결 TR_ID
+const WS_TR_ID_NIGHT_FUTURES_CCNL: &str = "H0MFCNT0";
+
 /// 국내주식 실시간체결 컬럼 (주요 필드만)
 const DOMESTIC_CCNL_COLUMNS: &[&str] = &[
     "종목코드",
@@ -47,7 +53,7 @@ struct DecryptInfo {
     iv: String,
 }
 
-pub async fn run(token_manager: Arc<TokenManager>, symbol: &str) -> Result<()> {
+pub async fn run_domestic(token_manager: Arc<TokenManager>, symbol: &str) -> Result<()> {
     let approval_key = token_manager
         .get_ws_approval_key_string()
         .await
@@ -61,7 +67,7 @@ pub async fn run(token_manager: Arc<TokenManager>, symbol: &str) -> Result<()> {
     let mut retry_count = 0;
 
     while retry_count < max_retries {
-        match connect_and_stream(&url, &approval_key, symbol).await {
+        match connect_and_stream(&url, &approval_key, WS_TR_ID_DOMESTIC_CCNL, symbol, Feed::Domestic).await {
             Ok(()) => break,
             Err(e) => {
                 retry_count += 1;
@@ -80,7 +86,90 @@ pub async fn run(token_manager: Arc<TokenManager>, symbol: &str) -> Result<()> {
     Ok(())
 }
 
-async fn connect_and_stream(url: &str, approval_key: &str, symbol: &str) -> Result<()> {
+/// KRX 야간선물 실시간체결 (H0MFCNT0). 모의투자 미지원. `tr_key` = 야간선물 종목코드.
+pub async fn run_night_futures(
+    token_manager: Arc<TokenManager>,
+    symbol: &str,
+) -> Result<()> {
+    let approval_key = token_manager
+        .get_ws_approval_key_string()
+        .await
+        .context("WebSocket approval key 발급 실패")?;
+
+    let url = format!("{WS_URL_REAL}/tryitout");
+    println!("[{symbol}] KRX 야간선물 실시간 체결 스트리밍 시작...");
+    println!("종료: Ctrl+C\n");
+
+    let max_retries = 3;
+    let mut retry_count = 0;
+    while retry_count < max_retries {
+        match connect_and_stream(&url, &approval_key, WS_TR_ID_NIGHT_FUTURES_CCNL, symbol, Feed::NightFutures).await {
+            Ok(()) => break,
+            Err(e) => {
+                retry_count += 1;
+                eprintln!("[WS] 연결 끊김 ({retry_count}/{max_retries}): {e}");
+                if retry_count < max_retries {
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                }
+            }
+        }
+    }
+    if retry_count >= max_retries {
+        anyhow::bail!("최대 재시도 횟수 ({max_retries}) 초과");
+    }
+    Ok(())
+}
+
+/// 해외주식 실시간체결. `tr_key` = `D{EXCD}{SYMB}` — 예: `DNASTSLA`.
+pub async fn run_overseas(
+    token_manager: Arc<TokenManager>,
+    excd: &str,
+    symbol: &str,
+) -> Result<()> {
+    let approval_key = token_manager
+        .get_ws_approval_key_string()
+        .await
+        .context("WebSocket approval key 발급 실패")?;
+
+    let tr_key = format!("D{}{}", excd, symbol);
+    let url = format!("{WS_URL_REAL}/tryitout");
+    println!("[{excd}:{symbol}] 실시간 체결가 스트리밍 시작...");
+    println!("종료: Ctrl+C\n");
+
+    let max_retries = 3;
+    let mut retry_count = 0;
+    while retry_count < max_retries {
+        match connect_and_stream(&url, &approval_key, WS_TR_ID_OVERSEAS_CCNL, &tr_key, Feed::Overseas).await {
+            Ok(()) => break,
+            Err(e) => {
+                retry_count += 1;
+                eprintln!("[WS] 연결 끊김 ({retry_count}/{max_retries}): {e}");
+                if retry_count < max_retries {
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                }
+            }
+        }
+    }
+    if retry_count >= max_retries {
+        anyhow::bail!("최대 재시도 횟수 ({max_retries}) 초과");
+    }
+    Ok(())
+}
+
+#[derive(Clone, Copy)]
+enum Feed {
+    Domestic,
+    Overseas,
+    NightFutures,
+}
+
+async fn connect_and_stream(
+    url: &str,
+    approval_key: &str,
+    tr_id: &str,
+    tr_key: &str,
+    feed: Feed,
+) -> Result<()> {
     let (ws_stream, _) = connect_async(url).await.context("WebSocket 연결 실패")?;
     let (mut write, mut read) = ws_stream.split();
 
@@ -94,8 +183,8 @@ async fn connect_and_stream(url: &str, approval_key: &str, symbol: &str) -> Resu
         },
         "body": {
             "input": {
-                "tr_id": WS_TR_ID_DOMESTIC_CCNL,
-                "tr_key": symbol,
+                "tr_id": tr_id,
+                "tr_key": tr_key,
             },
         },
     });
@@ -145,42 +234,28 @@ async fn connect_and_stream(url: &str, approval_key: &str, symbol: &str) -> Resu
             let fields: Vec<&str> = data_str.split('^').collect();
 
             if !header_printed {
-                println!(
-                    "{:<8} {:>12} {:>8} {:>8}  {:>12} {:>10}",
-                    "시간", "현재가", "대비", "대비율", "거래량", "체결강도"
-                );
+                match feed {
+                    Feed::Domestic => println!(
+                        "{:<8} {:>12} {:>8} {:>8}  {:>12} {:>10}",
+                        "시간", "현재가", "대비", "대비율", "거래량", "체결강도"
+                    ),
+                    Feed::Overseas => println!(
+                        "{:<10} {:>12} {:>8} {:>8}  {:>12}",
+                        "UTC", "현재가", "대비", "대비율", "누적거래량"
+                    ),
+                    Feed::NightFutures => println!(
+                        "{:<8} {:>12} {:>8} {:>8}  {:>12} {:>10}",
+                        "시간", "현재가", "대비", "대비율", "거래량", "미결제"
+                    ),
+                }
                 println!("─────────────────────────────────────────────────────────────");
                 header_printed = true;
             }
 
-            // fields: [0]=종목코드, [1]=체결시간, [2]=현재가, [3]=전일대비부호,
-            //          [4]=전일대비, [5]=전일대비율, ..., [12]=체결량, [13]=누적거래량,
-            //          ..., [18]=체결강도
-            if fields.len() > 18 {
-                let time = fields[1];
-                let price = fields[2];
-                let sign_code = fields[3];
-                let diff = fields[4];
-                let rate = fields[5];
-                let volume = fields[13];
-                let strength = fields[18];
-
-                let sign = match sign_code {
-                    "1" | "2" => "▲",
-                    "4" | "5" => "▼",
-                    _ => " ",
-                };
-
-                let formatted_time = if time.len() >= 6 {
-                    format!("{}:{}:{}", &time[..2], &time[2..4], &time[4..6])
-                } else {
-                    time.to_string()
-                };
-
-                println!(
-                    "{:<8} {:>12} {:>1}{:>7} {:>7}%  {:>12} {:>10}",
-                    formatted_time, price, sign, diff, rate, volume, strength
-                );
+            match feed {
+                Feed::Domestic => print_domestic(&fields),
+                Feed::Overseas => print_overseas(&fields),
+                Feed::NightFutures => print_night_futures(&fields),
             }
         } else {
             // 시스템 메시지 (구독 응답, PINGPONG)
@@ -220,6 +295,86 @@ async fn connect_and_stream(url: &str, approval_key: &str, symbol: &str) -> Resu
     }
 
     Ok(())
+}
+
+fn print_domestic(fields: &[&str]) {
+    // [1]=체결시간, [2]=현재가, [3]=전일대비부호, [4]=전일대비, [5]=전일대비율,
+    // [13]=누적거래량, [18]=체결강도
+    if fields.len() <= 18 { return; }
+    let time = fields[1];
+    let price = fields[2];
+    let sign_code = fields[3];
+    let diff = fields[4];
+    let rate = fields[5];
+    let volume = fields[13];
+    let strength = fields[18];
+    let sign = arrow(sign_code);
+    let formatted_time = if time.len() >= 6 {
+        format!("{}:{}:{}", &time[..2], &time[2..4], &time[4..6])
+    } else { time.to_string() };
+    println!(
+        "{:<8} {:>12} {:>1}{:>7} {:>7}%  {:>12} {:>10}",
+        formatted_time, price, sign, diff, rate, volume, strength
+    );
+}
+
+fn print_overseas(fields: &[&str]) {
+    // HDFSCNT0: [7]=한국체결시간 (KST, HHMMSS), [11]=현재가, [12]=대비부호,
+    //          [13]=대비, [14]=대비율, [20]=누적거래량
+    if fields.len() <= 20 { return; }
+    let kst_time = fields[7];
+    let price = fields[11];
+    let sign_code = fields[12];
+    let diff = fields[13];
+    let rate = fields[14];
+    let tvol = fields[20];
+    let sign = arrow(sign_code);
+    println!(
+        "{:<10} {:>12} {:>1}{:>7} {:>7}%  {:>12}",
+        fmt_utc_from_kst(kst_time),
+        price, sign, diff, rate, tvol
+    );
+}
+
+fn print_night_futures(fields: &[&str]) {
+    // H0MFCNT0: [1]=bsop_hour, [2]=prdy_vrss, [3]=sign, [4]=prdy_ctrt, [5]=prpr,
+    //          [10]=acml_vol, [18]=hts_otst_stpl_qty
+    if fields.len() <= 18 { return; }
+    let time = fields[1];
+    let diff = fields[2];
+    let sign_code = fields[3];
+    let rate = fields[4];
+    let price = fields[5];
+    let volume = fields[10];
+    let open_interest = fields[18];
+    let sign = arrow(sign_code);
+    let formatted_time = if time.len() >= 6 {
+        format!("{}:{}:{}", &time[..2], &time[2..4], &time[4..6])
+    } else { time.to_string() };
+    println!(
+        "{:<8} {:>12} {:>1}{:>7} {:>7}%  {:>12} {:>10}",
+        formatted_time, price, sign, diff, rate, volume, open_interest
+    );
+}
+
+/// KST HHMMSS → UTC HH:MM:SS (KST = UTC+9).
+fn fmt_utc_from_kst(t: &str) -> String {
+    if t.len() < 6 {
+        return t.to_string();
+    }
+    let h: i32 = t[..2].parse().unwrap_or(0);
+    let m = &t[2..4];
+    let s = &t[4..6];
+    let utc_h = (h - 9).rem_euclid(24);
+    format!("{:02}:{}:{}", utc_h, m, s)
+}
+
+fn arrow(code: &str) -> &'static str {
+    match code {
+        "1" | "2" => "▲",
+        "4" | "5" => "▼",
+        _ => " ",
+    }
 }
 
 fn aes_cbc_decrypt(key: &str, iv: &str, cipher_text: &str) -> Result<String> {

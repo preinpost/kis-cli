@@ -18,3 +18,6 @@ aes = "0.8"
 cbc = "0.1"
 base64 = "0.22"
 anyhow = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+zip = "2"
+encoding_rs = "0.8"

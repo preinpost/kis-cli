@@ -54,6 +54,11 @@ pub fn ws_token_path() -> Result<PathBuf> {
     Ok(config_dir()?.join(".kis_ws_token.json"))
 }
 
+/// 종목 마스터 DB 경로
+pub fn symbols_db_path() -> Result<PathBuf> {
+    Ok(config_dir()?.join("symbols.db"))
+}
+
 /// 설정 파일 로딩
 pub fn load_config() -> Result<AppConfig> {
     let path = config_path()?;
