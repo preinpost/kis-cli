@@ -27,6 +27,7 @@ pub struct ApiResponse {
     pub output: Option<serde_json::Value>,
     pub output1: Option<serde_json::Value>,
     pub output2: Option<serde_json::Value>,
+    pub output3: Option<serde_json::Value>,
 }
 
 /// 국내주식 현재가 응답

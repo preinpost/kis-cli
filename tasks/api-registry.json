@@ -3307,7 +3307,7 @@
     "module_path": "api::bond::quotations::inquire_daily_price",
     "file_path": "src/api/bond/quotations/inquire_daily_price.rs",
     "spec_path": ".agent/specs/bond__quotations__inquire_daily_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 기본시세",
@@ -3317,7 +3317,7 @@
     "module_path": "api::bond::quotations::inquire_daily_itemchartprice",
     "file_path": "src/api/bond/quotations/inquire_daily_itemchartprice.rs",
     "spec_path": ".agent/specs/bond__quotations__inquire_daily_itemchartprice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 기본시세",
@@ -3327,7 +3327,7 @@
     "module_path": "api::bond::quotations::avg_unit",
     "file_path": "src/api/bond/quotations/avg_unit.rs",
     "spec_path": ".agent/specs/bond__quotations__avg_unit.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 기본시세",
