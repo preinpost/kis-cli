@@ -7,3 +7,5 @@ pub mod inquire_ccnl;
 pub mod inquire_daily_itemchartprice;
 pub mod inquire_daily_price;
 pub mod inquire_price;
+pub mod issue_info;
+pub mod search_bond_info;
