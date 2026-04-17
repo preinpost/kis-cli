@@ -2977,7 +2977,7 @@
     "module_path": "api::futureoption_overseas::quotations::stock_detail",
     "file_path": "src/api/futureoption_overseas/quotations/stock_detail.rs",
     "spec_path": ".agent/specs/futureoption_overseas__quotations__stock_detail.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 기본시세",
@@ -2987,7 +2987,7 @@
     "module_path": "api::futureoption_overseas::quotations::inquire_asking_price",
     "file_path": "src/api/futureoption_overseas/quotations/inquire_asking_price.rs",
     "spec_path": ".agent/specs/futureoption_overseas__quotations__inquire_asking_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 기본시세",
@@ -2997,7 +2997,7 @@
     "module_path": "api::futureoption_overseas::quotations::inquire_time_futurechartprice",
     "file_path": "src/api/futureoption_overseas/quotations/inquire_time_futurechartprice.rs",
     "spec_path": ".agent/specs/futureoption_overseas__quotations__inquire_time_futurechartprice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 기본시세",
