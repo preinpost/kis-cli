@@ -5,6 +5,7 @@ pub mod algo_ordno;
 pub mod daytime_order;
 pub mod daytime_order_rvsecncl;
 pub mod foreign_margin;
+pub mod inquire_algo_ccnl;
 pub mod inquire_balance;
 pub mod inquire_ccnl;
 pub mod inquire_nccs;

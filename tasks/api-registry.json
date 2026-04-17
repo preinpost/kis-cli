@@ -2517,7 +2517,7 @@
     "module_path": "api::overseas_stock::order_account::inquire_algo_ccnl",
     "file_path": "src/api/overseas_stock/order_account/inquire_algo_ccnl.rs",
     "spec_path": ".agent/specs/overseas_stock__order_account__inquire_algo_ccnl.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 기본시세",
@@ -2527,7 +2527,7 @@
     "module_path": "api::overseas_stock::quotations::price_detail",
     "file_path": "src/api/overseas_stock/quotations/price_detail.rs",
     "spec_path": ".agent/specs/overseas_stock__quotations__price_detail.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 기본시세",
@@ -2537,7 +2537,7 @@
     "module_path": "api::overseas_stock::quotations::inquire_asking_price",
     "file_path": "src/api/overseas_stock/quotations/inquire_asking_price.rs",
     "spec_path": ".agent/specs/overseas_stock__quotations__inquire_asking_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 기본시세",
