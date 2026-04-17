@@ -3277,7 +3277,7 @@
     "module_path": "api::bond::quotations::inquire_asking_price",
     "file_path": "src/api/bond/quotations/inquire_asking_price.rs",
     "spec_path": ".agent/specs/bond__quotations__inquire_asking_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 기본시세",
@@ -3287,7 +3287,7 @@
     "module_path": "api::bond::quotations::inquire_price",
     "file_path": "src/api/bond/quotations/inquire_price.rs",
     "spec_path": ".agent/specs/bond__quotations__inquire_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 기본시세",
@@ -3297,7 +3297,7 @@
     "module_path": "api::bond::quotations::inquire_ccnl",
     "file_path": "src/api/bond/quotations/inquire_ccnl.rs",
     "spec_path": ".agent/specs/bond__quotations__inquire_ccnl.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 기본시세",
