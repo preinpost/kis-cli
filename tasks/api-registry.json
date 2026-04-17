@@ -2637,7 +2637,7 @@
     "module_path": "api::overseas_stock::quotations::industry_theme",
     "file_path": "src/api/overseas_stock/quotations/industry_theme.rs",
     "spec_path": ".agent/specs/overseas_stock__quotations__industry_theme.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 기본시세",
@@ -2647,7 +2647,7 @@
     "module_path": "api::overseas_stock::quotations::industry_price",
     "file_path": "src/api/overseas_stock/quotations/industry_price.rs",
     "spec_path": ".agent/specs/overseas_stock__quotations__industry_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 기본시세",
@@ -2657,7 +2657,7 @@
     "module_path": "api::overseas_stock::quotations::multprice",
     "file_path": "src/api/overseas_stock/quotations/multprice.rs",
     "spec_path": ".agent/specs/overseas_stock__quotations__multprice.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
