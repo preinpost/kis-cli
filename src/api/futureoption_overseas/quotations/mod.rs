@@ -7,6 +7,7 @@ pub mod inquire_price;
 pub mod inquire_time_futurechartprice;
 pub mod inquire_time_optchartprice;
 pub mod investor_unpd_trend;
+pub mod market_time;
 pub mod monthly_ccnl;
 pub mod opt_asking_price;
 pub mod opt_daily_ccnl;
