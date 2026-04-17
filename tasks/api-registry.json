@@ -3247,7 +3247,7 @@
     "module_path": "api::bond::order_account::inquire_daily_ccld",
     "file_path": "src/api/bond/order_account/inquire_daily_ccld.rs",
     "spec_path": ".agent/specs/bond__order_account__inquire_daily_ccld.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 주문/계좌",
@@ -3257,7 +3257,7 @@
     "module_path": "api::bond::order_account::inquire_balance",
     "file_path": "src/api/bond/order_account/inquire_balance.rs",
     "spec_path": ".agent/specs/bond__order_account__inquire_balance.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 주문/계좌",
@@ -3267,7 +3267,7 @@
     "module_path": "api::bond::order_account::inquire_psbl_order",
     "file_path": "src/api/bond/order_account/inquire_psbl_order.rs",
     "spec_path": ".agent/specs/bond__order_account__inquire_psbl_order.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[장내채권] 기본시세",
