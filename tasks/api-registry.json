@@ -2947,7 +2947,7 @@
     "module_path": "api::futureoption_overseas::order_account::inquire_period_trans",
     "file_path": "src/api/futureoption_overseas/order_account/inquire_period_trans.rs",
     "spec_path": ".agent/specs/futureoption_overseas__order_account__inquire_period_trans.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 주문/계좌",
@@ -2957,7 +2957,7 @@
     "module_path": "api::futureoption_overseas::order_account::margin_detail",
     "file_path": "src/api/futureoption_overseas/order_account/margin_detail.rs",
     "spec_path": ".agent/specs/futureoption_overseas__order_account__margin_detail.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 기본시세",
@@ -2967,7 +2967,7 @@
     "module_path": "api::futureoption_overseas::quotations::inquire_price",
     "file_path": "src/api/futureoption_overseas/quotations/inquire_price.rs",
     "spec_path": ".agent/specs/futureoption_overseas__quotations__inquire_price.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외선물옵션] 기본시세",
