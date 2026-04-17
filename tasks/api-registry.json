@@ -2607,7 +2607,7 @@
     "module_path": "api::overseas_stock::quotations::inquire_search",
     "file_path": "src/api/overseas_stock/quotations/inquire_search.rs",
     "spec_path": ".agent/specs/overseas_stock__quotations__inquire_search.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 기본시세",
@@ -2617,7 +2617,7 @@
     "module_path": "api::overseas_stock::quotations::countries_holiday",
     "file_path": "src/api/overseas_stock/quotations/countries_holiday.rs",
     "spec_path": ".agent/specs/overseas_stock__quotations__countries_holiday.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 기본시세",
@@ -2627,7 +2627,7 @@
     "module_path": "api::overseas_stock::quotations::search_info",
     "file_path": "src/api/overseas_stock/quotations/search_info.rs",
     "spec_path": ".agent/specs/overseas_stock__quotations__search_info.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 기본시세",
