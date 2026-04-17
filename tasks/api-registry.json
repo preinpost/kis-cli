@@ -2667,7 +2667,7 @@
     "module_path": "api::overseas_stock::market_analysis::price_fluct",
     "file_path": "src/api/overseas_stock/market_analysis/price_fluct.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__price_fluct.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2677,7 +2677,7 @@
     "module_path": "api::overseas_stock::market_analysis::volume_surge",
     "file_path": "src/api/overseas_stock/market_analysis/volume_surge.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__volume_surge.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
@@ -2687,7 +2687,7 @@
     "module_path": "api::overseas_stock::market_analysis::volume_power",
     "file_path": "src/api/overseas_stock/market_analysis/volume_power.rs",
     "spec_path": ".agent/specs/overseas_stock__market_analysis__volume_power.md",
-    "status": "pending"
+    "status": "done"
   },
   {
     "category": "[해외주식] 시세분석",
