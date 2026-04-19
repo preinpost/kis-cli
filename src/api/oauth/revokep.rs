@@ -28,6 +28,7 @@ pub struct Response {
 }
 
 pub async fn call(is_mock: bool, req: &Request) -> Result<Response> {
+    crate::rate_limit::acquire(is_mock).await?;
     let base = if is_mock { BASE_URL_MOCK } else { BASE_URL_PROD };
     let url = format!("{base}{ENDPOINT}");
     let resp = reqwest::Client::new()

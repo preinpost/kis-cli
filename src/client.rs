@@ -68,6 +68,7 @@ impl KisClient {
         tr_id: &str,
         params: &[(&str, &str)],
     ) -> Result<ApiResponse> {
+        crate::rate_limit::acquire(self.is_mock).await?;
         let headers = self.headers(tr_id).await?;
         let url = format!("{}{endpoint}", self.base_url());
 
@@ -110,6 +111,7 @@ impl KisClient {
         body: &B,
         extra_headers: &[(&str, &str)],
     ) -> Result<ApiResponse> {
+        crate::rate_limit::acquire(self.is_mock).await?;
         let headers = self.headers(tr_id).await?;
         let url = format!("{}{endpoint}", self.base_url());
 

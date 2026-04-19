@@ -5,6 +5,7 @@ mod commands;
 mod config;
 mod error;
 mod models;
+mod rate_limit;
 mod symbols;
 mod token;
 mod viewer;
