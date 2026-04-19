@@ -377,7 +377,7 @@ fn arrow(code: &str) -> &'static str {
     }
 }
 
-fn aes_cbc_decrypt(key: &str, iv: &str, cipher_text: &str) -> Result<String> {
+pub fn aes_cbc_decrypt(key: &str, iv: &str, cipher_text: &str) -> Result<String> {
     let decoded = BASE64.decode(cipher_text).context("base64 디코딩 실패")?;
     let mut buf = decoded.clone();
 

@@ -3,6 +3,10 @@ name = "kis-cli"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "kis"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
@@ -23,3 +27,5 @@ zip = "2"
 encoding_rs = "0.8"
 wry = "0.46"
 tao = "0.30"
+tokio-cron-scheduler = "0.13"
+chrono-tz = "0.10"

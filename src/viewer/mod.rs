@@ -19,6 +19,7 @@ use wry::WebViewBuilder;
 
 use crate::client::KisClient;
 use crate::commands::analyze::{self, Series};
+use crate::commands::backtest;
 use crate::symbols::{Market, ResolveMode, Store};
 
 #[derive(Debug, Clone)]
@@ -52,6 +53,163 @@ pub struct ViewerState {
     pub symbol_code: String,
     pub symbol_name: String,
     pub mode: ResolveMode,
+}
+
+// ─── 백테스트 인터랙티브 뷰어 ──────────────────────────────
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+enum BacktestIpc {
+    #[serde(rename = "run")]
+    Run { params: backtest::IpcParams },
+}
+
+pub struct BacktestCtx {
+    pub rt: Handle,
+    pub client: Arc<KisClient>,
+    pub code: String,
+    pub name: String,
+    pub mode: ResolveMode,
+    pub series: Arc<Mutex<Series>>,
+    pub period: Arc<Mutex<char>>,
+    pub from: Arc<Mutex<Option<String>>>,
+    pub to: Arc<Mutex<Option<String>>>,
+}
+
+pub fn launch_backtest(title: &str, html: &str, ctx: BacktestCtx) -> Result<()> {
+    let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+    let proxy = event_loop.create_proxy();
+    let window = WindowBuilder::new()
+        .with_title(title)
+        .with_inner_size(LogicalSize::new(1440.0, 860.0))
+        .build(&event_loop)
+        .context("창 생성 실패")?;
+
+    let ctx = Arc::new(ctx);
+    let ipc_ctx = ctx.clone();
+    let ipc_proxy = proxy.clone();
+
+    let webview = WebViewBuilder::new()
+        .with_html(html)
+        .with_ipc_handler(move |req: wry::http::Request<String>| {
+            let body = req.into_body();
+            let msg: BacktestIpc = match serde_json::from_str(&body) {
+                Ok(m) => m,
+                Err(e) => {
+                    let err = format!("IPC parse: {e}").replace('\'', "\\'");
+                    let _ = ipc_proxy.send_event(UserEvent::EvalScript(
+                        format!("window.onBacktestError('{err}');"),
+                    ));
+                    return;
+                }
+            };
+            handle_backtest_ipc(msg, ipc_ctx.clone(), ipc_proxy.clone());
+        })
+        .build(&window)
+        .context("webview 생성 실패")?;
+
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+        match event {
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
+                *control_flow = ControlFlow::Exit;
+            }
+            Event::UserEvent(UserEvent::EvalScript(script)) => {
+                let _ = webview.evaluate_script(&script);
+            }
+            _ => {}
+        }
+    });
+}
+
+fn handle_backtest_ipc(
+    msg: BacktestIpc,
+    ctx: Arc<BacktestCtx>,
+    proxy: tao::event_loop::EventLoopProxy<UserEvent>,
+) {
+    match msg {
+        BacktestIpc::Run { params } => {
+            let ctx_clone = ctx.clone();
+            ctx.rt.spawn(async move {
+                let new_period = params.period_char();
+                let new_from = params.from_norm();
+                let new_to = params.to_norm();
+
+                let (current_period, current_from, current_to) = {
+                    let p = *ctx_clone.period.lock().unwrap();
+                    let f = ctx_clone.from.lock().unwrap().clone();
+                    let t = ctx_clone.to.lock().unwrap().clone();
+                    (p, f, t)
+                };
+
+                // period / from / to 중 하나라도 바뀌면 재fetch
+                if new_period != current_period
+                    || new_from != current_from
+                    || new_to != current_to
+                {
+                    match backtest::fetch_series_range(
+                        &ctx_clone.client,
+                        &ctx_clone.code,
+                        ctx_clone.mode,
+                        new_period,
+                        new_from.as_deref(),
+                        new_to.as_deref(),
+                    )
+                    .await
+                    {
+                        Ok(new_series) => {
+                            *ctx_clone.series.lock().unwrap() = new_series;
+                            *ctx_clone.period.lock().unwrap() = new_period;
+                            *ctx_clone.from.lock().unwrap() = new_from.clone();
+                            *ctx_clone.to.lock().unwrap() = new_to.clone();
+                        }
+                        Err(e) => {
+                            let msg = e.to_string().replace('\'', "\\'").replace('\n', " ");
+                            let _ = proxy.send_event(UserEvent::EvalScript(format!(
+                                "window.onBacktestError('{msg}');"
+                            )));
+                            return;
+                        }
+                    }
+                }
+
+                let from_snap = ctx_clone.from.lock().unwrap().clone();
+                let to_snap = ctx_clone.to.lock().unwrap().clone();
+                let p = params.into_params(from_snap, to_snap);
+                let series = ctx_clone.series.lock().unwrap();
+                if series.closes.len() < 30 {
+                    let _ = proxy.send_event(UserEvent::EvalScript(format!(
+                        "window.onBacktestError('데이터 부족 ({}봉) — 최소 30봉 필요');",
+                        series.closes.len()
+                    )));
+                    return;
+                }
+                let json = backtest::compute_payload_json(&ctx_clone.code, &ctx_clone.name, &series, &p);
+                let script = format!("window.onBacktestData({});", json);
+                let _ = proxy.send_event(UserEvent::EvalScript(script));
+            });
+        }
+    }
+}
+
+/// IPC가 필요 없는 정적 차트 (백테스트 결과 등)용 간이 런처.
+pub fn launch_static(title: &str, html: &str) -> Result<()> {
+    let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+    let window = WindowBuilder::new()
+        .with_title(title)
+        .with_inner_size(LogicalSize::new(1440.0, 860.0))
+        .build(&event_loop)
+        .context("창 생성 실패")?;
+    let _webview = WebViewBuilder::new()
+        .with_html(html)
+        .build(&window)
+        .context("webview 생성 실패")?;
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+        if let Event::WindowEvent { event: WindowEvent::CloseRequested, .. } = event {
+            *control_flow = ControlFlow::Exit;
+        }
+    });
 }
 
 pub fn launch(title: &str, html: &str, ctx: ViewerCtx) -> Result<()> {

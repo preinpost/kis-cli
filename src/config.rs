@@ -59,6 +59,11 @@ pub fn symbols_db_path() -> Result<PathBuf> {
     Ok(config_dir()?.join("symbols.db"))
 }
 
+/// 자동 손절 데몬 상태 파일 경로
+pub fn stoploss_status_path() -> Result<PathBuf> {
+    Ok(config_dir()?.join("stoploss.status.json"))
+}
+
 /// 설정 파일 로딩
 pub fn load_config() -> Result<AppConfig> {
     let path = config_path()?;
