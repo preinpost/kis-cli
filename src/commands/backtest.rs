@@ -17,7 +17,7 @@
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::{bollinger, ichimoku, macd, rsi, sma};
+use crate::analysis::{bollinger, ichimoku, macd, obv, rsi, sma};
 use crate::client::KisClient;
 use crate::commands::analyze::{self, Series};
 use crate::commands::helpers::{format_number, resolve_symbol};
@@ -30,6 +30,7 @@ pub enum StrategyKind {
     Macd,
     Bollinger,
     Ichimoku,
+    Obv,
     Manual,
 }
 
@@ -41,6 +42,7 @@ impl StrategyKind {
             StrategyKind::Macd => "macd",
             StrategyKind::Bollinger => "bollinger",
             StrategyKind::Ichimoku => "ichimoku",
+            StrategyKind::Obv => "obv",
             StrategyKind::Manual => "manual",
         }
     }
@@ -53,6 +55,7 @@ enum Strategy {
     Macd,
     Bollinger { period: usize, sigma: f64 },
     Ichimoku,
+    Obv { period: usize },
     /// 고정 진입/청산. 진입일 도달 전엔 flat, 이후 direction 방향 유지, 청산일(옵션) 이후 다시 flat.
     Manual {
         entry_date: String,
@@ -71,6 +74,7 @@ impl Strategy {
             Strategy::Macd => "macd(12/26/9)".into(),
             Strategy::Bollinger { period, sigma } => format!("bollinger({period}, {sigma}σ)"),
             Strategy::Ichimoku => "ichimoku(9/26/52)".into(),
+            Strategy::Obv { period } => format!("obv({period})"),
             Strategy::Manual { entry_date, exit_date, direction } => {
                 let dir = if *direction > 0 { "long" } else { "short" };
                 match exit_date {
@@ -100,6 +104,7 @@ pub struct Params {
     pub rsi_overbought: Option<f64>,
     pub bb_period: Option<usize>,
     pub bb_sigma: Option<f64>,
+    pub obv_period: Option<usize>,
     /// Manual 전략 전용: 진입일 (YYYYMMDD, normalize 이후 형식)
     pub manual_entry_date: Option<String>,
     pub manual_exit_date: Option<String>,
@@ -110,7 +115,6 @@ pub struct Params {
 pub struct RunOpts {
     pub json: bool,
     pub sweep: bool,
-    pub chart: bool,
 }
 
 pub async fn run(
@@ -144,10 +148,6 @@ pub async fn run(
             "데이터 부족 ({}봉) — 백테스트에 최소 30봉 이상 필요",
             series.closes.len()
         ));
-    }
-
-    if opts.chart {
-        return Err(anyhow!("--chart 는 main 스레드 런처를 통해 호출되어야 합니다 (내부 라우팅 버그)"));
     }
 
     if opts.sweep {
@@ -232,9 +232,11 @@ pub fn compute_payload_json(code: &str, name: &str, series: &Series, params: &Pa
     let equity = equity_curve_json(series, &result.equity_curve);
     let report_json = serde_json::to_string(&report).unwrap_or_else(|_| "null".into());
     let strategy_label = serde_json::to_string(&strategy.label()).unwrap_or_else(|_| "\"\"".into());
+    let code_json = serde_json::to_string(code).unwrap_or_else(|_| "\"\"".into());
+    let name_json = serde_json::to_string(name).unwrap_or_else(|_| "\"\"".into());
 
     format!(
-        r#"{{"candles":{candles},"markers":{markers},"overlays":{overlays},"equity":{equity},"report":{report_json},"strategy_label":{strategy_label}}}"#
+        r#"{{"candles":{candles},"markers":{markers},"overlays":{overlays},"equity":{equity},"report":{report_json},"strategy_label":{strategy_label},"meta":{{"symbol":{code_json},"name":{name_json}}}}}"#
     )
 }
 
@@ -258,6 +260,7 @@ pub struct IpcParams {
     pub rsi_overbought: Option<f64>,
     pub bb_period: Option<usize>,
     pub bb_sigma: Option<f64>,
+    pub obv_period: Option<usize>,
     pub manual_entry_date: Option<String>,
     pub manual_exit_date: Option<String>,
     pub manual_direction: Option<String>,
@@ -296,6 +299,7 @@ impl IpcParams {
             "macd" => StrategyKind::Macd,
             "bollinger" => StrategyKind::Bollinger,
             "ichimoku" => StrategyKind::Ichimoku,
+            "obv" => StrategyKind::Obv,
             "manual" => StrategyKind::Manual,
             _ => StrategyKind::MaCross,
         };
@@ -318,6 +322,7 @@ impl IpcParams {
             rsi_overbought: self.rsi_overbought,
             bb_period: self.bb_period,
             bb_sigma: self.bb_sigma,
+            obv_period: self.obv_period,
             manual_entry_date: normalize_date(self.manual_entry_date),
             manual_exit_date: normalize_date(self.manual_exit_date),
             manual_direction: self.manual_direction,
@@ -362,6 +367,9 @@ fn build_strategy(p: &Params) -> Strategy {
             sigma: p.bb_sigma.unwrap_or(2.0),
         },
         StrategyKind::Ichimoku => Strategy::Ichimoku,
+        StrategyKind::Obv => Strategy::Obv {
+            period: p.obv_period.unwrap_or(20),
+        },
         StrategyKind::Manual => {
             let entry_date = p.manual_entry_date.clone().unwrap_or_default();
             let exit_date = p.manual_exit_date.clone();
@@ -386,9 +394,24 @@ async fn fetch_range(
         .map(String::from)
         .unwrap_or_else(|| chrono::Local::now().format("%Y%m%d").to_string());
 
+    // --from 미지정 시 기본 룩백 (일봉 5청크≈2년, 주봉 2청크≈4.4년, 월봉 1청크≈10년)
+    let default_from = if from.is_none() {
+        let (per_chunk, chunks): (i64, i64) = match period {
+            'W' => (800, 2),
+            'M' => (3600, 1),
+            _ => (150, 5),
+        };
+        let end_dt = chrono::NaiveDate::parse_from_str(&end, "%Y%m%d")
+            .unwrap_or_else(|_| chrono::Local::now().date_naive());
+        Some((end_dt - chrono::Duration::days(per_chunk * chunks)).format("%Y%m%d").to_string())
+    } else {
+        None
+    };
+    let from_eff: Option<&str> = from.or(default_from.as_deref());
+
     let mut series = fetch_chunk(client, code, mode, period, &end).await?;
 
-    if let Some(from_str) = from {
+    if let Some(from_str) = from_eff {
         // KIS API 초당 호출 제한(EGW00201) 회피용 인터-청크 딜레이
         const CHUNK_DELAY: std::time::Duration = std::time::Duration::from_millis(250);
         for iter in 0..30 {
@@ -410,7 +433,7 @@ async fn fetch_range(
             series = prepend(chunk, series);
         }
     }
-    Ok(trim_range(series, from, to))
+    Ok(trim_range(series, from_eff, to))
 }
 
 async fn fetch_chunk(
@@ -538,6 +561,21 @@ fn compute_signals(strategy: &Strategy, s: &Series) -> Vec<i8> {
                 } else {
                     0
                 };
+            }
+        }
+        Strategy::Obv { period } => {
+            let o = obv(&s.closes, &s.volume);
+            let sig = sma(&o, *period);
+            let mut pos: i8 = 0;
+            for i in 0..n {
+                if !o[i].is_nan() && !sig[i].is_nan() {
+                    if o[i] > sig[i] {
+                        pos = 1;
+                    } else if o[i] < sig[i] {
+                        pos = -1;
+                    }
+                }
+                out[i] = pos;
             }
         }
         Strategy::Manual { entry_date, exit_date, direction } => {
@@ -938,6 +976,10 @@ fn sweep_space(kind: StrategyKind) -> Vec<Strategy> {
         }
         StrategyKind::Macd => vec![Strategy::Macd],
         StrategyKind::Ichimoku => vec![Strategy::Ichimoku],
+        StrategyKind::Obv => [10usize, 20, 30]
+            .into_iter()
+            .map(|period| Strategy::Obv { period })
+            .collect(),
         // Manual 은 스윕 대상이 아님 (단일 시나리오)
         StrategyKind::Manual => vec![],
     }
@@ -1135,6 +1177,7 @@ fn render_html(code: &str, name: &str, params: &Params, initial_payload: &str) -
     let rsi_hi = params.rsi_overbought.unwrap_or(70.0);
     let bb_p = params.bb_period.unwrap_or(20);
     let bb_s = params.bb_sigma.unwrap_or(2.0);
+    let obv_p = params.obv_period.unwrap_or(20);
     let sl_v = params.stop_loss_pct.map(|v| v.to_string()).unwrap_or_default();
     let tp_v = params.take_profit_pct.map(|v| v.to_string()).unwrap_or_default();
     let short_checked = if params.allow_short { " checked" } else { "" };
@@ -1163,9 +1206,32 @@ fn render_html(code: &str, name: &str, params: &Params, initial_payload: &str) -
   body {{ margin:0; font-family: -apple-system, system-ui, sans-serif;
          background:#ffffff; color:#1a1a1a; display:flex; height:100vh; }}
   #main {{ flex:1; display:flex; flex-direction:column; min-width:0; }}
-  header {{ padding:10px 16px; border-bottom:1px solid #e0e3eb; font-size:13px; }}
+  header {{ padding:10px 16px; border-bottom:1px solid #e0e3eb; font-size:13px;
+           display:flex; align-items:center; gap:12px; }}
+  header .title {{ flex:1; min-width:0; }}
   header h1 {{ margin:0 0 4px 0; font-size:14px; }}
   header .muted {{ color:#787b86; font-size:11px; }}
+  .search-box {{ position:relative; }}
+  #search {{ background:#ffffff; border:1px solid #d1d4dc; color:#1a1a1a;
+            padding:5px 10px; border-radius:3px; font-size:12px; width:220px;
+            font-family:inherit; }}
+  #search:focus {{ outline:none; border-color:#2962ff; }}
+  #searchResults {{ position:absolute; top:calc(100% + 2px); right:0;
+                    background:#ffffff; border:1px solid #d1d4dc;
+                    border-radius:3px; max-height:320px; overflow-y:auto;
+                    display:none; z-index:20; min-width:320px;
+                    box-shadow:0 4px 12px rgba(0,0,0,0.08); }}
+  .sr {{ padding:7px 12px; cursor:pointer; font-size:12px;
+        display:flex; gap:10px; border-bottom:1px solid #e0e3eb;
+        align-items:center; }}
+  .sr:last-child {{ border-bottom:none; }}
+  .sr:hover, .sr.active {{ background:#f0f3fa; }}
+  .sr-code {{ color:#2962ff; font-weight:600; min-width:68px;
+             font-family:monospace; }}
+  .sr-market {{ color:#666; min-width:48px; font-size:10px;
+               background:#e0e3eb; padding:2px 6px; border-radius:2px; }}
+  .sr-name {{ color:#1a1a1a; flex:1; overflow:hidden;
+             text-overflow:ellipsis; white-space:nowrap; }}
   #chart {{ flex:1; min-height:0; position:relative; }}
   .zoom-controls {{ position:absolute; top:10px; left:10px; display:flex;
                     flex-direction:row; gap:4px; z-index:10; }}
@@ -1176,6 +1242,12 @@ fn render_html(code: &str, name: &str, params: &Params, initial_payload: &str) -
               display:flex; align-items:center; justify-content:center; }}
   .zoom-btn:hover {{ background:#ffffff; border-color:#2962ff; color:#2962ff; }}
   .zoom-btn:active {{ background:#f0f3fa; }}
+  #legend {{ position:absolute; top:10px; left:118px; z-index:10; display:flex;
+             gap:10px; font-size:11px; background:rgba(255,255,255,0.92);
+             padding:4px 8px; border:1px solid #d1d4dc; border-radius:3px; }}
+  #legend:empty {{ display:none; }}
+  #legend .item {{ display:inline-flex; align-items:center; gap:4px; color:#1a1a1a; }}
+  #legend .swatch {{ width:10px; height:2px; display:inline-block; }}
   #equity {{ height:140px; border-top:1px solid #e0e3eb; }}
   aside {{ width:360px; border-left:1px solid #e0e3eb; padding:12px 14px;
           overflow-y:auto; font-size:12px; background:#fafbfc; }}
@@ -1191,6 +1263,8 @@ fn render_html(code: &str, name: &str, params: &Params, initial_payload: &str) -
   td {{ padding:3px 4px; font-size:11px; font-variant-numeric:tabular-nums;
         border-bottom:1px solid #e0e3eb; }}
   td:first-child {{ width:14px; color:#2962ff; }}
+  tr.trade-row {{ cursor:pointer; }}
+  tr.trade-row:hover td {{ background:#f0f3fa; }}
   .tag {{ font-size:9px; background:#e0e3eb; color:#666; padding:1px 5px;
          border-radius:2px; margin-left:4px; }}
   .row {{ display:flex; align-items:center; justify-content:space-between;
@@ -1224,8 +1298,14 @@ fn render_html(code: &str, name: &str, params: &Params, initial_payload: &str) -
 <body>
 <div id="main">
   <header>
-    <h1>[{code}] {name}</h1>
-    <div class="muted"><span id="strat-label"></span> · <span id="range"></span></div>
+    <div class="title">
+      <h1 id="symbol-title">[{code}] {name}</h1>
+      <div class="muted"><span id="strat-label"></span> · <span id="range"></span></div>
+    </div>
+    <div class="search-box">
+      <input id="search" placeholder="종목 검색 (예: TSLA, 삼성)" autocomplete="off">
+      <div id="searchResults"></div>
+    </div>
   </header>
   <div id="chart">
     <div class="zoom-controls">
@@ -1233,6 +1313,7 @@ fn render_html(code: &str, name: &str, params: &Params, initial_payload: &str) -
       <button class="zoom-btn" data-zoom="out" title="축소 (−)">−</button>
       <button class="zoom-btn" data-zoom="fit" title="전체 보기 (0)">⤢</button>
     </div>
+    <div id="legend"></div>
   </div>
   <div id="equity"></div>
 </div>
@@ -1254,6 +1335,7 @@ fn render_html(code: &str, name: &str, params: &Params, initial_payload: &str) -
       <option value="macd">MACD</option>
       <option value="bollinger">Bollinger</option>
       <option value="ichimoku">Ichimoku</option>
+      <option value="obv">OBV</option>
       <option value="manual">Manual (고정 진입)</option>
     </select>
   </div>
@@ -1264,6 +1346,7 @@ fn render_html(code: &str, name: &str, params: &Params, initial_payload: &str) -
   <div class="row" data-strat="rsi"><label>과매수</label><input id="rsi_overbought" type="number" step="1" value="{rsi_hi}"></div>
   <div class="row" data-strat="bollinger"><label>BB 기간</label><input id="bb_period" type="number" min="2" value="{bb_p}"></div>
   <div class="row" data-strat="bollinger"><label>BB σ</label><input id="bb_sigma" type="number" step="0.1" value="{bb_s}"></div>
+  <div class="row" data-strat="obv"><label>OBV 기간</label><input id="obv_period" type="number" min="2" value="{obv_p}"></div>
   <div class="row" data-strat="manual"><label>진입일</label><input id="manual_entry_date" type="date" value="{me_v}"></div>
   <div class="row" data-strat="manual"><label>청산일</label><input id="manual_exit_date" type="date" placeholder="비우면 끝까지" value="{mx_v}"></div>
   <div class="row" data-strat="manual"><label>방향</label>
@@ -1373,18 +1456,23 @@ function init() {{
 
 function onBacktestData(p) {{
   state.candleSeries.setData(p.candles);
-  state.candleSeries.setMarkers(p.markers || []);
+  state.baseMarkers = p.markers || [];
+  state.candleSeries.setMarkers(state.baseMarkers);
+  if (state.hlTimer) {{ clearTimeout(state.hlTimer); state.hlTimer = null; }}
 
   for (const s of state.overlaySeries) state.priceChart.removeSeries(s);
   state.overlaySeries = [];
+  // title 을 의도적으로 생략: v4.2.0 은 lastValueVisible:false 이어도 title pill 을 표시해
+  // 우측 가격 스케일을 넘어 잘리는 이슈가 있음. 대신 legend 로 표시.
   for (const ov of (p.overlays || [])) {{
     const line = state.priceChart.addLineSeries({{
-      color: ov.color, lineWidth: 1, title: ov.name,
+      color: ov.color, lineWidth: 1,
       priceLineVisible: false, lastValueVisible: false,
     }});
     line.setData(ov.data);
     state.overlaySeries.push(line);
   }}
+  renderLegend(p.overlays || []);
 
   state.eqLine.setData(p.equity || []);
 
@@ -1401,6 +1489,24 @@ function onBacktestData(p) {{
 function onBacktestError(msg) {{
   document.getElementById('status').textContent = '에러: ' + msg;
   document.getElementById('apply').disabled = false;
+}}
+
+function renderLegend(overlays) {{
+  const el = document.getElementById('legend');
+  if (!el) return;
+  el.innerHTML = '';
+  for (const ov of overlays) {{
+    const item = document.createElement('span');
+    item.className = 'item';
+    const sw = document.createElement('span');
+    sw.className = 'swatch';
+    sw.style.backgroundColor = ov.color;
+    const txt = document.createElement('span');
+    txt.textContent = ov.name;
+    item.appendChild(sw);
+    item.appendChild(txt);
+    el.appendChild(item);
+  }}
 }}
 
 window.onBacktestData = onBacktestData;
@@ -1435,10 +1541,15 @@ function updateTrades(trades, openPos) {{
     const cls = t.pnl_pct >= 0 ? 'pos' : 'neg';
     const tag = t.exit_reason === 'signal' ? '' :
       ' <span class="tag">' + t.exit_reason + '</span>';
-    return '<tr><td>' + dir + '</td><td>' + t.entry_date + '</td><td>' + t.exit_date +
+    return '<tr class="trade-row" data-entry="' + t.entry_date +
+      '" data-exit="' + t.exit_date + '" title="클릭해서 차트 이동"><td>' + dir +
+      '</td><td>' + t.entry_date + '</td><td>' + t.exit_date +
       '</td><td class="' + cls + '">' + fmtPct(t.pnl_pct) + tag + '</td></tr>';
   }});
   document.getElementById('trades-body').innerHTML = rows.join('');
+  document.querySelectorAll('#trades-body tr.trade-row').forEach(r => {{
+    r.addEventListener('click', () => jumpToTrade(r.dataset.entry, r.dataset.exit));
+  }});
 
   const openEl = document.getElementById('open-pos');
   if (openPos) {{
@@ -1484,6 +1595,7 @@ function gatherParams() {{
     rsi_overbought: getOpt('rsi_overbought'),
     bb_period: getOptInt('bb_period'),
     bb_sigma: getOpt('bb_sigma'),
+    obv_period: getOptInt('obv_period'),
     manual_entry_date: getStr('manual_entry_date'),
     manual_exit_date: getStr('manual_exit_date'),
     manual_direction: document.getElementById('manual_direction').value,
@@ -1541,10 +1653,167 @@ function panBy(factor) {{
   }});
 }}
 
+function toIsoDate(s) {{
+  if (!s) return s;
+  if (s.length === 8 && /^\d+$/.test(s)) {{
+    return s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);
+  }}
+  return s;
+}}
+
+function addDays(iso, n) {{
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}}
+
+function jumpToTrade(entry, exit) {{
+  const e = toIsoDate(entry);
+  const x = toIsoDate(exit) || e;
+  const span = Math.max(
+    (new Date(x) - new Date(e)) / 86400000,
+    1
+  );
+  const pad = Math.max(Math.round(span * 0.6), 10);
+  const from = addDays(e, -pad);
+  const to = addDays(x, pad);
+  state.priceChart.timeScale().setVisibleRange({{ from, to }});
+  highlightTrade(e, x);
+}}
+
+function highlightTrade(entryIso, exitIso) {{
+  const base = state.baseMarkers || [];
+  const hl = [];
+  if (entryIso) {{
+    hl.push({{ time: entryIso, position: 'aboveBar',
+      color: '#2962ff', shape: 'circle', text: '◉', size: 2 }});
+  }}
+  if (exitIso && exitIso !== entryIso) {{
+    hl.push({{ time: exitIso, position: 'aboveBar',
+      color: '#ff9f1c', shape: 'circle', text: '◉', size: 2 }});
+  }}
+  const merged = [...base, ...hl].sort((a, b) =>
+    a.time < b.time ? -1 : a.time > b.time ? 1 : 0);
+  state.candleSeries.setMarkers(merged);
+  if (state.hlTimer) clearTimeout(state.hlTimer);
+  state.hlTimer = setTimeout(() => {{
+    state.candleSeries.setMarkers(state.baseMarkers || []);
+    state.hlTimer = null;
+  }}, 3000);
+}}
+
 window.addEventListener('resize', () => {{
   state.priceChart.applyOptions({{ width: document.getElementById('chart').clientWidth }});
   state.eqChart.applyOptions({{ width: document.getElementById('equity').clientWidth }});
 }});
+
+// ─── 심볼 검색 ───
+let _searchTimer = null;
+let _searchIdx = -1;
+let _searchItems = [];
+const _searchInput = document.getElementById('search');
+const _searchResultsEl = document.getElementById('searchResults');
+
+_searchInput.addEventListener('input', (e) => {{
+  clearTimeout(_searchTimer);
+  const q = e.target.value.trim();
+  if (!q) {{ hideSearch(); return; }}
+  _searchTimer = setTimeout(() => {{
+    if (window.ipc && window.ipc.postMessage) {{
+      window.ipc.postMessage(JSON.stringify({{ type: 'search', query: q }}));
+    }}
+  }}, 180);
+}});
+
+_searchInput.addEventListener('keydown', (e) => {{
+  if (_searchItems.length === 0 && e.key !== 'Escape') return;
+  if (e.key === 'ArrowDown') {{
+    e.preventDefault();
+    _searchIdx = Math.min(_searchIdx + 1, _searchItems.length - 1);
+    highlightSearch();
+  }} else if (e.key === 'ArrowUp') {{
+    e.preventDefault();
+    _searchIdx = Math.max(_searchIdx - 1, 0);
+    highlightSearch();
+  }} else if (e.key === 'Enter') {{
+    e.preventDefault();
+    const it = _searchItems[_searchIdx] || _searchItems[0];
+    if (it) selectSymbol(it.code, it.market);
+  }} else if (e.key === 'Escape') {{
+    hideSearch();
+    _searchInput.blur();
+  }}
+}});
+
+document.addEventListener('click', (e) => {{
+  if (!e.target.closest('.search-box')) hideSearch();
+}});
+
+function hideSearch() {{
+  _searchResultsEl.style.display = 'none';
+  _searchItems = [];
+  _searchIdx = -1;
+}}
+
+function highlightSearch() {{
+  Array.from(_searchResultsEl.children).forEach((el, i) => {{
+    el.classList.toggle('active', i === _searchIdx);
+    if (i === _searchIdx) el.scrollIntoView({{ block: 'nearest' }});
+  }});
+}}
+
+window.onBacktestSearchResults = function(items) {{
+  _searchItems = items || [];
+  _searchIdx = items.length ? 0 : -1;
+  if (!items.length) {{ hideSearch(); return; }}
+  _searchResultsEl.innerHTML = items.map((it, i) =>
+    `<div class="sr${{i === 0 ? ' active' : ''}}" data-i="${{i}}">
+      <span class="sr-code">${{escapeHtml(it.code)}}</span>
+      <span class="sr-market">${{escapeHtml(it.market)}}</span>
+      <span class="sr-name">${{escapeHtml(it.name)}}</span>
+    </div>`
+  ).join('');
+  Array.from(_searchResultsEl.children).forEach((el) => {{
+    el.addEventListener('click', () => {{
+      const it = _searchItems[parseInt(el.dataset.i, 10)];
+      if (it) selectSymbol(it.code, it.market);
+    }});
+  }});
+  _searchResultsEl.style.display = 'block';
+}};
+
+function selectSymbol(code, market) {{
+  hideSearch();
+  _searchInput.value = '';
+  _searchInput.blur();
+  document.getElementById('status').textContent = '로딩...';
+  document.getElementById('apply').disabled = true;
+  const params = gatherParams();
+  if (window.ipc && window.ipc.postMessage) {{
+    window.ipc.postMessage(JSON.stringify({{
+      type: 'select', code: code, market: market, params: params,
+    }}));
+  }} else {{
+    onBacktestError('IPC 미지원 (브라우저 모드)');
+  }}
+}}
+
+function escapeHtml(s) {{
+  return String(s).replace(/[&<>"']/g, c => ({{
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'
+  }}[c]));
+}}
+
+// payload.meta 가 오면 헤더/제목 갱신
+const _origOnBacktestData = window.onBacktestData;
+window.onBacktestData = function(p) {{
+  _origOnBacktestData(p);
+  if (p && p.meta) {{
+    const h = document.getElementById('symbol-title');
+    if (h) h.textContent = `[${{p.meta.symbol}}] ${{p.meta.name}}`;
+    document.title = `[${{p.meta.symbol}}] ${{p.meta.name}} — backtest`;
+  }}
+}};
 
 init();
 </script>
@@ -1559,6 +1828,7 @@ init();
         rsi_hi = rsi_hi,
         bb_p = bb_p,
         bb_s = bb_s,
+        obv_p = obv_p,
         fee = params.fee_bps,
         slip = params.slippage_bps,
         lev = params.leverage,
@@ -1691,7 +1961,10 @@ fn overlays_json(s: &Series, strategy: &Strategy) -> String {
             lines.push(("전환선".into(), "#f23645", ic.tenkan));
             lines.push(("기준선".into(), "#2962ff", ic.kijun));
         }
-        Strategy::Rsi { .. } | Strategy::Macd | Strategy::Manual { .. } => {}
+        Strategy::Rsi { .. }
+        | Strategy::Macd
+        | Strategy::Obv { .. }
+        | Strategy::Manual { .. } => {}
     }
 
     let mut out = String::from("[");

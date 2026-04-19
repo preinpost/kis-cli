@@ -62,14 +62,23 @@ pub struct ViewerState {
 enum BacktestIpc {
     #[serde(rename = "run")]
     Run { params: backtest::IpcParams },
+    #[serde(rename = "search")]
+    Search { query: String },
+    #[serde(rename = "select")]
+    Select {
+        code: String,
+        market: String,
+        params: backtest::IpcParams,
+    },
 }
 
 pub struct BacktestCtx {
     pub rt: Handle,
     pub client: Arc<KisClient>,
-    pub code: String,
-    pub name: String,
-    pub mode: ResolveMode,
+    pub store: Arc<Mutex<Store>>,
+    pub code: Arc<Mutex<String>>,
+    pub name: Arc<Mutex<String>>,
+    pub mode: Arc<Mutex<ResolveMode>>,
     pub series: Arc<Mutex<Series>>,
     pub period: Arc<Mutex<char>>,
     pub from: Arc<Mutex<Option<String>>>,
@@ -135,11 +144,13 @@ fn handle_backtest_ipc(
                 let new_from = params.from_norm();
                 let new_to = params.to_norm();
 
-                let (current_period, current_from, current_to) = {
+                let (current_period, current_from, current_to, code, mode) = {
                     let p = *ctx_clone.period.lock().unwrap();
                     let f = ctx_clone.from.lock().unwrap().clone();
                     let t = ctx_clone.to.lock().unwrap().clone();
-                    (p, f, t)
+                    let c = ctx_clone.code.lock().unwrap().clone();
+                    let m = *ctx_clone.mode.lock().unwrap();
+                    (p, f, t, c, m)
                 };
 
                 // period / from / to 중 하나라도 바뀌면 재fetch
@@ -149,8 +160,8 @@ fn handle_backtest_ipc(
                 {
                     match backtest::fetch_series_range(
                         &ctx_clone.client,
-                        &ctx_clone.code,
-                        ctx_clone.mode,
+                        &code,
+                        mode,
                         new_period,
                         new_from.as_deref(),
                         new_to.as_deref(),
@@ -176,6 +187,7 @@ fn handle_backtest_ipc(
                 let from_snap = ctx_clone.from.lock().unwrap().clone();
                 let to_snap = ctx_clone.to.lock().unwrap().clone();
                 let p = params.into_params(from_snap, to_snap);
+                let name = ctx_clone.name.lock().unwrap().clone();
                 let series = ctx_clone.series.lock().unwrap();
                 if series.closes.len() < 30 {
                     let _ = proxy.send_event(UserEvent::EvalScript(format!(
@@ -184,7 +196,135 @@ fn handle_backtest_ipc(
                     )));
                     return;
                 }
-                let json = backtest::compute_payload_json(&ctx_clone.code, &ctx_clone.name, &series, &p);
+                let json = backtest::compute_payload_json(&code, &name, &series, &p);
+                let script = format!("window.onBacktestData({});", json);
+                let _ = proxy.send_event(UserEvent::EvalScript(script));
+            });
+        }
+        BacktestIpc::Search { query } => {
+            let ctx_clone = ctx.clone();
+            ctx.rt.spawn(async move {
+                let result = {
+                    let store = ctx_clone.store.lock().unwrap();
+                    store.search(&query, 12)
+                };
+                let script = match result {
+                    Ok(items) => {
+                        let mut s = String::from("[");
+                        for (i, sym) in items.iter().enumerate() {
+                            if !sym.market.is_domestic() && !sym.market.is_overseas() {
+                                continue;
+                            }
+                            if i > 0 && !s.ends_with('[') {
+                                s.push(',');
+                            }
+                            let name = if !sym.name_kr.is_empty() {
+                                &sym.name_kr
+                            } else {
+                                &sym.name_en
+                            };
+                            s.push_str(&format!(
+                                r#"{{"code":"{}","market":"{}","name":"{}"}}"#,
+                                sym.code.replace('"', "\\\""),
+                                sym.market.as_str(),
+                                name.replace('"', "\\\""),
+                            ));
+                        }
+                        s.push(']');
+                        format!("window.onBacktestSearchResults({});", s)
+                    }
+                    Err(_) => "window.onBacktestSearchResults([]);".to_string(),
+                };
+                let _ = proxy.send_event(UserEvent::EvalScript(script));
+            });
+        }
+        BacktestIpc::Select { code, market, params } => {
+            let ctx_clone = ctx.clone();
+            ctx.rt.spawn(async move {
+                let market_enum = match Market::from_str(&market) {
+                    Some(m) => m,
+                    None => {
+                        let _ = proxy.send_event(UserEvent::EvalScript(format!(
+                            "window.onBacktestError('알 수 없는 시장: {}');",
+                            market.replace('\'', "\\'")
+                        )));
+                        return;
+                    }
+                };
+                let new_mode = if market_enum.is_domestic() {
+                    ResolveMode::Domestic
+                } else if market_enum.is_overseas() {
+                    ResolveMode::Overseas
+                } else {
+                    let _ = proxy.send_event(UserEvent::EvalScript(
+                        "window.onBacktestError('backtest는 국내/해외 주식만 지원');".to_string(),
+                    ));
+                    return;
+                };
+
+                let new_name = {
+                    let store = ctx_clone.store.lock().unwrap();
+                    store
+                        .find_by_code(&code)
+                        .ok()
+                        .and_then(|items| {
+                            items.into_iter().find(|s| s.market == market_enum).map(|s| {
+                                if !s.name_kr.is_empty() {
+                                    s.name_kr
+                                } else if !s.name_en.is_empty() {
+                                    s.name_en
+                                } else {
+                                    s.code
+                                }
+                            })
+                        })
+                        .unwrap_or_else(|| code.clone())
+                };
+
+                let new_period = params.period_char();
+                let new_from = params.from_norm();
+                let new_to = params.to_norm();
+
+                match backtest::fetch_series_range(
+                    &ctx_clone.client,
+                    &code,
+                    new_mode,
+                    new_period,
+                    new_from.as_deref(),
+                    new_to.as_deref(),
+                )
+                .await
+                {
+                    Ok(new_series) => {
+                        *ctx_clone.code.lock().unwrap() = code.clone();
+                        *ctx_clone.name.lock().unwrap() = new_name.clone();
+                        *ctx_clone.mode.lock().unwrap() = new_mode;
+                        *ctx_clone.series.lock().unwrap() = new_series;
+                        *ctx_clone.period.lock().unwrap() = new_period;
+                        *ctx_clone.from.lock().unwrap() = new_from.clone();
+                        *ctx_clone.to.lock().unwrap() = new_to.clone();
+                    }
+                    Err(e) => {
+                        let msg = e.to_string().replace('\'', "\\'").replace('\n', " ");
+                        let _ = proxy.send_event(UserEvent::EvalScript(format!(
+                            "window.onBacktestError('{msg}');"
+                        )));
+                        return;
+                    }
+                }
+
+                let from_snap = ctx_clone.from.lock().unwrap().clone();
+                let to_snap = ctx_clone.to.lock().unwrap().clone();
+                let p = params.into_params(from_snap, to_snap);
+                let series = ctx_clone.series.lock().unwrap();
+                if series.closes.len() < 30 {
+                    let _ = proxy.send_event(UserEvent::EvalScript(format!(
+                        "window.onBacktestError('데이터 부족 ({}봉) — 최소 30봉 필요');",
+                        series.closes.len()
+                    )));
+                    return;
+                }
+                let json = backtest::compute_payload_json(&code, &new_name, &series, &p);
                 let script = format!("window.onBacktestData({});", json);
                 let _ = proxy.send_event(UserEvent::EvalScript(script));
             });

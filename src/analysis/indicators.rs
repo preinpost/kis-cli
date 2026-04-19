@@ -174,6 +174,32 @@ pub fn ichimoku(high: &[f64], low: &[f64], close: &[f64]) -> Ichimoku {
     Ichimoku { tenkan, kijun, senkou_a, senkou_b, chikou }
 }
 
+/// OBV (On-Balance Volume) — 누적 거래량 지표.
+///
+/// 초기값 0, `close[i] > close[i-1]` 이면 volume[i] 더하고, 하락이면 빼고, 동일이면 유지.
+/// `close.len() != volume.len()` 이거나 둘 중 길이 <2 면 전부 NaN.
+pub fn obv(close: &[f64], volume: &[f64]) -> Vec<f64> {
+    let n = close.len();
+    if n < 2 || volume.len() != n {
+        return vec![f64::NAN; n];
+    }
+    let mut out = vec![f64::NAN; n];
+    out[0] = 0.0;
+    for i in 1..n {
+        let prev = out[i - 1];
+        let v = volume[i];
+        let d = close[i] - close[i - 1];
+        out[i] = if d > 0.0 {
+            prev + v
+        } else if d < 0.0 {
+            prev - v
+        } else {
+            prev
+        };
+    }
+    out
+}
+
 fn hl_midpoint(high: &[f64], low: &[f64], period: usize) -> Vec<f64> {
     let n = high.len().min(low.len());
     let mut out = vec![f64::NAN; n];
@@ -221,6 +247,23 @@ mod tests {
         assert!(!b.middle[last].is_nan());
         assert!(b.upper[last] > b.middle[last]);
         assert!(b.lower[last] < b.middle[last]);
+    }
+
+    #[test]
+    fn obv_basic() {
+        //            i=0   1    2    3    4
+        // close:    10,  11,  11,  10,  12
+        // volume:  100, 200, 300, 400, 500
+        // delta:    -,   +,   0,   -,   +
+        // obv:      0, 200, 200,-200, 300
+        let c = vec![10.0, 11.0, 11.0, 10.0, 12.0];
+        let v = vec![100.0, 200.0, 300.0, 400.0, 500.0];
+        let o = obv(&c, &v);
+        assert!(approx_eq(o[0], 0.0, 1e-9));
+        assert!(approx_eq(o[1], 200.0, 1e-9));
+        assert!(approx_eq(o[2], 200.0, 1e-9));
+        assert!(approx_eq(o[3], -200.0, 1e-9));
+        assert!(approx_eq(o[4], 300.0, 1e-9));
     }
 
     #[test]

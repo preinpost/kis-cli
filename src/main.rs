@@ -13,7 +13,7 @@ mod ws;
 use std::io::{self, Write};
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 use crate::client::KisClient;
 
@@ -99,87 +99,15 @@ enum Commands {
         #[arg(long)]
         bb_sigma: Option<f64>,
         #[arg(long)]
+        obv_period: Option<usize>,
+        #[arg(long)]
         pick: Option<usize>,
     },
 
-    /// 백테스트 — 내장 전략을 과거 캔들에 돌려 성과 확인
+    /// 백테스트 — 전략별 서브커맨드. 공통 옵션은 모든 전략이 공유
     Backtest {
-        /// 종목명 또는 코드
-        symbol: String,
-        /// 해외 종목 (기본: 국내)
-        #[arg(long)]
-        usa: bool,
-        /// 전략
-        #[arg(long, value_enum, default_value_t = commands::backtest::StrategyKind::MaCross)]
-        strategy: commands::backtest::StrategyKind,
-        /// 봉 주기 (D/W/M)
-        #[arg(long, default_value = "D")]
-        period: String,
-        /// 시작일 YYYYMMDD (없으면 가져온 전 구간)
-        #[arg(long)]
-        from: Option<String>,
-        /// 종료일 YYYYMMDD (없으면 최신)
-        #[arg(long)]
-        to: Option<String>,
-        /// 수수료 (bps, 진입·청산 각각). 기본 5.0 = 0.05%
-        #[arg(long, default_value_t = 5.0)]
-        fee_bps: f64,
-        /// 슬리피지 (bps, 진입·청산 각각). 기본 0
-        #[arg(long, default_value_t = 0.0)]
-        slippage_bps: f64,
-        /// 숏 포지션 허용 (양방향 트레이드)
-        #[arg(long)]
-        allow_short: bool,
-        /// 레버리지 배수 (수익률·수수료에 승수). 기본 1.0
-        #[arg(long, default_value_t = 1.0)]
-        leverage: f64,
-        /// 손절 기준 (%). 포지션 대비 손실이 이 값 이상이면 강제 청산
-        #[arg(long)]
-        stop_loss_pct: Option<f64>,
-        /// 익절 기준 (%). 포지션 대비 수익이 이 값 이상이면 강제 청산
-        #[arg(long)]
-        take_profit_pct: Option<f64>,
-        /// ma-cross 단기 MA
-        #[arg(long)]
-        fast: Option<usize>,
-        /// ma-cross 장기 MA
-        #[arg(long)]
-        slow: Option<usize>,
-        /// rsi 기간
-        #[arg(long)]
-        rsi_period: Option<usize>,
-        /// rsi 과매도 임계
-        #[arg(long)]
-        rsi_oversold: Option<f64>,
-        /// rsi 과매수 임계
-        #[arg(long)]
-        rsi_overbought: Option<f64>,
-        /// bollinger 기간
-        #[arg(long)]
-        bb_period: Option<usize>,
-        /// bollinger σ 배수
-        #[arg(long)]
-        bb_sigma: Option<f64>,
-        /// manual 전략: 진입일 (YYYYMMDD 또는 YYYY-MM-DD)
-        #[arg(long)]
-        entry_date: Option<String>,
-        /// manual 전략: 청산일 (옵션, 없으면 끝까지 보유)
-        #[arg(long)]
-        exit_date: Option<String>,
-        /// manual 전략: 방향 ("long"|"short"). 기본 long
-        #[arg(long)]
-        direction: Option<String>,
-        /// 파라미터 스윕 (내장 그리드로 탐색, Sharpe 내림차순 상위 15개 요약)
-        #[arg(long)]
-        sweep: bool,
-        /// 결과를 wry 차트로 (진입·청산 마커 + equity curve)
-        #[arg(long)]
-        chart: bool,
-        /// JSON 덤프
-        #[arg(long)]
-        json: bool,
-        #[arg(long)]
-        pick: Option<usize>,
+        #[command(subcommand)]
+        strategy: BacktestStrategy,
     },
 
     /// 기술적 분석 (MA/RSI/MACD/볼린저/일목균형표)
@@ -201,6 +129,159 @@ enum Commands {
         #[arg(long)]
         pick: Option<usize>,
     },
+}
+
+#[derive(Subcommand)]
+enum BacktestStrategy {
+    /// 단기·장기 이동평균 교차 (golden/dead cross)
+    MaCross {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: BacktestCommonArgs,
+        /// 단기 MA 기간
+        #[arg(long, default_value_t = 20)]
+        fast: usize,
+        /// 장기 MA 기간
+        #[arg(long, default_value_t = 60)]
+        slow: usize,
+    },
+    /// RSI 과매도/과매수 반전 매매
+    Rsi {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: BacktestCommonArgs,
+        /// RSI 기간
+        #[arg(long, default_value_t = 14)]
+        rsi_period: usize,
+        /// 과매도 임계 (long 진입)
+        #[arg(long, default_value_t = 30.0)]
+        rsi_oversold: f64,
+        /// 과매수 임계 (short 진입 / long 청산)
+        #[arg(long, default_value_t = 70.0)]
+        rsi_overbought: f64,
+    },
+    /// MACD 히스토그램 부호 (12/26/9 고정)
+    Macd {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: BacktestCommonArgs,
+    },
+    /// 볼린저 밴드 평균회귀 (하단 돌파 long, 상단 돌파 short)
+    Bollinger {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: BacktestCommonArgs,
+        /// 볼린저 기간
+        #[arg(long, default_value_t = 20)]
+        bb_period: usize,
+        /// σ 배수
+        #[arg(long, default_value_t = 2.0)]
+        bb_sigma: f64,
+    },
+    /// 일목균형표 (9/26/52 고정, 구름대+전환선/기준선)
+    Ichimoku {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: BacktestCommonArgs,
+    },
+    /// OBV(On-Balance Volume) vs SMA(OBV, N) 크로스오버
+    Obv {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: BacktestCommonArgs,
+        /// OBV 시그널선 SMA 기간
+        #[arg(long, default_value_t = 20)]
+        obv_period: usize,
+    },
+    /// 고정 진입/청산 (수동 백테스트)
+    Manual {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: BacktestCommonArgs,
+        /// 진입일 (YYYYMMDD 또는 YYYY-MM-DD)
+        #[arg(long)]
+        entry_date: String,
+        /// 청산일 (옵션, 없으면 끝까지 보유)
+        #[arg(long)]
+        exit_date: Option<String>,
+        /// 방향
+        #[arg(long, default_value = "long")]
+        direction: String,
+    },
+    /// 차트 뷰어 — 인터랙티브 GUI에서 전략·파라미터 자유롭게 변경
+    Chart {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        seed: BacktestChartSeed,
+    },
+}
+
+#[derive(Args)]
+struct BacktestChartSeed {
+    /// 해외 종목 (기본: 국내)
+    #[arg(long)]
+    usa: bool,
+    /// 봉 주기 (D/W/M)
+    #[arg(long, default_value = "D")]
+    period: String,
+    /// 시작일 YYYYMMDD (없으면 가져온 전 구간)
+    #[arg(long)]
+    from: Option<String>,
+    /// 종료일 YYYYMMDD (없으면 최신)
+    #[arg(long)]
+    to: Option<String>,
+    #[arg(long)]
+    pick: Option<usize>,
+}
+
+#[derive(Args)]
+struct BacktestCommonArgs {
+    /// 해외 종목 (기본: 국내)
+    #[arg(long)]
+    usa: bool,
+    /// 봉 주기 (D/W/M)
+    #[arg(long, default_value = "D")]
+    period: String,
+    /// 시작일 YYYYMMDD (없으면 가져온 전 구간)
+    #[arg(long)]
+    from: Option<String>,
+    /// 종료일 YYYYMMDD (없으면 최신)
+    #[arg(long)]
+    to: Option<String>,
+    /// 수수료 (bps, 진입·청산 각각). 기본 5.0 = 0.05%
+    #[arg(long, default_value_t = 5.0)]
+    fee_bps: f64,
+    /// 슬리피지 (bps, 진입·청산 각각). 기본 0
+    #[arg(long, default_value_t = 0.0)]
+    slippage_bps: f64,
+    /// 숏 포지션 허용 (양방향 트레이드)
+    #[arg(long)]
+    allow_short: bool,
+    /// 레버리지 배수 (수익률·수수료에 승수). 기본 1.0
+    #[arg(long, default_value_t = 1.0)]
+    leverage: f64,
+    /// 손절 기준 (%). 포지션 대비 손실이 이 값 이상이면 강제 청산
+    #[arg(long)]
+    stop_loss_pct: Option<f64>,
+    /// 익절 기준 (%). 포지션 대비 수익이 이 값 이상이면 강제 청산
+    #[arg(long)]
+    take_profit_pct: Option<f64>,
+    /// 파라미터 스윕 (내장 그리드로 탐색, Sharpe 내림차순 상위 15개 요약)
+    #[arg(long)]
+    sweep: bool,
+    /// JSON 덤프
+    #[arg(long)]
+    json: bool,
+    #[arg(long)]
+    pick: Option<usize>,
 }
 
 #[derive(Subcommand)]
@@ -517,7 +598,7 @@ fn main() -> Result<()> {
     if let Commands::Analyze { symbol, usa, chart: true, json, pick, .. } = &cli.command {
         return run_chart_viewer(symbol, *usa, *json, *pick);
     }
-    if matches!(&cli.command, Commands::Backtest { chart: true, .. }) {
+    if matches!(&cli.command, Commands::Backtest { strategy: BacktestStrategy::Chart { .. } }) {
         return run_backtest_chart(cli);
     }
 
@@ -527,30 +608,117 @@ fn main() -> Result<()> {
     rt.block_on(async_main(cli))
 }
 
+fn base_backtest_params(
+    common: &BacktestCommonArgs,
+    kind: commands::backtest::StrategyKind,
+) -> commands::backtest::Params {
+    commands::backtest::Params {
+        strategy: kind,
+        period: common.period.chars().next().unwrap_or('D'),
+        from: common.from.clone(),
+        to: common.to.clone(),
+        fee_bps: common.fee_bps,
+        slippage_bps: common.slippage_bps,
+        allow_short: common.allow_short,
+        leverage: common.leverage,
+        stop_loss_pct: common.stop_loss_pct,
+        take_profit_pct: common.take_profit_pct,
+        fast: None,
+        slow: None,
+        rsi_period: None,
+        rsi_oversold: None,
+        rsi_overbought: None,
+        bb_period: None,
+        bb_sigma: None,
+        obv_period: None,
+        manual_entry_date: None,
+        manual_exit_date: None,
+        manual_direction: None,
+    }
+}
+
+/// 비차트 서브커맨드를 (symbol, common, Params) 로 풀어낸다. Chart 는 별도 경로(run_backtest_chart).
+fn unpack_backtest(
+    s: BacktestStrategy,
+) -> (String, BacktestCommonArgs, commands::backtest::Params) {
+    use commands::backtest::{normalize_date, StrategyKind};
+    match s {
+        BacktestStrategy::MaCross { symbol, common, fast, slow } => {
+            let mut p = base_backtest_params(&common, StrategyKind::MaCross);
+            p.fast = Some(fast);
+            p.slow = Some(slow);
+            (symbol, common, p)
+        }
+        BacktestStrategy::Rsi { symbol, common, rsi_period, rsi_oversold, rsi_overbought } => {
+            let mut p = base_backtest_params(&common, StrategyKind::Rsi);
+            p.rsi_period = Some(rsi_period);
+            p.rsi_oversold = Some(rsi_oversold);
+            p.rsi_overbought = Some(rsi_overbought);
+            (symbol, common, p)
+        }
+        BacktestStrategy::Macd { symbol, common } => {
+            let p = base_backtest_params(&common, StrategyKind::Macd);
+            (symbol, common, p)
+        }
+        BacktestStrategy::Bollinger { symbol, common, bb_period, bb_sigma } => {
+            let mut p = base_backtest_params(&common, StrategyKind::Bollinger);
+            p.bb_period = Some(bb_period);
+            p.bb_sigma = Some(bb_sigma);
+            (symbol, common, p)
+        }
+        BacktestStrategy::Ichimoku { symbol, common } => {
+            let p = base_backtest_params(&common, StrategyKind::Ichimoku);
+            (symbol, common, p)
+        }
+        BacktestStrategy::Obv { symbol, common, obv_period } => {
+            let mut p = base_backtest_params(&common, StrategyKind::Obv);
+            p.obv_period = Some(obv_period);
+            (symbol, common, p)
+        }
+        BacktestStrategy::Manual { symbol, common, entry_date, exit_date, direction } => {
+            let mut p = base_backtest_params(&common, StrategyKind::Manual);
+            p.manual_entry_date = normalize_date(Some(entry_date));
+            p.manual_exit_date = normalize_date(exit_date);
+            p.manual_direction = Some(direction);
+            (symbol, common, p)
+        }
+        BacktestStrategy::Chart { .. } => unreachable!("Chart 는 run_backtest_chart 가 처리"),
+    }
+}
+
 fn run_backtest_chart(cli: Cli) -> Result<()> {
-    let Commands::Backtest {
-        symbol, usa, strategy, period, from, to,
-        fee_bps, slippage_bps, allow_short, leverage,
-        stop_loss_pct, take_profit_pct,
-        fast, slow, rsi_period, rsi_oversold, rsi_overbought,
-        bb_period, bb_sigma,
-        entry_date, exit_date, direction,
-        pick, ..
-    } = cli.command else { unreachable!("gated by matches! in main") };
+    let Commands::Backtest { strategy: BacktestStrategy::Chart { symbol, seed } } = cli.command
+    else {
+        unreachable!("gated by matches! in main")
+    };
+    let mode = if seed.usa { symbols::ResolveMode::Overseas } else { symbols::ResolveMode::Domestic };
+    let pick = seed.pick;
+    // 초기 시드는 ma-cross(20/60) 기본값. GUI 폼에서 사용자가 변경.
+    let params = commands::backtest::Params {
+        strategy: commands::backtest::StrategyKind::MaCross,
+        period: seed.period.chars().next().unwrap_or('D'),
+        from: seed.from,
+        to: seed.to,
+        fee_bps: 5.0,
+        slippage_bps: 0.0,
+        allow_short: false,
+        leverage: 1.0,
+        stop_loss_pct: None,
+        take_profit_pct: None,
+        fast: Some(20),
+        slow: Some(60),
+        rsi_period: None,
+        rsi_oversold: None,
+        rsi_overbought: None,
+        bb_period: None,
+        bb_sigma: None,
+        obv_period: None,
+        manual_entry_date: None,
+        manual_exit_date: None,
+        manual_direction: None,
+    };
 
     let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
-    let mode = if usa { symbols::ResolveMode::Overseas } else { symbols::ResolveMode::Domestic };
-    let p = period.chars().next().unwrap_or('D');
-    let params = commands::backtest::Params {
-        strategy, period: p, from, to,
-        fee_bps, slippage_bps, allow_short, leverage,
-        stop_loss_pct, take_profit_pct,
-        fast, slow, rsi_period, rsi_oversold, rsi_overbought,
-        bb_period, bb_sigma,
-        manual_entry_date: commands::backtest::normalize_date(entry_date),
-        manual_exit_date: commands::backtest::normalize_date(exit_date),
-        manual_direction: direction,
-    };
 
     let (prep, client) = rt.block_on(async {
         let client = std::sync::Arc::new(build_client()?);
@@ -558,12 +726,15 @@ fn run_backtest_chart(cli: Cli) -> Result<()> {
         Ok::<_, anyhow::Error>((prep, client))
     })?;
 
+    let store = symbols::Store::open(&config::symbols_db_path()?)?;
+
     let ctx = viewer::BacktestCtx {
         rt: rt.handle().clone(),
         client,
-        code: prep.code,
-        name: prep.name,
-        mode,
+        store: std::sync::Arc::new(std::sync::Mutex::new(store)),
+        code: std::sync::Arc::new(std::sync::Mutex::new(prep.code)),
+        name: std::sync::Arc::new(std::sync::Mutex::new(prep.name)),
+        mode: std::sync::Arc::new(std::sync::Mutex::new(mode)),
         series: std::sync::Arc::new(std::sync::Mutex::new(prep.series)),
         period: std::sync::Arc::new(std::sync::Mutex::new(prep.period)),
         from: std::sync::Arc::new(std::sync::Mutex::new(prep.from)),
@@ -670,7 +841,7 @@ async fn async_main(cli: Cli) -> Result<()> {
         Commands::SignalWatch {
             symbol, strategy, cron, period,
             fast, slow, rsi_period, rsi_oversold, rsi_overbought,
-            bb_period, bb_sigma, pick,
+            bb_period, bb_sigma, obv_period, pick,
         } => {
             let client = std::sync::Arc::new(build_client()?);
             let p = period.chars().next().unwrap_or('D');
@@ -678,47 +849,22 @@ async fn async_main(cli: Cli) -> Result<()> {
                 symbol, strategy, cron,
                 period: p, pick,
                 fast, slow, rsi_period, rsi_oversold, rsi_overbought,
-                bb_period, bb_sigma,
+                bb_period, bb_sigma, obv_period,
             };
             commands::signal_watch::run(client, cfg).await
         }
 
-        Commands::Backtest {
-            symbol, usa, strategy, period, from, to,
-            fee_bps, slippage_bps, allow_short, leverage,
-            stop_loss_pct, take_profit_pct,
-            fast, slow, rsi_period, rsi_oversold, rsi_overbought,
-            bb_period, bb_sigma,
-            entry_date, exit_date, direction,
-            sweep, chart, json, pick,
-        } => {
+        Commands::Backtest { strategy } => {
+            // Chart 는 main() 에서 먼저 가로채기 때문에 여긴 닿지 않음
+            debug_assert!(!matches!(strategy, BacktestStrategy::Chart { .. }));
+            let (symbol, common, params) = unpack_backtest(strategy);
             let client = build_client()?;
-            let mode = if usa { symbols::ResolveMode::Overseas } else { symbols::ResolveMode::Domestic };
-            let p = period.chars().next().unwrap_or('D');
-            let params = commands::backtest::Params {
-                strategy,
-                period: p,
-                from,
-                to,
-                fee_bps,
-                slippage_bps,
-                allow_short,
-                leverage,
-                stop_loss_pct,
-                take_profit_pct,
-                fast,
-                slow,
-                rsi_period,
-                rsi_oversold,
-                rsi_overbought,
-                bb_period,
-                bb_sigma,
-                manual_entry_date: commands::backtest::normalize_date(entry_date),
-                manual_exit_date: commands::backtest::normalize_date(exit_date),
-                manual_direction: direction,
+            let mode = if common.usa { symbols::ResolveMode::Overseas } else { symbols::ResolveMode::Domestic };
+            let opts = commands::backtest::RunOpts {
+                json: common.json,
+                sweep: common.sweep,
             };
-            let opts = commands::backtest::RunOpts { json, sweep, chart };
-            commands::backtest::run(&client, &symbol, mode, params, opts, pick).await
+            commands::backtest::run(&client, &symbol, mode, params, opts, common.pick).await
         }
 
         Commands::Analyze { symbol, usa, json, chart: _, save, pick } => {

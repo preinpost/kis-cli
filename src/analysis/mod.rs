@@ -5,5 +5,5 @@
 pub mod indicators;
 
 pub use indicators::{
-    bollinger, ema, ichimoku, macd, rsi, sma, Bollinger, Ichimoku, Macd,
+    bollinger, ema, ichimoku, macd, obv, rsi, sma, Bollinger, Ichimoku, Macd,
 };

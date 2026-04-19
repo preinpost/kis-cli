@@ -38,6 +38,7 @@ pub struct Config {
     pub rsi_overbought: Option<f64>,
     pub bb_period: Option<usize>,
     pub bb_sigma: Option<f64>,
+    pub obv_period: Option<usize>,
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
@@ -157,6 +158,7 @@ fn build_params(cfg: &Config) -> Params {
         rsi_overbought: cfg.rsi_overbought,
         bb_period: cfg.bb_period,
         bb_sigma: cfg.bb_sigma,
+        obv_period: cfg.obv_period,
         manual_entry_date: None,
         manual_exit_date: None,
         manual_direction: None,
@@ -214,6 +216,7 @@ fn strategy_label(cfg: &Config) -> String {
             cfg.bb_sigma.unwrap_or(2.0),
         ),
         StrategyKind::Ichimoku => "ichimoku(9/26/52)".into(),
+        StrategyKind::Obv => format!("obv({})", cfg.obv_period.unwrap_or(20)),
         StrategyKind::Manual => "manual (signal-watch 부적합)".into(),
     }
 }
