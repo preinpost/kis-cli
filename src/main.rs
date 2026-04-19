@@ -65,6 +65,20 @@ enum Commands {
         action: SkillAction,
     },
 
+    /// 최초 설치 — `cargo install` 로 바이너리 배포 + Claude 스킬 설치
+    Install {
+        /// 이미 설치돼 있을 때 덮어쓰기
+        #[arg(long)]
+        force: bool,
+    },
+
+    /// 업데이트 — git pull + 바이너리 재빌드/재설치 + 스킬 갱신
+    Update {
+        /// git pull 건너뛰기 (로컬 변경사항 그대로 재빌드)
+        #[arg(long)]
+        no_pull: bool,
+    },
+
     /// 자동 손절 — 데몬 실행 / 상태 조회
     StopLoss {
         #[command(subcommand)]
@@ -800,6 +814,9 @@ async fn async_main(cli: Cli) -> Result<()> {
             SkillAction::Uninstall => commands::skill::run_uninstall(),
             SkillAction::Path => commands::skill::run_path(),
         },
+
+        Commands::Install { force } => commands::installer::run_install(force),
+        Commands::Update { no_pull } => commands::installer::run_update(no_pull),
 
         Commands::Symbols { action } => match action {
             SymbolsAction::Sync { if_stale } => commands::symbols::run_sync(if_stale).await,

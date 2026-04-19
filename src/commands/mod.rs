@@ -5,6 +5,7 @@ pub mod signal_watch;
 pub mod bond;
 pub mod fo;
 pub mod helpers;
+pub mod installer;
 pub mod skill;
 pub mod stock;
 pub mod stop_loss;
