@@ -32,7 +32,7 @@ allowed-tools: [Bash, Read]
 | "테슬라 RSI 백테스트" | `kis backtest rsi Tesla --usa --pick 1` |
 | "전략 바꿔가며 테스트" / "백테스트 차트" | `kis backtest chart 삼성전자 --pick 1` (GUI, 사용자 실행) |
 | "파라미터 최적화" / "스윕" | `kis backtest ma-cross 삼성전자 --pick 1 --sweep --json` |
-| "신호 감시 돌려줘" | `kis signal-watch 삼성전자 --pick 1 --strategy ma-cross` (장기 실행, 사용자) |
+| "신호 감시 돌려줘" | `kis signal-watch ma-cross 삼성전자 --pick 1` (장기 실행, 사용자) |
 | "자동 손절 걸어줘" / "-5% 되면 팔아" | **먼저** `kis stop-loss run --threshold -5.0` (dry-run). 재확인 후 `--execute` 추가 |
 | "손절 데몬 상태" | `kis stop-loss status` |
 
@@ -75,10 +75,14 @@ kis backtest <strategy> <symbol>
      manual    --entry-date YYYYMMDD [--exit-date YYYYMMDD] [--direction long|short]
      chart     GUI (인터랙티브 — 전략·파라미터를 창에서 변경)
 
-kis signal-watch <symbol> [--strategy ma-cross|rsi|macd|bollinger|ichimoku|obv]
-                          [--cron "0 20 15 * * Mon-Fri"] [--period D|W|M]
-                          [--fast --slow / --rsi-period --rsi-oversold --rsi-overbought /
-                           --bb-period --bb-sigma / --obv-period] [--pick N]
+kis signal-watch <strategy> <symbol> [--cron "0 20 15 * * Mon-Fri"] [--period D|W|M] [--pick N]
+   전략별:
+     ma-cross  --fast 20 --slow 60
+     rsi       --rsi-period 14 --rsi-oversold 30 --rsi-overbought 70
+     macd
+     bollinger --bb-period 20 --bb-sigma 2.0
+     ichimoku
+     obv       --obv-period 20
 
 kis stop-loss run   [--threshold -5.0] [--interval 30] [--symbols A,B,C]
                     [--execute] [--usa-spread 1.0] [--ws]
@@ -143,10 +147,10 @@ cron 스케줄에 맞춰 전략 신호를 로그로 남기는 **감시 전용** 
 
 ```bash
 # 평일 15:20 (장 마감 10분 전) MA 교차 체크 (기본 cron)
-kis signal-watch 삼성전자 --pick 1
+kis signal-watch ma-cross 삼성전자 --pick 1
 
 # 6필드 cron (초 분 시 일 월 요일) + RSI 전략
-kis signal-watch 삼성전자 --pick 1 --cron "0 0 9 * * Mon-Fri" --strategy rsi
+kis signal-watch rsi 삼성전자 --pick 1 --cron "0 0 9 * * Mon-Fri"
 ```
 
 ## JSON 리포트 스키마 (analyze)

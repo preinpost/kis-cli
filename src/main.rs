@@ -93,37 +93,10 @@ enum Commands {
         action: StopLossAction,
     },
 
-    /// 시그널 감시 — cron 스케줄로 전략 신호 체크 후 로그. 주문 실행 없음 (감시 전용).
+    /// 시그널 감시 — 전략별 서브커맨드. cron 스케줄로 신호 체크 후 로그 (주문 없음).
     SignalWatch {
-        /// 종목명 또는 코드
-        symbol: String,
-        /// 전략
-        #[arg(long, value_enum, default_value_t = commands::backtest::StrategyKind::MaCross)]
-        strategy: commands::backtest::StrategyKind,
-        /// cron 표현식 (6필드: 초 분 시 일 월 요일). 기본: 평일 15:20 (장 마감 10분 전, 당일 매매 여유)
-        #[arg(long, default_value = "0 20 15 * * Mon-Fri")]
-        cron: String,
-        /// 봉 주기 (D/W/M)
-        #[arg(long, default_value = "D")]
-        period: String,
-        #[arg(long)]
-        fast: Option<usize>,
-        #[arg(long)]
-        slow: Option<usize>,
-        #[arg(long)]
-        rsi_period: Option<usize>,
-        #[arg(long)]
-        rsi_oversold: Option<f64>,
-        #[arg(long)]
-        rsi_overbought: Option<f64>,
-        #[arg(long)]
-        bb_period: Option<usize>,
-        #[arg(long)]
-        bb_sigma: Option<f64>,
-        #[arg(long)]
-        obv_period: Option<usize>,
-        #[arg(long)]
-        pick: Option<usize>,
+        #[command(subcommand)]
+        strategy: SignalWatchStrategy,
     },
 
     /// 백테스트 — 전략별 서브커맨드. 공통 옵션은 모든 전략이 공유
@@ -244,6 +217,88 @@ enum BacktestStrategy {
         #[command(flatten)]
         seed: BacktestChartSeed,
     },
+}
+
+#[derive(Subcommand)]
+enum SignalWatchStrategy {
+    /// 단기·장기 이동평균 교차
+    MaCross {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: SignalWatchCommonArgs,
+        /// 단기 MA 기간
+        #[arg(long, default_value_t = 20)]
+        fast: usize,
+        /// 장기 MA 기간
+        #[arg(long, default_value_t = 60)]
+        slow: usize,
+    },
+    /// RSI 과매도/과매수 반전
+    Rsi {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: SignalWatchCommonArgs,
+        /// RSI 기간
+        #[arg(long, default_value_t = 14)]
+        rsi_period: usize,
+        /// 과매도 임계
+        #[arg(long, default_value_t = 30.0)]
+        rsi_oversold: f64,
+        /// 과매수 임계
+        #[arg(long, default_value_t = 70.0)]
+        rsi_overbought: f64,
+    },
+    /// MACD 히스토그램 부호 (12/26/9 고정)
+    Macd {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: SignalWatchCommonArgs,
+    },
+    /// 볼린저 밴드 평균회귀
+    Bollinger {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: SignalWatchCommonArgs,
+        /// 볼린저 기간
+        #[arg(long, default_value_t = 20)]
+        bb_period: usize,
+        /// σ 배수
+        #[arg(long, default_value_t = 2.0)]
+        bb_sigma: f64,
+    },
+    /// 일목균형표 (9/26/52 고정)
+    Ichimoku {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: SignalWatchCommonArgs,
+    },
+    /// OBV vs SMA(OBV, N) 크로스오버
+    Obv {
+        /// 종목명 또는 코드
+        symbol: String,
+        #[command(flatten)]
+        common: SignalWatchCommonArgs,
+        /// OBV 시그널선 SMA 기간
+        #[arg(long, default_value_t = 20)]
+        obv_period: usize,
+    },
+}
+
+#[derive(Args)]
+struct SignalWatchCommonArgs {
+    /// cron 표현식 (6필드: 초 분 시 일 월 요일). 기본: 평일 15:20 (장 마감 10분 전)
+    #[arg(long, default_value = "0 20 15 * * Mon-Fri")]
+    cron: String,
+    /// 봉 주기 (D/W/M)
+    #[arg(long, default_value = "D")]
+    period: String,
+    #[arg(long)]
+    pick: Option<usize>,
 }
 
 #[derive(Args)]
@@ -708,6 +763,71 @@ fn unpack_backtest(
     }
 }
 
+fn unpack_signal_watch(s: SignalWatchStrategy) -> commands::signal_watch::Config {
+    use commands::backtest::StrategyKind;
+    let mut cfg = commands::signal_watch::Config {
+        symbol: String::new(),
+        strategy: StrategyKind::MaCross,
+        cron: String::new(),
+        period: 'D',
+        pick: None,
+        fast: None,
+        slow: None,
+        rsi_period: None,
+        rsi_oversold: None,
+        rsi_overbought: None,
+        bb_period: None,
+        bb_sigma: None,
+        obv_period: None,
+    };
+    let apply_common = |cfg: &mut commands::signal_watch::Config, c: SignalWatchCommonArgs| {
+        cfg.cron = c.cron;
+        cfg.period = c.period.chars().next().unwrap_or('D');
+        cfg.pick = c.pick;
+    };
+    match s {
+        SignalWatchStrategy::MaCross { symbol, common, fast, slow } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::MaCross;
+            cfg.fast = Some(fast);
+            cfg.slow = Some(slow);
+            apply_common(&mut cfg, common);
+        }
+        SignalWatchStrategy::Rsi { symbol, common, rsi_period, rsi_oversold, rsi_overbought } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Rsi;
+            cfg.rsi_period = Some(rsi_period);
+            cfg.rsi_oversold = Some(rsi_oversold);
+            cfg.rsi_overbought = Some(rsi_overbought);
+            apply_common(&mut cfg, common);
+        }
+        SignalWatchStrategy::Macd { symbol, common } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Macd;
+            apply_common(&mut cfg, common);
+        }
+        SignalWatchStrategy::Bollinger { symbol, common, bb_period, bb_sigma } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Bollinger;
+            cfg.bb_period = Some(bb_period);
+            cfg.bb_sigma = Some(bb_sigma);
+            apply_common(&mut cfg, common);
+        }
+        SignalWatchStrategy::Ichimoku { symbol, common } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Ichimoku;
+            apply_common(&mut cfg, common);
+        }
+        SignalWatchStrategy::Obv { symbol, common, obv_period } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Obv;
+            cfg.obv_period = Some(obv_period);
+            apply_common(&mut cfg, common);
+        }
+    }
+    cfg
+}
+
 fn run_backtest_chart(cli: Cli) -> Result<()> {
     let Commands::Backtest { strategy: BacktestStrategy::Chart { symbol, seed } } = cli.command
     else {
@@ -866,19 +986,9 @@ async fn async_main(cli: Cli) -> Result<()> {
             StopLossAction::Path => commands::stop_loss::run_path(),
         },
 
-        Commands::SignalWatch {
-            symbol, strategy, cron, period,
-            fast, slow, rsi_period, rsi_oversold, rsi_overbought,
-            bb_period, bb_sigma, obv_period, pick,
-        } => {
+        Commands::SignalWatch { strategy } => {
             let client = std::sync::Arc::new(build_client()?);
-            let p = period.chars().next().unwrap_or('D');
-            let cfg = commands::signal_watch::Config {
-                symbol, strategy, cron,
-                period: p, pick,
-                fast, slow, rsi_period, rsi_oversold, rsi_overbought,
-                bb_period, bb_sigma, obv_period,
-            };
+            let cfg = unpack_signal_watch(strategy);
             commands::signal_watch::run(client, cfg).await
         }
 
