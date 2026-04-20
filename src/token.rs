@@ -193,11 +193,20 @@ impl TokenManager {
         now >= expiry - Duration::minutes(5)
     }
 
-    /// 토큰 무효화 (캐시 삭제)
+    /// 토큰 무효화 (REST·WS 캐시 모두 삭제)
     pub fn invalidate(&self) {
         *self.token.lock().unwrap() = None;
-        if let Ok(path) = config::token_path() {
-            let _ = fs::remove_file(path);
-        }
+        *self.ws_token.lock().unwrap() = None;
+        clear_cache_files();
+    }
+}
+
+/// 디스크 상의 토큰 캐시 파일을 모두 삭제 (TokenManager 인스턴스 없이 호출 가능)
+pub fn clear_cache_files() {
+    if let Ok(path) = config::token_path() {
+        let _ = fs::remove_file(path);
+    }
+    if let Ok(path) = config::ws_token_path() {
+        let _ = fs::remove_file(path);
     }
 }

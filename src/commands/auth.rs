@@ -3,6 +3,9 @@ use anyhow::Result;
 use crate::client::KisClient;
 
 pub async fn run(client: &KisClient) -> Result<()> {
+    // 항상 강제 재발급: 캐시된 이전 토큰이 반환되는 것을 방지
+    client.token_manager.invalidate();
+
     println!("토큰 발급 중...");
 
     let token = client.token_manager.get_token().await?;

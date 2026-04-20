@@ -1037,6 +1037,7 @@ fn config_init() -> Result<()> {
     };
 
     config::save_config(&cfg)?;
+    token::clear_cache_files();
     println!("\n설정 저장 완료: {}", path.display());
     Ok(())
 }
