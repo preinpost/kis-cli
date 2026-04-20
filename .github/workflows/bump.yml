@@ -1,0 +1,73 @@
+name: Bump & release
+
+# 수동 트리거: patch/minor/major 선택 → Cargo.toml 버전 증가 → 커밋/태그 push →
+# _build-release.yml 을 직접 호출해 멀티 플랫폼 바이너리 빌드 + GitHub Release 생성.
+
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "Version bump"
+        type: choice
+        required: true
+        default: patch
+        options: [patch, minor, major]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Compute next version
+        id: next
+        shell: bash
+        run: |
+          set -euo pipefail
+          current="$(grep -m1 '^version' Cargo.toml | sed -E 's/version *= *"(.*)"/\1/')"
+          IFS=. read -r MAJOR MINOR PATCH <<< "$current"
+          case "${{ inputs.kind }}" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+          esac
+          new="${MAJOR}.${MINOR}.${PATCH}"
+          echo "current=${current}" >> "$GITHUB_OUTPUT"
+          echo "new=${new}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${new}" >> "$GITHUB_OUTPUT"
+          echo "▶ ${current} → ${new}"
+
+      - name: Update Cargo.toml
+        run: |
+          sed -i -E '0,/^version *= *"[^"]*"/ s//version = "${{ steps.next.outputs.new }}"/' Cargo.toml
+
+      - name: Update Cargo.lock
+        run: cargo update -p kis-cli
+
+      - name: Commit & tag
+        env:
+          NEW: ${{ steps.next.outputs.new }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add Cargo.toml Cargo.lock
+          git commit -m "chore: release v${NEW}"
+          git tag "v${NEW}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "v${NEW}"
+
+  release:
+    needs: bump
+    uses: ./.github/workflows/_build-release.yml
+    with:
+      tag: ${{ needs.bump.outputs.tag }}

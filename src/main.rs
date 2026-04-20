@@ -73,9 +73,13 @@ enum Commands {
         force: bool,
     },
 
-    /// 업데이트 — git pull + 바이너리 재빌드/재설치 + 스킬 갱신
+    /// 업데이트 — 기본은 GitHub Release 에서 현재 플랫폼 바이너리 다운로드 → atomic 교체.
+    /// `--from-source` 로 기존 `git pull + cargo install` 경로 사용 (개발 체크아웃용).
     Update {
-        /// git pull 건너뛰기 (로컬 변경사항 그대로 재빌드)
+        /// GitHub Release 대신 로컬 소스에서 재빌드 (개발 체크아웃 전제)
+        #[arg(long)]
+        from_source: bool,
+        /// `--from-source` 와 함께 쓸 때 `git pull` 건너뛰기
         #[arg(long)]
         no_pull: bool,
     },
@@ -817,7 +821,9 @@ async fn async_main(cli: Cli) -> Result<()> {
         },
 
         Commands::Install { force } => commands::installer::run_install(force),
-        Commands::Update { no_pull } => commands::installer::run_update(no_pull),
+        Commands::Update { from_source, no_pull } => {
+            commands::installer::run_update(from_source, no_pull).await
+        }
 
         Commands::Symbols { action } => match action {
             SymbolsAction::Sync { if_stale } => commands::symbols::run_sync(if_stale).await,

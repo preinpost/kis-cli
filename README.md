@@ -35,9 +35,12 @@ cargo build --release
 업데이트:
 
 ```bash
-kis update                # git pull + 재빌드 + 재설치 + 스킬 갱신
-kis update --no-pull      # 로컬 변경사항 그대로 재빌드만
+kis update                          # GitHub Release 에서 현재 플랫폼 바이너리 다운로드 → atomic 교체
+kis update --from-source            # 로컬 체크아웃에서 git pull + cargo install 로 재빌드
+kis update --from-source --no-pull  # 로컬 변경사항 그대로 재빌드만
 ```
+
+기본 `kis update` 는 `github.com/preinpost/kis-cli/releases/latest` 에서 현재 OS/아키텍처에 맞는 `kis-vX.Y.Z-<triple>.tar.gz` 를 내려받아 `~/.cargo/bin/kis` 자리에 rename 으로 갈아끼운다 (rust/cargo/git 불필요). 지원 플랫폼: macOS arm64, macOS x86_64, Linux x86_64. 다른 플랫폼이면 `--from-source`.
 
 macOS 기본 빌드 (WKWebView 내장). Linux는 `libwebkit2gtk-4.1-dev`, Windows는 WebView2 런타임 필요.
 
@@ -52,11 +55,12 @@ kis auth                  # 토큰 발급 + WebSocket approval key 확인
 설정 파일: `~/Library/Application Support/kis-cli/config.toml` (macOS 기준).
 
 ```toml
+is_mock = false           # true면 모의투자 서버 사용 (최상위 필드)
+
 [credentials]
 app_key = "..."
 app_secret = "..."
-account_number = "12345678-01"
-is_mock = false   # true면 모의투자 서버 사용
+account_number = "12345678-01"   # 뒤 2자리는 상품코드 (ACNT_PRDT_CD)
 ```
 
 ## 종목 마스터 동기화
@@ -247,7 +251,7 @@ kis stop-loss path
 - `--threshold` 음수 권장 (-5 = -5% 이하일 때 매도). 양수면 익절 트리거.
 - 미지정 시 전체 잔고 감시, 코드/종목명 일부로 필터링 가능.
 - `--execute` 없으면 드라이런 — 실제 주문 없이 로그만 남는다.
-- 상태 파일: `~/Library/Application Support/kis-cli/stop_loss.json` (진행 상황·최근 가격 기록).
+- 상태 파일: `~/Library/Application Support/kis-cli/stoploss.status.json` (진행 상황·최근 가격 기록). `kis stop-loss path`로 경로 확인 가능.
 
 ## Claude와 같이 쓰기
 

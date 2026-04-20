@@ -1,0 +1,18 @@
+name: Release
+
+# 수동으로 태그를 push 했을 때 실행 (예: `git tag v0.1.2 && git push --tags`).
+# bump 워크플로우에서 만든 태그는 GITHUB_TOKEN 제약으로 이 이벤트가 발화하지 않으므로
+# bump.yml 이 _build-release.yml 을 직접 호출한다.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  call:
+    uses: ./.github/workflows/_build-release.yml
+    with:
+      tag: ${{ github.ref_name }}
