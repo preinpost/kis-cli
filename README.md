@@ -40,7 +40,7 @@ kis update --from-source            # 로컬 체크아웃에서 git pull + cargo
 kis update --from-source --no-pull  # 로컬 변경사항 그대로 재빌드만
 ```
 
-기본 `kis update` 는 `github.com/preinpost/kis-cli/releases/latest` 에서 현재 OS/아키텍처에 맞는 `kis-vX.Y.Z-<triple>.tar.gz` 를 내려받아 `~/.cargo/bin/kis` 자리에 rename 으로 갈아끼운다 (rust/cargo/git 불필요). 지원 플랫폼: macOS arm64, macOS x86_64, Linux x86_64. 다른 플랫폼이면 `--from-source`.
+기본 `kis update` 는 `github.com/preinpost/kis-cli/releases/latest` 에서 현재 OS/아키텍처에 맞는 `kis-vX.Y.Z-<triple>.tar.gz` 를 내려받아 `~/.cargo/bin/kis` 자리에 rename 으로 갈아끼운다 (rust/cargo/git 불필요). 지원 플랫폼: macOS arm64 (Apple Silicon), Linux x86_64. 다른 플랫폼 (macOS Intel 포함) 은 `--from-source`.
 
 macOS 기본 빌드 (WKWebView 내장). Linux는 `libwebkit2gtk-4.1-dev`, Windows는 WebView2 런타임 필요.
 

@@ -214,7 +214,6 @@ fn detect_triple() -> Result<&'static str> {
     let arch = std::env::consts::ARCH;
     match (os, arch) {
         ("macos", "aarch64") => Ok("aarch64-apple-darwin"),
-        ("macos", "x86_64") => Ok("x86_64-apple-darwin"),
         ("linux", "x86_64") => Ok("x86_64-unknown-linux-gnu"),
         _ => bail!(
             "지원하지 않는 플랫폼: {os}/{arch} — `kis update --from-source` 로 소스 빌드하세요."
