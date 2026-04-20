@@ -19,7 +19,7 @@ use clap::{Args, Parser, Subcommand};
 use crate::client::KisClient;
 
 #[derive(Parser)]
-#[command(name = "kis", about = "한국투자증권 API CLI", version)]
+#[command(name = "kis", about = "한국투자증권 API CLI", disable_version_flag = true)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -72,6 +72,9 @@ enum Commands {
         #[arg(long)]
         force: bool,
     },
+
+    /// 버전 확인 — 현재 바이너리 + GitHub 최신 릴리스 비교
+    Version,
 
     /// 업데이트 — 기본은 GitHub Release 에서 현재 플랫폼 바이너리 다운로드 → atomic 교체.
     /// `--from-source` 로 기존 `git pull + cargo install` 경로 사용 (개발 체크아웃용).
@@ -824,6 +827,7 @@ async fn async_main(cli: Cli) -> Result<()> {
         Commands::Update { from_source, no_pull } => {
             commands::installer::run_update(from_source, no_pull).await
         }
+        Commands::Version => commands::installer::run_version().await,
 
         Commands::Symbols { action } => match action {
             SymbolsAction::Sync { if_stale } => commands::symbols::run_sync(if_stale).await,

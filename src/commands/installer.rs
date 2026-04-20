@@ -40,6 +40,26 @@ pub async fn run_update(from_source: bool, no_pull: bool) -> Result<()> {
     update_from_release().await
 }
 
+/// 현재 설치된 바이너리 버전 + GitHub 최신 릴리스 버전 비교 출력.
+pub async fn run_version() -> Result<()> {
+    println!("현재:       v{CURRENT_VERSION}");
+    match fetch_latest_release().await {
+        Ok(latest) => {
+            let latest_ver = latest.tag_name.trim_start_matches('v');
+            println!("GitHub 최신: v{latest_ver}");
+            if latest_ver == CURRENT_VERSION {
+                println!("✓ 최신 버전입니다");
+            } else {
+                println!("↑ 업데이트 가능 — `kis update`");
+            }
+        }
+        Err(e) => {
+            println!("GitHub 최신: (조회 실패 — {e:#})");
+        }
+    }
+    Ok(())
+}
+
 fn run_update_from_source(no_pull: bool) -> Result<()> {
     if !no_pull {
         println!("▶ git pull --ff-only (in {REPO_DIR})");
