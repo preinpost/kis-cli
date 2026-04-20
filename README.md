@@ -15,34 +15,55 @@
 
 ## 설치
 
-한 번에 설치:
+### A. Rust/cargo 로 설치 (추천)
 
 ```bash
-git clone <repo> kis-cli
+cargo install --git https://github.com/preinpost/kis-cli --locked
+kis skill install                       # Claude Code 스킬 배포 (선택)
+```
+
+`~/.cargo/bin/kis` 에 바이너리 설치. `~/.cargo/bin` 이 `PATH` 에 있어야 한다.
+
+### B. 바이너리만 내려받기 (Rust 불필요)
+
+지원 플랫폼: **macOS arm64 (Apple Silicon)**, **Linux x86_64**.
+
+macOS arm64:
+
+```bash
+TAG=$(curl -fsSL https://api.github.com/repos/preinpost/kis-cli/releases/latest | grep tag_name | cut -d'"' -f4)
+curl -fsSL -o /tmp/kis.tar.gz "https://github.com/preinpost/kis-cli/releases/download/${TAG}/kis-${TAG}-aarch64-apple-darwin.tar.gz"
+tar xzf /tmp/kis.tar.gz -C /tmp
+mkdir -p ~/.local/bin
+install -m 755 "/tmp/kis-${TAG}-aarch64-apple-darwin/kis" ~/.local/bin/kis
+# ~/.local/bin 이 PATH 에 없다면: echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+kis skill install
+```
+
+Linux x86_64 는 위 스니펫에서 `aarch64-apple-darwin` 을 `x86_64-unknown-linux-gnu` 로 치환. Linux 는 차트 뷰어용 `libwebkit2gtk-4.1-dev` 가 별도로 필요하다.
+
+### C. 개발 체크아웃 (소스 빌드)
+
+```bash
+git clone https://github.com/preinpost/kis-cli
 cd kis-cli
-cargo run --release -- install          # cargo install + Claude 스킬 배포
+cargo run --release -- install          # cargo install --path . + 스킬 배포 (`--force` 덮어쓰기)
 ```
 
-`kis install`은 `cargo install --path .`로 바이너리를 `~/.cargo/bin/kis`에 설치하고 `~/.claude/skills/kis/SKILL.md`까지 자동 배포한다. 이미 설치돼 있으면 `--force`로 덮어씀.
-
-수동 빌드를 원하면:
+### 업데이트
 
 ```bash
-cargo build --release
-# 바이너리: ./target/release/kis   (PATH에 추가하거나 ~/bin 등에 복사)
+kis version                     # 현재 바이너리 + GitHub 최신 릴리스 비교
+kis update                      # GitHub Release 에서 바이너리 다운로드 → atomic 교체 (A·B 경로)
+kis update --from-source        # C 경로 — 로컬 리포에서 git pull + cargo install
+kis update --from-source --no-pull   # 로컬 변경사항 그대로 재빌드만
 ```
 
-업데이트:
+`kis update` 는 `CARGO_PKG_VERSION` 과 `releases/latest` 태그를 비교해 같으면 스킵, 다르면 현재 플랫폼 triple 에 맞는 tar.gz 를 내려받아 실행 중 바이너리 자리에 rename 으로 갈아끼운다 (rust/cargo/git 불필요). 지원 플랫폼 밖 (macOS Intel 등) 은 `--from-source` 경로.
 
-```bash
-kis update                          # GitHub Release 에서 현재 플랫폼 바이너리 다운로드 → atomic 교체
-kis update --from-source            # 로컬 체크아웃에서 git pull + cargo install 로 재빌드
-kis update --from-source --no-pull  # 로컬 변경사항 그대로 재빌드만
-```
+### 플랫폼 메모
 
-기본 `kis update` 는 `github.com/preinpost/kis-cli/releases/latest` 에서 현재 OS/아키텍처에 맞는 `kis-vX.Y.Z-<triple>.tar.gz` 를 내려받아 `~/.cargo/bin/kis` 자리에 rename 으로 갈아끼운다 (rust/cargo/git 불필요). 지원 플랫폼: macOS arm64 (Apple Silicon), Linux x86_64. 다른 플랫폼 (macOS Intel 포함) 은 `--from-source`.
-
-macOS 기본 빌드 (WKWebView 내장). Linux는 `libwebkit2gtk-4.1-dev`, Windows는 WebView2 런타임 필요.
+macOS 기본 빌드 (WKWebView 내장). Linux 는 `libwebkit2gtk-4.1-dev`, Windows 는 WebView2 런타임 필요.
 
 ## 설정
 
