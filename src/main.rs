@@ -297,6 +297,9 @@ struct SignalWatchCommonArgs {
     /// 봉 주기 (D/W/M)
     #[arg(long, default_value = "D")]
     period: String,
+    /// 해외 종목 (기본: 국내). 미장 감시 시 cron 은 KST 기준 미국 장중 시각으로 직접 지정해야 함
+    #[arg(long)]
+    usa: bool,
     #[arg(long)]
     pick: Option<usize>,
 }
@@ -770,6 +773,7 @@ fn unpack_signal_watch(s: SignalWatchStrategy) -> commands::signal_watch::Config
         strategy: StrategyKind::MaCross,
         cron: String::new(),
         period: 'D',
+        usa: false,
         pick: None,
         fast: None,
         slow: None,
@@ -783,6 +787,7 @@ fn unpack_signal_watch(s: SignalWatchStrategy) -> commands::signal_watch::Config
     let apply_common = |cfg: &mut commands::signal_watch::Config, c: SignalWatchCommonArgs| {
         cfg.cron = c.cron;
         cfg.period = c.period.chars().next().unwrap_or('D');
+        cfg.usa = c.usa;
         cfg.pick = c.pick;
     };
     match s {

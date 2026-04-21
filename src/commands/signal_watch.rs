@@ -19,17 +19,19 @@ use anyhow::{anyhow, Result};
 use chrono::Local;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
-use crate::api::domestic_stock::order_account::inquire_balance;
+use crate::api::domestic_stock::order_account::inquire_balance as inquire_balance_domestic;
+use crate::api::overseas_stock::order_account::inquire_balance as inquire_balance_overseas;
 use crate::client::KisClient;
 use crate::commands::backtest::{self, Params, StrategyKind};
 use crate::commands::helpers::{format_number, resolve_symbol};
-use crate::symbols::ResolveMode;
+use crate::symbols::{Market, ResolveMode};
 
 pub struct Config {
     pub symbol: String,
     pub strategy: StrategyKind,
     pub cron: String,
     pub period: char,
+    pub usa: bool,
     pub pick: Option<usize>,
     pub fast: Option<usize>,
     pub slow: Option<usize>,
@@ -42,18 +44,24 @@ pub struct Config {
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
-    let sym = resolve_symbol(&cfg.symbol, ResolveMode::Domestic, cfg.pick)?;
+    let mode = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
+    let sym = resolve_symbol(&cfg.symbol, mode, cfg.pick)?;
+    let display_name = if !sym.name_kr.is_empty() { sym.name_kr.clone() }
+        else if !sym.name_en.is_empty() { sym.name_en.clone() }
+        else { sym.code.clone() };
     log_info(&format!(
-        "signal-watch 시작: [{}] {} · 전략 {} · cron \"{}\" (감시 전용, 주문 없음)",
+        "signal-watch 시작: [{}] {} ({}) · 전략 {} · cron \"{}\" (감시 전용, 주문 없음)",
         sym.code,
-        sym.name_kr,
+        display_name,
+        sym.market.as_str(),
         strategy_label(&cfg),
         cfg.cron,
     ));
 
     let cfg = Arc::new(cfg);
     let sym_code = sym.code.clone();
-    let sym_name = sym.name_kr.clone();
+    let sym_market = sym.market;
+    let sym_name = display_name;
 
     let mut sched = JobScheduler::new().await?;
     let client_cl = client.clone();
@@ -67,7 +75,7 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
         let code = sym_code_cl.clone();
         let name = sym_name_cl.clone();
         Box::pin(async move {
-            if let Err(e) = tick(&client, &cfg, &code, &name).await {
+            if let Err(e) = tick(&client, &cfg, &code, &name, sym_market).await {
                 log_error(&format!("tick 실패: {e}"));
             }
         })
@@ -83,14 +91,15 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
     Ok(())
 }
 
-async fn tick(client: &KisClient, cfg: &Config, code: &str, name: &str) -> Result<()> {
+async fn tick(client: &KisClient, cfg: &Config, code: &str, name: &str, market: Market) -> Result<()> {
     log_info(&format!("── tick [{}] {} ──", code, name));
 
+    let mode = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
     let params = build_params(cfg);
     let series = backtest::fetch_series_range(
         client,
         code,
-        ResolveMode::Domestic,
+        mode,
         cfg.period,
         None,
         None,
@@ -102,14 +111,24 @@ async fn tick(client: &KisClient, cfg: &Config, code: &str, name: &str) -> Resul
     let signal = backtest::latest_signal(&series, &params);
     let last_price = series.closes.last().copied().unwrap_or(f64::NAN);
     let last_date = series.dates.last().cloned().unwrap_or_default();
+    let (price_str, unit) = if cfg.usa {
+        (format!("{:.4}", last_price), "USD")
+    } else {
+        (format_number(&format!("{:.0}", last_price)), "원")
+    };
     log_info(&format!(
-        "  최신봉 {} / 종가 {}원 / 신호 {}",
+        "  최신봉 {} / 종가 {}{} / 신호 {}",
         last_date,
-        format_number(&format!("{:.0}", last_price)),
+        price_str,
+        unit,
         signal_label(signal)
     ));
 
-    let held = current_holding_qty(client, code).await?;
+    let held = if cfg.usa {
+        current_holding_qty_overseas(client, code, market).await?
+    } else {
+        current_holding_qty_domestic(client, code).await?
+    };
     log_info(&format!("  현재 보유: {}주", held));
 
     match classify(signal, held) {
@@ -165,8 +184,8 @@ fn build_params(cfg: &Config) -> Params {
     }
 }
 
-async fn current_holding_qty(client: &KisClient, code: &str) -> Result<u64> {
-    let req = inquire_balance::Request {
+async fn current_holding_qty_domestic(client: &KisClient, code: &str) -> Result<u64> {
+    let req = inquire_balance_domestic::Request {
         cano: client.cano().into(),
         acnt_prdt_cd: client.product_code().into(),
         afhr_flpr_yn: "N".into(),
@@ -179,10 +198,34 @@ async fn current_holding_qty(client: &KisClient, code: &str) -> Result<u64> {
         ctx_area_fk100: "".into(),
         ctx_area_nk100: "".into(),
     };
-    let r = inquire_balance::call(client, &req).await?;
+    let r = inquire_balance_domestic::call(client, &req).await?;
     for h in &r.holdings {
         if h.pdno == code {
             return Ok(h.hldg_qty.parse::<u64>().unwrap_or(0));
+        }
+    }
+    Ok(0)
+}
+
+async fn current_holding_qty_overseas(client: &KisClient, code: &str, market: Market) -> Result<u64> {
+    let excg = match market {
+        Market::Nasdaq => "NASD",
+        Market::Nyse => "NYSE",
+        Market::Amex => "AMEX",
+        _ => "NASD",
+    };
+    let req = inquire_balance_overseas::Request {
+        cano: client.cano().into(),
+        acnt_prdt_cd: client.product_code().into(),
+        ovrs_excg_cd: excg.into(),
+        tr_crcy_cd: "USD".into(),
+        ctx_area_fk200: "".into(),
+        ctx_area_nk200: "".into(),
+    };
+    let r = inquire_balance_overseas::call(client, &req).await?;
+    for h in &r.holdings {
+        if h.ovrs_pdno.eq_ignore_ascii_case(code) {
+            return Ok(h.ovrs_cblc_qty.parse::<u64>().unwrap_or(0));
         }
     }
     Ok(0)
