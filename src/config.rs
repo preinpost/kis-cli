@@ -9,6 +9,14 @@ pub struct AppConfig {
     pub credentials: Credentials,
     #[serde(default)]
     pub is_mock: bool,
+    #[serde(default)]
+    pub telegram: Option<TelegramConfig>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct TelegramConfig {
+    pub bot_token: String,
+    pub chat_id: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

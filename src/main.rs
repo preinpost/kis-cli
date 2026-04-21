@@ -293,6 +293,23 @@ enum SignalWatchStrategy {
         #[arg(long, default_value_t = 20)]
         obv_period: usize,
     },
+    /// 모든 전략 동시 감시 (전이 시점에만 텔레그램 알림)
+    All {
+        /// 종목명 또는 코드
+        symbol: String,
+        /// cron 표현식. 미지정 시 국장 "0 0 9-15 * * Mon-Fri", 미장 "0 0 23,0-5 * * Tue-Sat"
+        #[arg(long)]
+        cron: Option<String>,
+        /// 해외 종목
+        #[arg(long)]
+        usa: bool,
+        #[arg(long)]
+        pick: Option<usize>,
+        /// /etc/systemd/system 에 unit 생성 + enable --now (루트 필요).
+        /// VPS 에서는 sudo PATH 제약 때문에 반드시 `sudo $(which kis) signal-watch all ... --background` 형태로 실행 (macOS 는 unit 파일만 출력)
+        #[arg(long)]
+        background: bool,
+    },
 }
 
 #[derive(Args)]
@@ -556,6 +573,8 @@ enum ConfigAction {
     Init,
     /// 현재 설정 경로 출력
     Path,
+    /// 텔레그램 bot 연동 — 봇이 받은 /start 메시지를 감지해 chat_id 자동 채움 + 테스트 메시지 전송
+    Telegram,
 }
 
 #[derive(Subcommand)]
@@ -1015,6 +1034,7 @@ fn unpack_signal_watch(s: SignalWatchStrategy) -> commands::signal_watch::Config
             cfg.obv_period = Some(obv_period);
             apply_common(&mut cfg, common);
         }
+        SignalWatchStrategy::All { .. } => unreachable!("All 은 dispatcher 에서 별도 처리"),
     }
     cfg
 }
@@ -1282,6 +1302,7 @@ async fn async_main(cli: Cli) -> Result<()> {
                 println!("{}", config::config_path()?.display());
                 Ok(())
             }
+            ConfigAction::Telegram => config_telegram().await,
         },
 
         Commands::Skill { action } => match action {
@@ -1334,9 +1355,17 @@ async fn async_main(cli: Cli) -> Result<()> {
         },
 
         Commands::SignalWatch { strategy } => {
-            let client = std::sync::Arc::new(build_client()?);
-            let cfg = unpack_signal_watch(strategy);
-            commands::signal_watch::run(client, cfg).await
+            if let SignalWatchStrategy::All { symbol, cron, usa, pick, background } = strategy {
+                let client = std::sync::Arc::new(build_client()?);
+                let cfg = commands::signal_watch::AllConfig {
+                    symbol, cron, usa, pick, background,
+                };
+                commands::signal_watch::run_all(client, cfg).await
+            } else {
+                let client = std::sync::Arc::new(build_client()?);
+                let cfg = unpack_signal_watch(strategy);
+                commands::signal_watch::run(client, cfg).await
+            }
         }
 
         Commands::Daytrade { action } => match action {
@@ -1514,10 +1543,125 @@ fn config_init() -> Result<()> {
             account_number: account.trim().to_string(),
         },
         is_mock: false,
+        telegram: None,
     };
 
     config::save_config(&cfg)?;
     token::clear_cache_files();
     println!("\n설정 저장 완료: {}", path.display());
+    Ok(())
+}
+
+async fn config_telegram() -> Result<()> {
+    let mut cfg = config::load_config()?;
+    let token = cfg
+        .telegram
+        .as_ref()
+        .map(|t| t.bot_token.clone())
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "[telegram] bot_token 이 설정돼 있지 않습니다.\nconfig.toml 에 아래 섹션을 먼저 추가하세요:\n\n[telegram]\nbot_token = \"<BotFather 에게 받은 토큰>\"\nchat_id = \"\""
+            )
+        })?;
+    let http = reqwest::Client::new();
+
+    // 1) getMe 로 봇 username 확인
+    let me: serde_json::Value = http
+        .get(format!("https://api.telegram.org/bot{token}/getMe"))
+        .send()
+        .await?
+        .json()
+        .await?;
+    if me.get("ok").and_then(|v| v.as_bool()) != Some(true) {
+        return Err(anyhow::anyhow!(
+            "getMe 실패 — bot_token 이 유효한지 확인하세요.\n응답: {}",
+            me
+        ));
+    }
+    let username = me
+        .pointer("/result/username")
+        .and_then(|v| v.as_str())
+        .unwrap_or("(unknown)");
+
+    println!("봇: @{}", username);
+    println!("아래 링크를 열어 봇에게 /start (또는 아무 메시지) 를 보내세요:");
+    println!("  https://t.me/{}", username);
+    println!();
+    println!("메시지 대기 중... (최대 60초)");
+
+    // 2) getUpdates long polling
+    let updates: serde_json::Value = http
+        .get(format!("https://api.telegram.org/bot{token}/getUpdates"))
+        .query(&[("timeout", "60")])
+        .send()
+        .await?
+        .json()
+        .await?;
+    if updates.get("ok").and_then(|v| v.as_bool()) != Some(true) {
+        return Err(anyhow::anyhow!("getUpdates 실패: {}", updates));
+    }
+    let results = updates
+        .get("result")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| anyhow::anyhow!("getUpdates 응답 파싱 실패"))?;
+
+    // 가장 최근의 message.chat.id 를 채택
+    let (chat_id, from_name) = results
+        .iter()
+        .rev()
+        .find_map(|u| {
+            let chat_id = u.pointer("/message/chat/id").and_then(|v| v.as_i64())?;
+            let first = u
+                .pointer("/message/from/first_name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let user = u
+                .pointer("/message/from/username")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let label = match (first.is_empty(), user.is_empty()) {
+                (false, false) => format!("{first} (@{user})"),
+                (false, true) => first.to_string(),
+                (true, false) => format!("@{user}"),
+                _ => "(unknown)".into(),
+            };
+            Some((chat_id.to_string(), label))
+        })
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "60초 안에 메시지를 감지하지 못했습니다.\n봇에게 /start 를 먼저 보낸 뒤 다시 시도하세요."
+            )
+        })?;
+
+    println!("감지됨: chat_id={} (보낸 사람: {})", chat_id, from_name);
+
+    // 3) config.toml 업데이트
+    cfg.telegram = Some(config::TelegramConfig {
+        bot_token: token.clone(),
+        chat_id: chat_id.clone(),
+    });
+    config::save_config(&cfg)?;
+    println!("config.toml 업데이트 완료: {}", config::config_path()?.display());
+
+    // 4) 테스트 메시지
+    let resp = http
+        .post(format!("https://api.telegram.org/bot{token}/sendMessage"))
+        .json(&serde_json::json!({
+            "chat_id": chat_id,
+            "text": "✓ kis-cli 텔레그램 연동 완료. signal-watch 전이 신호가 여기로 전송됩니다.",
+        }))
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(anyhow::anyhow!(
+            "테스트 메시지 전송 실패 ({}): {}",
+            status,
+            body
+        ));
+    }
+    println!("✓ 테스트 메시지 전송 완료. 텔레그램을 확인하세요.");
     Ok(())
 }
