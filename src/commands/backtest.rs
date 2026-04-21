@@ -1390,12 +1390,27 @@ const INITIAL_DIRECTION = '{dir_v}';
 
 const state = {{ overlaySeries: [] }};
 
+const fmtDate = (t) => {{
+  const yy2 = (y) => String(y % 100).padStart(2, '0');
+  if (typeof t === 'string') {{
+    const m = t.match(/^(\d{{4}})-(\d{{2}})-(\d{{2}})$/);
+    if (m) return `${{yy2(+m[1])}}.${{m[2]}}.${{m[3]}}`;
+    return t.replace(/-/g, '.');
+  }}
+  if (typeof t === 'number') {{
+    const dt = new Date(t * 1000);
+    return `${{yy2(dt.getUTCFullYear())}}.${{String(dt.getUTCMonth()+1).padStart(2,'0')}}.${{String(dt.getUTCDate()).padStart(2,'0')}}`;
+  }}
+  return `${{yy2(t.year)}}.${{String(t.month).padStart(2,'0')}}.${{String(t.day).padStart(2,'0')}}`;
+}};
+
 function init() {{
   state.priceChart = LightweightCharts.createChart(document.getElementById('chart'), {{
     layout: {{ background: {{ type:'solid', color:'#ffffff' }}, textColor:'#1a1a1a' }},
     grid: {{ vertLines:{{color:'#e0e3eb'}}, horzLines:{{color:'#e0e3eb'}} }},
     rightPriceScale: {{ borderColor:'#d1d4dc' }},
-    timeScale: {{ borderColor:'#d1d4dc' }},
+    localization: {{ timeFormatter: fmtDate, dateFormat: 'yy.MM.dd' }},
+    timeScale: {{ borderColor:'#d1d4dc', tickMarkFormatter: fmtDate }},
     crosshair: {{ mode: LightweightCharts.CrosshairMode.Normal }},
   }});
   state.candleSeries = state.priceChart.addCandlestickSeries({{
@@ -1408,7 +1423,8 @@ function init() {{
     layout: {{ background: {{ type:'solid', color:'#ffffff' }}, textColor:'#787b86' }},
     grid: {{ vertLines:{{color:'#f0f3fa'}}, horzLines:{{color:'#f0f3fa'}} }},
     rightPriceScale: {{ borderColor:'#d1d4dc' }},
-    timeScale: {{ borderColor:'#d1d4dc', visible:false }},
+    localization: {{ timeFormatter: fmtDate, dateFormat: 'yy.MM.dd' }},
+    timeScale: {{ borderColor:'#d1d4dc', visible:false, tickMarkFormatter: fmtDate }},
   }});
   state.eqLine = state.eqChart.addLineSeries({{ color:'#2962ff', lineWidth:2,
     title:'Equity', priceLineVisible:false, lastValueVisible:true }});

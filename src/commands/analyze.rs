@@ -561,11 +561,26 @@ fn render_html(symbol: &str, name: &str, s: &Series, r: &Report) -> String {
 <script>
 const data = {payload};
 
+const fmtDate = (t) => {{
+  const yy2 = (y) => String(y % 100).padStart(2, '0');
+  if (typeof t === 'string') {{
+    const m = t.match(/^(\d{{4}})-(\d{{2}})-(\d{{2}})$/);
+    if (m) return `${{yy2(+m[1])}}.${{m[2]}}.${{m[3]}}`;
+    return t.replace(/-/g, '.');
+  }}
+  if (typeof t === 'number') {{
+    const dt = new Date(t * 1000);
+    return `${{yy2(dt.getUTCFullYear())}}.${{String(dt.getUTCMonth()+1).padStart(2,'0')}}.${{String(dt.getUTCDate()).padStart(2,'0')}}`;
+  }}
+  return `${{yy2(t.year)}}.${{String(t.month).padStart(2,'0')}}.${{String(t.day).padStart(2,'0')}}`;
+}};
+
 const chart = LightweightCharts.createChart(document.getElementById('chart'), {{
   layout: {{ background: {{ type: 'solid', color: '#131722' }}, textColor: '#d1d4dc' }},
   grid: {{ vertLines: {{ color: '#2a2e3933' }}, horzLines: {{ color: '#2a2e3933' }} }},
   crosshair: {{ mode: LightweightCharts.CrosshairMode.Normal }},
-  timeScale: {{ borderColor: '#2a2e39', timeVisible: false }},
+  localization: {{ timeFormatter: fmtDate, dateFormat: 'yy.MM.dd' }},
+  timeScale: {{ borderColor: '#2a2e39', timeVisible: false, tickMarkFormatter: fmtDate }},
   rightPriceScale: {{ borderColor: '#2a2e39' }},
 }});
 

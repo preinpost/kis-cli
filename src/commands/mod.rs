@@ -1,6 +1,7 @@
 pub mod analyze;
 pub mod auth;
 pub mod backtest;
+pub mod daytrade;
 pub mod signal_watch;
 pub mod bond;
 pub mod fo;

@@ -64,6 +64,11 @@ pub fn stoploss_status_path() -> Result<PathBuf> {
     Ok(config_dir()?.join("stoploss.status.json"))
 }
 
+/// 데이트레이드 매매 기록 SQLite 경로
+pub fn daytrade_db_path() -> Result<PathBuf> {
+    Ok(config_dir()?.join("daytrade.db"))
+}
+
 /// 설정 파일 로딩
 pub fn load_config() -> Result<AppConfig> {
     let path = config_path()?;

@@ -99,6 +99,12 @@ enum Commands {
         strategy: SignalWatchStrategy,
     },
 
+    /// 데이트레이드 — 분봉 기반 감시/페이퍼/실주문/백테스트 (국장/미장)
+    Daytrade {
+        #[command(subcommand)]
+        action: DaytradeAction,
+    },
+
     /// 백테스트 — 전략별 서브커맨드. 공통 옵션은 모든 전략이 공유
     Backtest {
         #[command(subcommand)]
@@ -298,6 +304,186 @@ struct SignalWatchCommonArgs {
     #[arg(long, default_value = "D")]
     period: String,
     /// 해외 종목 (기본: 국내). 미장 감시 시 cron 은 KST 기준 미국 장중 시각으로 직접 지정해야 함
+    #[arg(long)]
+    usa: bool,
+    #[arg(long)]
+    pick: Option<usize>,
+}
+
+#[derive(Subcommand)]
+enum DaytradeAction {
+    /// 분봉 신호 감시 — 주문 없음. Phase 1.
+    SignalWatch {
+        #[command(subcommand)]
+        strategy: DaytradeStrategy,
+    },
+    /// 가상 매매 (페이퍼 트레이딩) — 실주문 없음, SQLite 매매 기록. 장 마감 10분 전 강제 청산.
+    Paper {
+        #[command(subcommand)]
+        strategy: DaytradePaperStrategy,
+    },
+    /// 체결 기록 조회 — SQLite에 쌓인 paper/run 매매 내역 검색
+    History {
+        /// 특정 세션의 체결 내역
+        #[arg(long)]
+        session: Option<String>,
+        /// 종목 필터 (코드 일치)
+        #[arg(long)]
+        symbol: Option<String>,
+        /// 오늘 체결만
+        #[arg(long)]
+        today: bool,
+        /// 최근 N일
+        #[arg(long)]
+        days: Option<u32>,
+        /// 세션 요약 최대 개수 (기본 10)
+        #[arg(long, default_value_t = 10)]
+        limit: usize,
+        /// JSON 덤프
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum DaytradePaperStrategy {
+    /// 단기·장기 이동평균 교차 (분봉, 페이퍼)
+    MaCross {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradePaperCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        fast: usize,
+        #[arg(long, default_value_t = 60)]
+        slow: usize,
+    },
+    /// RSI 과매도/과매수 반전 (분봉, 페이퍼)
+    Rsi {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradePaperCommonArgs,
+        #[arg(long, default_value_t = 14)]
+        rsi_period: usize,
+        #[arg(long, default_value_t = 30.0)]
+        rsi_oversold: f64,
+        #[arg(long, default_value_t = 70.0)]
+        rsi_overbought: f64,
+    },
+    /// MACD 히스토그램 부호 (분봉, 페이퍼)
+    Macd {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradePaperCommonArgs,
+    },
+    /// 볼린저 밴드 평균회귀 (분봉, 페이퍼)
+    Bollinger {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradePaperCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        bb_period: usize,
+        #[arg(long, default_value_t = 2.0)]
+        bb_sigma: f64,
+    },
+    /// 일목균형표 (분봉, 페이퍼)
+    Ichimoku {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradePaperCommonArgs,
+    },
+    /// OBV vs SMA(OBV, N) 크로스오버 (분봉, 페이퍼)
+    Obv {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradePaperCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        obv_period: usize,
+    },
+}
+
+#[derive(Args)]
+struct DaytradePaperCommonArgs {
+    #[command(flatten)]
+    base: DaytradeCommonArgs,
+    /// 1회 매수 수량 (주)
+    #[arg(long, default_value_t = 1)]
+    qty: u64,
+    /// 수수료 bps (매매 한쪽당). 국내 ~15, 해외 ~5
+    #[arg(long, default_value_t = 15.0)]
+    fee_bps: f64,
+    /// 슬리피지 bps (체결가 보정)
+    #[arg(long, default_value_t = 5.0)]
+    slippage_bps: f64,
+    /// 손절 임계 % (진입가 대비 -N% 하회 시 즉시 청산). 미지정 시 손절 없음
+    #[arg(long)]
+    stop_loss_pct: Option<f64>,
+    /// 익절 임계 % (진입가 대비 +N% 도달 시 즉시 청산). 미지정 시 익절 없음
+    #[arg(long)]
+    take_profit_pct: Option<f64>,
+}
+
+#[derive(Subcommand)]
+enum DaytradeStrategy {
+    /// 단기·장기 이동평균 교차 (분봉)
+    MaCross {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        fast: usize,
+        #[arg(long, default_value_t = 60)]
+        slow: usize,
+    },
+    /// RSI 과매도/과매수 반전 (분봉)
+    Rsi {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeCommonArgs,
+        #[arg(long, default_value_t = 14)]
+        rsi_period: usize,
+        #[arg(long, default_value_t = 30.0)]
+        rsi_oversold: f64,
+        #[arg(long, default_value_t = 70.0)]
+        rsi_overbought: f64,
+    },
+    /// MACD 히스토그램 부호 (12/26/9 고정, 분봉)
+    Macd {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeCommonArgs,
+    },
+    /// 볼린저 밴드 평균회귀 (분봉)
+    Bollinger {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        bb_period: usize,
+        #[arg(long, default_value_t = 2.0)]
+        bb_sigma: f64,
+    },
+    /// 일목균형표 (9/26/52 고정, 분봉)
+    Ichimoku {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeCommonArgs,
+    },
+    /// OBV vs SMA(OBV, N) 크로스오버 (분봉)
+    Obv {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        obv_period: usize,
+    },
+}
+
+#[derive(Args)]
+struct DaytradeCommonArgs {
+    /// 분봉 주기 (1m / 5m / 10m / 30m / 60m)
+    #[arg(long, default_value = "5m")]
+    period: String,
+    /// 해외 종목 (기본: 국내)
     #[arg(long)]
     usa: bool,
     #[arg(long)]
@@ -833,6 +1019,162 @@ fn unpack_signal_watch(s: SignalWatchStrategy) -> commands::signal_watch::Config
     cfg
 }
 
+fn unpack_daytrade_signal_watch(
+    s: DaytradeStrategy,
+) -> Result<commands::daytrade::signal_watch::Config> {
+    use commands::backtest::StrategyKind;
+    use commands::daytrade::period::Period;
+    use std::str::FromStr;
+
+    let mut cfg = commands::daytrade::signal_watch::Config {
+        symbol: String::new(),
+        strategy: StrategyKind::MaCross,
+        period: Period::Min(5),
+        usa: false,
+        pick: None,
+        fast: None,
+        slow: None,
+        rsi_period: None,
+        rsi_oversold: None,
+        rsi_overbought: None,
+        bb_period: None,
+        bb_sigma: None,
+        obv_period: None,
+    };
+    let apply_common = |cfg: &mut commands::daytrade::signal_watch::Config,
+                        c: DaytradeCommonArgs|
+     -> Result<()> {
+        cfg.period = Period::from_str(&c.period)?;
+        cfg.usa = c.usa;
+        cfg.pick = c.pick;
+        Ok(())
+    };
+    match s {
+        DaytradeStrategy::MaCross { symbol, common, fast, slow } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::MaCross;
+            cfg.fast = Some(fast);
+            cfg.slow = Some(slow);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeStrategy::Rsi { symbol, common, rsi_period, rsi_oversold, rsi_overbought } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Rsi;
+            cfg.rsi_period = Some(rsi_period);
+            cfg.rsi_oversold = Some(rsi_oversold);
+            cfg.rsi_overbought = Some(rsi_overbought);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeStrategy::Macd { symbol, common } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Macd;
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeStrategy::Bollinger { symbol, common, bb_period, bb_sigma } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Bollinger;
+            cfg.bb_period = Some(bb_period);
+            cfg.bb_sigma = Some(bb_sigma);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeStrategy::Ichimoku { symbol, common } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Ichimoku;
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeStrategy::Obv { symbol, common, obv_period } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Obv;
+            cfg.obv_period = Some(obv_period);
+            apply_common(&mut cfg, common)?;
+        }
+    }
+    Ok(cfg)
+}
+
+fn unpack_daytrade_paper(
+    s: DaytradePaperStrategy,
+) -> Result<commands::daytrade::paper::Config> {
+    use commands::backtest::StrategyKind;
+    use commands::daytrade::period::Period;
+    use std::str::FromStr;
+
+    let mut cfg = commands::daytrade::paper::Config {
+        symbol: String::new(),
+        strategy: StrategyKind::MaCross,
+        period: Period::Min(5),
+        usa: false,
+        pick: None,
+        qty: 1,
+        fee_bps: 15.0,
+        slippage_bps: 5.0,
+        stop_loss_pct: None,
+        take_profit_pct: None,
+        fast: None,
+        slow: None,
+        rsi_period: None,
+        rsi_oversold: None,
+        rsi_overbought: None,
+        bb_period: None,
+        bb_sigma: None,
+        obv_period: None,
+    };
+    let apply_common = |cfg: &mut commands::daytrade::paper::Config,
+                        c: DaytradePaperCommonArgs|
+     -> Result<()> {
+        cfg.period = Period::from_str(&c.base.period)?;
+        cfg.usa = c.base.usa;
+        cfg.pick = c.base.pick;
+        cfg.qty = c.qty;
+        cfg.fee_bps = c.fee_bps;
+        cfg.slippage_bps = c.slippage_bps;
+        cfg.stop_loss_pct = c.stop_loss_pct;
+        cfg.take_profit_pct = c.take_profit_pct;
+        Ok(())
+    };
+    match s {
+        DaytradePaperStrategy::MaCross { symbol, common, fast, slow } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::MaCross;
+            cfg.fast = Some(fast);
+            cfg.slow = Some(slow);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradePaperStrategy::Rsi { symbol, common, rsi_period, rsi_oversold, rsi_overbought } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Rsi;
+            cfg.rsi_period = Some(rsi_period);
+            cfg.rsi_oversold = Some(rsi_oversold);
+            cfg.rsi_overbought = Some(rsi_overbought);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradePaperStrategy::Macd { symbol, common } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Macd;
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradePaperStrategy::Bollinger { symbol, common, bb_period, bb_sigma } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Bollinger;
+            cfg.bb_period = Some(bb_period);
+            cfg.bb_sigma = Some(bb_sigma);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradePaperStrategy::Ichimoku { symbol, common } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Ichimoku;
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradePaperStrategy::Obv { symbol, common, obv_period } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Obv;
+            cfg.obv_period = Some(obv_period);
+            apply_common(&mut cfg, common)?;
+        }
+    }
+    Ok(cfg)
+}
+
 fn run_backtest_chart(cli: Cli) -> Result<()> {
     let Commands::Backtest { strategy: BacktestStrategy::Chart { symbol, seed } } = cli.command
     else {
@@ -996,6 +1338,25 @@ async fn async_main(cli: Cli) -> Result<()> {
             let cfg = unpack_signal_watch(strategy);
             commands::signal_watch::run(client, cfg).await
         }
+
+        Commands::Daytrade { action } => match action {
+            DaytradeAction::SignalWatch { strategy } => {
+                let client = std::sync::Arc::new(build_client()?);
+                let cfg = unpack_daytrade_signal_watch(strategy)?;
+                commands::daytrade::signal_watch::run(client, cfg).await
+            }
+            DaytradeAction::Paper { strategy } => {
+                let client = std::sync::Arc::new(build_client()?);
+                let cfg = unpack_daytrade_paper(strategy)?;
+                commands::daytrade::paper::run(client, cfg).await
+            }
+            DaytradeAction::History { session, symbol, today, days, limit, json } => {
+                let opts = commands::daytrade::history::Opts {
+                    session, symbol, today, days, limit, json,
+                };
+                commands::daytrade::history::run(opts)
+            }
+        },
 
         Commands::Backtest { strategy } => {
             // Chart 는 main() 에서 먼저 가로채기 때문에 여긴 닿지 않음
