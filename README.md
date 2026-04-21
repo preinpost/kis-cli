@@ -36,7 +36,7 @@ curl -fsSL -o /tmp/kis.tar.gz "https://github.com/preinpost/kis-cli/releases/dow
 tar xzf /tmp/kis.tar.gz -C /tmp
 mkdir -p ~/.local/bin
 install -m 755 "/tmp/kis-${TAG}-aarch64-apple-darwin/kis" ~/.local/bin/kis
-# ~/.local/bin 이 PATH 에 없다면: echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+# ~/.local/bin 이 PATH 에 없다면: echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 kis skill install
 ```
 

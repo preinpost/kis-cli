@@ -1536,6 +1536,18 @@ fn config_init() -> Result<()> {
     let mut account = String::new();
     io::stdin().read_line(&mut account)?;
 
+    print!("텔레그램 BOT_TOKEN (signal-watch 알림용, 건너뛰려면 Enter): ");
+    io::stdout().flush()?;
+    let mut bot_token = String::new();
+    io::stdin().read_line(&mut bot_token)?;
+    let bot_token = bot_token.trim().to_string();
+    let telegram = if bot_token.is_empty() {
+        None
+    } else {
+        Some(config::TelegramConfig { bot_token, chat_id: String::new() })
+    };
+    let has_telegram = telegram.is_some();
+
     let cfg = config::AppConfig {
         credentials: config::Credentials {
             app_key: app_key.trim().to_string(),
@@ -1543,12 +1555,16 @@ fn config_init() -> Result<()> {
             account_number: account.trim().to_string(),
         },
         is_mock: false,
-        telegram: None,
+        telegram,
     };
 
     config::save_config(&cfg)?;
     token::clear_cache_files();
     println!("\n설정 저장 완료: {}", path.display());
+    if has_telegram {
+        println!("\n텔레그램 chat_id 연동을 이어서 진행하세요:");
+        println!("  kis config telegram");
+    }
     Ok(())
 }
 

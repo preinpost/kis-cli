@@ -42,9 +42,45 @@ impl Credentials {
 }
 
 /// 설정 디렉토리 경로: ~/.config/kis-cli/
+///
+/// `sudo` 실행 시엔 HOME 이 `/root` 로 바뀌므로, `SUDO_USER` 가 있으면
+/// 원래 유저의 홈 디렉토리 기준으로 리다이렉트한다. (VPS 에서 systemd unit 설치할 때
+/// `sudo $(which kis) ...` 형태로 실행되는 케이스 커버)
 pub fn config_dir() -> Result<PathBuf> {
+    if let Some(dir) = sudo_user_config_dir() {
+        return Ok(dir);
+    }
     let base = dirs::config_dir().context("설정 디렉토리를 찾을 수 없습니다")?;
     Ok(base.join("kis-cli"))
+}
+
+fn sudo_user_config_dir() -> Option<PathBuf> {
+    let sudo_user = std::env::var("SUDO_USER").ok()?;
+    if sudo_user.is_empty() || sudo_user == "root" {
+        return None;
+    }
+    let home = lookup_home(&sudo_user)?;
+    Some(home.join(".config").join("kis-cli"))
+}
+
+fn lookup_home(user: &str) -> Option<PathBuf> {
+    // /etc/passwd 에서 직접 조회 (libc 없이 NSS 우회)
+    if let Ok(passwd) = fs::read_to_string("/etc/passwd") {
+        for line in passwd.lines() {
+            let fields: Vec<&str> = line.split(':').collect();
+            if fields.first().copied() == Some(user) {
+                if let Some(home) = fields.get(5) {
+                    return Some(PathBuf::from(home));
+                }
+            }
+        }
+    }
+    // fallback: 관례적 경로
+    if cfg!(target_os = "macos") {
+        Some(PathBuf::from("/Users").join(user))
+    } else {
+        Some(PathBuf::from("/home").join(user))
+    }
 }
 
 /// 설정 파일 경로: ~/.config/kis-cli/config.toml
