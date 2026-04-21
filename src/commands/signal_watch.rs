@@ -373,7 +373,11 @@ pub async fn run_all(client: Arc<KisClient>, cfg: AllConfig) -> Result<()> {
         return install_systemd_unit(&sym.code, cfg.usa, &cron, &display_name);
     }
 
-    let telegram = load_config().ok().and_then(|c| c.telegram).map(Arc::new);
+    let telegram = load_config()
+        .ok()
+        .and_then(|c| c.telegram)
+        .filter(|t| !t.bot_token.is_empty() && !t.chat_id.is_empty())
+        .map(Arc::new);
     log_info(&format!(
         "signal-watch all 시작: [{}] {} ({}) · cron \"{}\"{}",
         sym.code,
@@ -416,11 +420,65 @@ pub async fn run_all(client: Arc<KisClient>, cfg: AllConfig) -> Result<()> {
     sched.add(job).await?;
     sched.start().await?;
 
-    log_info("스케줄러 시작됨. 종료: Ctrl+C");
-    tokio::signal::ctrl_c().await?;
+    log_info("스케줄러 시작됨. 종료: Ctrl+C (systemd 는 SIGTERM)");
+    if let Some(tg) = telegram.as_deref() {
+        let body = format!(
+            "▶ signal-watch all 시작\n[{}] {} ({})\ncron: {}\nhost: {}",
+            sym_code, sym_name, sym_market.as_str(), cron, get_hostname(),
+        );
+        if let Err(e) = send_telegram(tg, &body).await {
+            log_error(&format!("시작 알림 실패: {e}"));
+        }
+    }
+
+    wait_for_shutdown_signal().await;
     log_info("종료 신호 수신, 스케줄러 정리…");
+
+    if let Some(tg) = telegram.as_deref() {
+        let body = format!(
+            "■ signal-watch all 종료\n[{}] {} ({})\nhost: {}",
+            sym_code, sym_name, sym_market.as_str(), get_hostname(),
+        );
+        if let Err(e) = send_telegram(tg, &body).await {
+            log_error(&format!("종료 알림 실패: {e}"));
+        }
+    }
+
     sched.shutdown().await.ok();
     Ok(())
+}
+
+async fn wait_for_shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+        let mut sigterm = match signal(SignalKind::terminate()) {
+            Ok(s) => s,
+            Err(e) => {
+                log_error(&format!("SIGTERM 핸들러 등록 실패: {e} — Ctrl+C 만 대기"));
+                let _ = tokio::signal::ctrl_c().await;
+                return;
+            }
+        };
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = sigterm.recv() => {}
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
+}
+
+fn get_hostname() -> String {
+    std::process::Command::new("hostname")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "unknown".into())
 }
 
 fn default_cron(usa: bool) -> &'static str {
@@ -671,7 +729,8 @@ fn install_systemd_unit(code: &str, usa: bool, cron: &str, display_name: &str) -
     println!();
     println!("로그 확인: sudo journalctl -u {} -f", service_name);
     println!("상태 확인: sudo systemctl status {}", service_name);
-    println!("중지/제거: sudo systemctl disable --now {}", service_name);
+    println!("목록 확인: kis signal-watch list");
+    println!("제거:      sudo $(which kis) signal-watch remove {} {}", code, if usa { "--usa" } else { "" });
     println!();
     println!("※ 이 바이너리 경로가 유지되어야 서비스가 뜹니다. 바이너리를 옮기거나 재빌드로 경로가 바뀌면");
     println!("   `sudo $(which kis) signal-watch all {} {}--background` 를 다시 실행해 unit 을 재생성하세요.",
@@ -700,6 +759,131 @@ fn run_systemctl(args: &[&str]) -> Result<()> {
         return Err(anyhow!("systemctl {:?} 실패 (exit {:?})", args, status.code()));
     }
     Ok(())
+}
+
+// ─────────────────────────────────────────────────────────────
+// `kis signal-watch list` / `kis signal-watch remove <target>`
+// ─────────────────────────────────────────────────────────────
+
+const UNIT_DIR: &str = "/etc/systemd/system";
+const UNIT_PREFIX: &str = "kis-signal-watch-";
+
+pub fn list_services() -> Result<()> {
+    let dir = std::path::Path::new(UNIT_DIR);
+    if !dir.exists() {
+        println!("(등록된 서비스 없음 — {} 가 없습니다. Linux 전용 기능)", UNIT_DIR);
+        return Ok(());
+    }
+    let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(dir)?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .map(|n| n.starts_with(UNIT_PREFIX) && n.ends_with(".service"))
+                .unwrap_or(false)
+        })
+        .collect();
+    if files.is_empty() {
+        println!("(등록된 kis-signal-watch 서비스 없음)");
+        return Ok(());
+    }
+    files.sort();
+
+    for path in files {
+        let service_name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
+        let content = std::fs::read_to_string(&path).unwrap_or_default();
+        let description = extract_field(&content, "Description=").unwrap_or_default();
+        let exec_start = extract_field(&content, "ExecStart=").unwrap_or_default();
+        let run_user = extract_field(&content, "User=").unwrap_or_default();
+        let active = systemctl_query(&["is-active", &service_name]);
+        let enabled = systemctl_query(&["is-enabled", &service_name]);
+
+        println!("● {}.service", service_name);
+        if !description.is_empty() {
+            println!("    Description: {}", description);
+        }
+        println!("    Status:      active={} / enabled={} / user={}", active, enabled, run_user);
+        if !exec_start.is_empty() {
+            println!("    ExecStart:   {}", exec_start);
+        }
+        println!("    Unit:        {}", path.display());
+        println!();
+    }
+    println!("제거: sudo $(which kis) signal-watch remove <code> [--usa]");
+    println!("로그: sudo journalctl -u <service-name> -f");
+    Ok(())
+}
+
+fn extract_field(content: &str, prefix: &str) -> Option<String> {
+    content
+        .lines()
+        .find(|l| l.starts_with(prefix))
+        .map(|l| l[prefix.len()..].trim().to_string())
+}
+
+fn systemctl_query(args: &[&str]) -> String {
+    std::process::Command::new("systemctl")
+        .args(args)
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "unknown".into())
+}
+
+pub fn remove_service(target: &str, usa: bool) -> Result<()> {
+    let service_name = resolve_service_name(target, usa);
+    let unit_path = format!("{}/{}.service", UNIT_DIR, service_name);
+
+    if !std::path::Path::new(&unit_path).exists() {
+        return Err(anyhow!(
+            "서비스 파일이 없습니다: {}\n`kis signal-watch list` 로 등록된 서비스를 먼저 확인하세요.",
+            unit_path
+        ));
+    }
+
+    // stop + disable (실패해도 파일 삭제까지는 진행)
+    if let Err(e) = run_systemctl(&["disable", "--now", &service_name]) {
+        log_error(&format!("disable --now 실패 (무시하고 파일 삭제 시도): {e}"));
+    }
+
+    match std::fs::remove_file(&unit_path) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+            return Err(anyhow!(
+                "{} 삭제 권한이 없습니다. 재실행: sudo $(which kis) signal-watch remove {} {}",
+                unit_path,
+                target,
+                if usa { "--usa" } else { "" }
+            ));
+        }
+        Err(e) => return Err(anyhow!("{} 삭제 실패: {e}", unit_path)),
+    }
+
+    run_systemctl(&["daemon-reload"])?;
+    log_info(&format!("✓ {}.service 제거됨 ({} 삭제)", service_name, unit_path));
+    Ok(())
+}
+
+fn resolve_service_name(target: &str, usa: bool) -> String {
+    // 전체 서비스명을 직접 넘긴 경우: `kis-signal-watch-xxx` 또는 `.service` 포함
+    let stripped = target.strip_suffix(".service").unwrap_or(target);
+    if stripped.starts_with(UNIT_PREFIX) {
+        return stripped.to_string();
+    }
+    // 코드만 넘긴 경우: prefix + 소문자 + (옵션) -usa
+    format!(
+        "{}{}{}",
+        UNIT_PREFIX,
+        stripped.to_lowercase(),
+        if usa { "-usa" } else { "" }
+    )
 }
 
 fn shell_escape(s: &str) -> String {

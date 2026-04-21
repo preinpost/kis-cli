@@ -310,6 +310,16 @@ enum SignalWatchStrategy {
         #[arg(long)]
         background: bool,
     },
+    /// `--background` 로 등록된 서비스 목록 출력
+    List,
+    /// `--background` 로 등록된 서비스 중지 + 제거 (루트 필요)
+    Remove {
+        /// 종목코드 (예: 005930) 또는 전체 서비스명 (예: kis-signal-watch-005930)
+        target: String,
+        /// 해외 서비스 (코드만 줄 때 `-usa` 접미사 추가)
+        #[arg(long)]
+        usa: bool,
+    },
 }
 
 #[derive(Args)]
@@ -1034,7 +1044,11 @@ fn unpack_signal_watch(s: SignalWatchStrategy) -> commands::signal_watch::Config
             cfg.obv_period = Some(obv_period);
             apply_common(&mut cfg, common);
         }
-        SignalWatchStrategy::All { .. } => unreachable!("All 은 dispatcher 에서 별도 처리"),
+        SignalWatchStrategy::All { .. }
+        | SignalWatchStrategy::List
+        | SignalWatchStrategy::Remove { .. } => {
+            unreachable!("All/List/Remove 는 dispatcher 에서 별도 처리")
+        }
     }
     cfg
 }
@@ -1354,19 +1368,24 @@ async fn async_main(cli: Cli) -> Result<()> {
             StopLossAction::Path => commands::stop_loss::run_path(),
         },
 
-        Commands::SignalWatch { strategy } => {
-            if let SignalWatchStrategy::All { symbol, cron, usa, pick, background } = strategy {
+        Commands::SignalWatch { strategy } => match strategy {
+            SignalWatchStrategy::All { symbol, cron, usa, pick, background } => {
                 let client = std::sync::Arc::new(build_client()?);
                 let cfg = commands::signal_watch::AllConfig {
                     symbol, cron, usa, pick, background,
                 };
                 commands::signal_watch::run_all(client, cfg).await
-            } else {
+            }
+            SignalWatchStrategy::List => commands::signal_watch::list_services(),
+            SignalWatchStrategy::Remove { target, usa } => {
+                commands::signal_watch::remove_service(&target, usa)
+            }
+            other => {
                 let client = std::sync::Arc::new(build_client()?);
-                let cfg = unpack_signal_watch(strategy);
+                let cfg = unpack_signal_watch(other);
                 commands::signal_watch::run(client, cfg).await
             }
-        }
+        },
 
         Commands::Daytrade { action } => match action {
             DaytradeAction::SignalWatch { strategy } => {
