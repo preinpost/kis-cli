@@ -354,6 +354,13 @@ enum DaytradeAction {
         #[command(subcommand)]
         strategy: DaytradeRunStrategy,
     },
+    /// `--background` 로 등록된 daytrade 서비스 목록 출력
+    List,
+    /// `--background` 서비스 중지 + 제거 (루트 필요). target: 전체 서비스명 또는 고유 부분 문자열
+    Remove {
+        /// 서비스명 (kis-daytrade-...) 또는 일부 (예: TSLA)
+        target: String,
+    },
     /// 체결 기록 조회 — SQLite에 쌓인 paper/run 매매 내역 검색
     History {
         /// 특정 세션의 체결 내역
@@ -514,11 +521,11 @@ struct DaytradePaperCommonArgs {
     /// 1회 매수 수량 (주)
     #[arg(long)]
     qty: u64,
-    /// 수수료 bps (매매 한쪽당). 국내 ~15, 해외 ~5
+    /// 수수료 bps (매매 한쪽당). 국내 ~15, 해외 ~5 — 왕복 기준 2배
     #[arg(long, default_value_t = 15.0)]
     fee_bps: f64,
-    /// 슬리피지 bps (체결가 보정)
-    #[arg(long, default_value_t = 5.0)]
+    /// 슬리피지 bps (체결가 보정, 매매 한쪽당). 왕복 기준 2배 — 기본 10bps × 2 = 20bps 왕복, fee 30bps 포함 총 왕복 50bps
+    #[arg(long, default_value_t = 10.0)]
     slippage_bps: f64,
     /// 손절 임계 % (진입가 대비 -N% 하회 시 즉시 청산). paper 미지정 시 off, run 미지정 시 2.0% 기본
     #[arg(long)]
@@ -538,6 +545,10 @@ struct DaytradePaperCommonArgs {
     /// 총 예산 (USA: USD, KRX: KRW). 보유 중에도 롱 신호마다 예산 한도 내에서 `qty`주씩 추가 매수(피라미딩).
     #[arg(long)]
     budget: f64,
+    /// systemd unit 등록 + enable --now (Linux, 루트 필요). 다른 OS는 unit 파일만 출력.
+    /// 예: `sudo $(which kis) daytrade paper rsi TSLA --usa --qty 1 --budget 5000 --background`
+    #[arg(long)]
+    background: bool,
 }
 
 #[derive(Subcommand)]
@@ -1232,13 +1243,14 @@ fn unpack_daytrade_paper(
         pick: None,
         qty: 1,
         fee_bps: 15.0,
-        slippage_bps: 5.0,
+        slippage_bps: 10.0,
         stop_loss_pct: None,
         take_profit_pct: None,
         stop_loss_atr: None,
         take_profit_atr: None,
         atr_period: 14,
         budget: 0.0,
+        background: false,
         fast: None,
         slow: None,
         rsi_period: None,
@@ -1263,6 +1275,7 @@ fn unpack_daytrade_paper(
         cfg.take_profit_atr = c.take_profit_atr;
         cfg.atr_period = c.atr_period;
         cfg.budget = c.budget;
+        cfg.background = c.background;
         Ok(())
     };
     match s {
@@ -1333,6 +1346,7 @@ fn unpack_daytrade_run(
         fill_timeout_secs: 30,
         poll_interval_secs: 2,
         yes: false,
+        background: false,
         fast: None,
         slow: None,
         rsi_period: None,
@@ -1361,6 +1375,7 @@ fn unpack_daytrade_run(
         cfg.fill_timeout_secs = c.fill_timeout_secs;
         cfg.poll_interval_secs = c.poll_interval_secs;
         cfg.yes = c.yes;
+        cfg.background = c.paper.background;
         Ok(())
     };
     match s {
@@ -1599,6 +1614,10 @@ async fn async_main(cli: Cli) -> Result<()> {
                 let client = std::sync::Arc::new(build_client()?);
                 let cfg = unpack_daytrade_run(strategy)?;
                 commands::daytrade::run::run(client, cfg).await
+            }
+            DaytradeAction::List => commands::daytrade::background::list_services(),
+            DaytradeAction::Remove { target } => {
+                commands::daytrade::background::remove_service(&target)
             }
             DaytradeAction::History { session, symbol, today, days, limit, json } => {
                 let opts = commands::daytrade::history::Opts {

@@ -15,6 +15,7 @@ use crate::commands::backtest::StrategyKind;
 use crate::commands::helpers::resolve_symbol;
 use crate::symbols::ResolveMode;
 
+use super::background::{self, UnitSpec};
 use super::engine::{self, EngineConfig};
 use super::live::LiveExecutor;
 use super::period::Period;
@@ -37,6 +38,7 @@ pub struct Config {
     pub fill_timeout_secs: u64,
     pub poll_interval_secs: u64,
     pub yes: bool,
+    pub background: bool,
     pub fast: Option<usize>,
     pub slow: Option<usize>,
     pub rsi_period: Option<usize>,
@@ -53,6 +55,16 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
     let name = if !sym.name_kr.is_empty() { sym.name_kr.clone() }
         else if !sym.name_en.is_empty() { sym.name_en.clone() }
         else { sym.code.clone() };
+
+    if cfg.background {
+        return background::install_unit(&UnitSpec {
+            mode: "run",
+            strategy: cfg.strategy.as_str(),
+            code: &sym.code,
+            display_name: &name,
+            usa: cfg.usa,
+        });
+    }
 
     if !cfg.yes {
         confirm_live_trading(

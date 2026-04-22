@@ -35,7 +35,7 @@ pub enum StrategyKind {
 }
 
 impl StrategyKind {
-    fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             StrategyKind::MaCross => "ma-cross",
             StrategyKind::Rsi => "rsi",
