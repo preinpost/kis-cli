@@ -349,6 +349,11 @@ enum DaytradeAction {
         #[command(subcommand)]
         strategy: DaytradePaperStrategy,
     },
+    /// 실주문 매매 — KIS 계좌에서 실제 주문 발주. `paper` 와 동일한 전략·청산 로직 + 지정가 체결.
+    Run {
+        #[command(subcommand)]
+        strategy: DaytradeRunStrategy,
+    },
     /// 체결 기록 조회 — SQLite에 쌓인 paper/run 매매 내역 검색
     History {
         /// 특정 세션의 체결 내역
@@ -428,6 +433,80 @@ enum DaytradePaperStrategy {
     },
 }
 
+#[derive(Subcommand)]
+enum DaytradeRunStrategy {
+    /// 단기·장기 이동평균 교차 (분봉, 실주문)
+    MaCross {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeRunCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        fast: usize,
+        #[arg(long, default_value_t = 60)]
+        slow: usize,
+    },
+    /// RSI (분봉, 실주문)
+    Rsi {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeRunCommonArgs,
+        #[arg(long, default_value_t = 14)]
+        rsi_period: usize,
+        #[arg(long, default_value_t = 30.0)]
+        rsi_oversold: f64,
+        #[arg(long, default_value_t = 70.0)]
+        rsi_overbought: f64,
+    },
+    /// MACD (분봉, 실주문)
+    Macd {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeRunCommonArgs,
+    },
+    /// 볼린저 (분봉, 실주문)
+    Bollinger {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeRunCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        bb_period: usize,
+        #[arg(long, default_value_t = 2.0)]
+        bb_sigma: f64,
+    },
+    /// 일목균형표 (분봉, 실주문)
+    Ichimoku {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeRunCommonArgs,
+    },
+    /// OBV (분봉, 실주문)
+    Obv {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeRunCommonArgs,
+        #[arg(long, default_value_t = 20)]
+        obv_period: usize,
+    },
+}
+
+#[derive(Args)]
+struct DaytradeRunCommonArgs {
+    #[command(flatten)]
+    paper: DaytradePaperCommonArgs,
+    /// 호가 오프셋 (틱 수). 매수 시 +, 매도 시 -. 기본 0 = 종가 그대로 지정가
+    #[arg(long, default_value_t = 0)]
+    tick_offset: i32,
+    /// 체결 확인 폴링 타임아웃 (초)
+    #[arg(long, default_value_t = 30)]
+    fill_timeout_secs: u64,
+    /// 체결 확인 폴링 간격 (초)
+    #[arg(long, default_value_t = 2)]
+    poll_interval_secs: u64,
+    /// 대화형 확인 생략 (기본: 첫 실주문 진입 전 y/n 확인)
+    #[arg(long)]
+    yes: bool,
+}
+
 #[derive(Args)]
 struct DaytradePaperCommonArgs {
     #[command(flatten)]
@@ -441,12 +520,21 @@ struct DaytradePaperCommonArgs {
     /// 슬리피지 bps (체결가 보정)
     #[arg(long, default_value_t = 5.0)]
     slippage_bps: f64,
-    /// 손절 임계 % (진입가 대비 -N% 하회 시 즉시 청산). 미지정 시 손절 없음
+    /// 손절 임계 % (진입가 대비 -N% 하회 시 즉시 청산). paper 미지정 시 off, run 미지정 시 2.0% 기본
     #[arg(long)]
     stop_loss_pct: Option<f64>,
-    /// 익절 임계 % (진입가 대비 +N% 도달 시 즉시 청산). 미지정 시 익절 없음
+    /// 익절 임계 % (진입가 대비 +N% 도달 시 즉시 청산). paper 미지정 시 off, run 미지정 시 5.0% 기본
     #[arg(long)]
     take_profit_pct: Option<f64>,
+    /// ATR 배수 손절. 진입가 - ATR(N) × M 하회 시 청산. `--stop-loss-pct`와 둘 다 지정 시 더 타이트한 쪽 사용
+    #[arg(long)]
+    stop_loss_atr: Option<f64>,
+    /// ATR 배수 익절. 진입가 + ATR(N) × M 도달 시 청산. `--take-profit-pct`와 둘 다 지정 시 더 타이트한 쪽 사용
+    #[arg(long)]
+    take_profit_atr: Option<f64>,
+    /// ATR 계산 봉 수
+    #[arg(long, default_value_t = 14)]
+    atr_period: usize,
     /// 총 예산 (USA: USD, KRX: KRW). 보유 중에도 롱 신호마다 예산 한도 내에서 `qty`주씩 추가 매수(피라미딩).
     #[arg(long)]
     budget: f64,
@@ -1147,6 +1235,9 @@ fn unpack_daytrade_paper(
         slippage_bps: 5.0,
         stop_loss_pct: None,
         take_profit_pct: None,
+        stop_loss_atr: None,
+        take_profit_atr: None,
+        atr_period: 14,
         budget: 0.0,
         fast: None,
         slow: None,
@@ -1168,6 +1259,9 @@ fn unpack_daytrade_paper(
         cfg.slippage_bps = c.slippage_bps;
         cfg.stop_loss_pct = c.stop_loss_pct;
         cfg.take_profit_pct = c.take_profit_pct;
+        cfg.stop_loss_atr = c.stop_loss_atr;
+        cfg.take_profit_atr = c.take_profit_atr;
+        cfg.atr_period = c.atr_period;
         cfg.budget = c.budget;
         Ok(())
     };
@@ -1205,6 +1299,104 @@ fn unpack_daytrade_paper(
             apply_common(&mut cfg, common)?;
         }
         DaytradePaperStrategy::Obv { symbol, common, obv_period } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Obv;
+            cfg.obv_period = Some(obv_period);
+            apply_common(&mut cfg, common)?;
+        }
+    }
+    Ok(cfg)
+}
+
+fn unpack_daytrade_run(
+    s: DaytradeRunStrategy,
+) -> Result<commands::daytrade::run::Config> {
+    use commands::backtest::StrategyKind;
+    use commands::daytrade::period::Period;
+    use std::str::FromStr;
+
+    let mut cfg = commands::daytrade::run::Config {
+        symbol: String::new(),
+        strategy: StrategyKind::MaCross,
+        period: Period::Min(5),
+        usa: false,
+        pick: None,
+        qty: 1,
+        fee_bps: 15.0,
+        stop_loss_pct: None,
+        take_profit_pct: None,
+        stop_loss_atr: None,
+        take_profit_atr: None,
+        atr_period: 14,
+        budget: 0.0,
+        tick_offset: 0,
+        fill_timeout_secs: 30,
+        poll_interval_secs: 2,
+        yes: false,
+        fast: None,
+        slow: None,
+        rsi_period: None,
+        rsi_oversold: None,
+        rsi_overbought: None,
+        bb_period: None,
+        bb_sigma: None,
+        obv_period: None,
+    };
+    let apply_common = |cfg: &mut commands::daytrade::run::Config,
+                        c: DaytradeRunCommonArgs|
+     -> Result<()> {
+        cfg.period = Period::from_str(&c.paper.base.period)?;
+        cfg.usa = c.paper.base.usa;
+        cfg.pick = c.paper.base.pick;
+        cfg.qty = c.paper.qty;
+        cfg.fee_bps = c.paper.fee_bps;
+        // 실주문 기본 안전장치: SL 2%, TP 5% (사용자가 명시하면 그 값 사용)
+        cfg.stop_loss_pct = Some(c.paper.stop_loss_pct.unwrap_or(2.0));
+        cfg.take_profit_pct = Some(c.paper.take_profit_pct.unwrap_or(5.0));
+        cfg.stop_loss_atr = c.paper.stop_loss_atr;
+        cfg.take_profit_atr = c.paper.take_profit_atr;
+        cfg.atr_period = c.paper.atr_period;
+        cfg.budget = c.paper.budget;
+        cfg.tick_offset = c.tick_offset;
+        cfg.fill_timeout_secs = c.fill_timeout_secs;
+        cfg.poll_interval_secs = c.poll_interval_secs;
+        cfg.yes = c.yes;
+        Ok(())
+    };
+    match s {
+        DaytradeRunStrategy::MaCross { symbol, common, fast, slow } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::MaCross;
+            cfg.fast = Some(fast);
+            cfg.slow = Some(slow);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeRunStrategy::Rsi { symbol, common, rsi_period, rsi_oversold, rsi_overbought } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Rsi;
+            cfg.rsi_period = Some(rsi_period);
+            cfg.rsi_oversold = Some(rsi_oversold);
+            cfg.rsi_overbought = Some(rsi_overbought);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeRunStrategy::Macd { symbol, common } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Macd;
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeRunStrategy::Bollinger { symbol, common, bb_period, bb_sigma } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Bollinger;
+            cfg.bb_period = Some(bb_period);
+            cfg.bb_sigma = Some(bb_sigma);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeRunStrategy::Ichimoku { symbol, common } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Ichimoku;
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeRunStrategy::Obv { symbol, common, obv_period } => {
             cfg.symbol = symbol;
             cfg.strategy = StrategyKind::Obv;
             cfg.obv_period = Some(obv_period);
@@ -1402,6 +1594,11 @@ async fn async_main(cli: Cli) -> Result<()> {
                 let client = std::sync::Arc::new(build_client()?);
                 let cfg = unpack_daytrade_paper(strategy)?;
                 commands::daytrade::paper::run(client, cfg).await
+            }
+            DaytradeAction::Run { strategy } => {
+                let client = std::sync::Arc::new(build_client()?);
+                let cfg = unpack_daytrade_run(strategy)?;
+                commands::daytrade::run::run(client, cfg).await
             }
             DaytradeAction::History { session, symbol, today, days, limit, json } => {
                 let opts = commands::daytrade::history::Opts {

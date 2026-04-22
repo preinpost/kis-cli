@@ -115,16 +115,18 @@ pub fn time_until_open(market: Market, now: DateTime<Tz>) -> Duration {
 }
 
 /// 다음 봉 경계 시각 (KST). 5분봉이면 :00, :05, :10 ... 에 맞춘다.
+/// 30초 주기면 :00, :30, 1:00 ... 초 단위 경계.
 /// 데이터 체감 지연을 고려해 경계 + `slack_sec` 초를 더한 시각을 반환.
 pub fn next_bar_boundary_kst(period: Period, now: DateTime<Tz>, slack_sec: i64) -> DateTime<Tz> {
-    let step = period.minutes() as i64;
-    let m = now.minute() as i64;
-    let next_m = ((m / step) + 1) * step;
-    let base = now
-        .with_second(0)
+    let step_sec = period.seconds() as i64;
+    let total = (now.minute() as i64) * 60 + now.second() as i64;
+    let next_total = ((total / step_sec) + 1) * step_sec;
+    let base_hour = now
+        .with_minute(0)
+        .and_then(|d| d.with_second(0))
         .and_then(|d| d.with_nanosecond(0))
         .unwrap_or(now);
-    base + Duration::minutes(next_m - m) + Duration::seconds(slack_sec)
+    base_hour + Duration::seconds(next_total + slack_sec)
 }
 
 // ─── 내부 헬퍼 ───────────────────────────────────────────────────────────

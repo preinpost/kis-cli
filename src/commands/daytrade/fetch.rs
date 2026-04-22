@@ -29,7 +29,7 @@ pub async fn fetch_domestic(client: &KisClient, code: &str, period: Period) -> R
     if client.is_mock() {
         bail!("국내 분봉(일별) API는 모의투자 미지원 — 실전 계정으로 전환 필요");
     }
-    let need_1m = TARGET_BARS * period.minutes() as usize;
+    let need_1m = TARGET_BARS * period.aggregate_step_min() as usize;
     let pages = need_1m.div_ceil(DOME_PER_PAGE) + 1;
 
     let mut all_1m: Vec<dome_min::Bar> = Vec::new();
@@ -100,7 +100,7 @@ pub async fn fetch_overseas(
             auth: "".into(),
             excd: excd.into(),
             symb: code.into(),
-            nmin: period.minutes().to_string(),
+            nmin: period.api_nmin().to_string(),
             pinc: "1".into(),
             next: next_flag.clone(),
             nrec: USA_PER_PAGE.to_string(),
@@ -123,7 +123,7 @@ pub async fn fetch_overseas(
         // 다음 페이지: KEYB = 가장 오래된 봉 시각에서 `period`분 전
         let next_dt = parse_usa_ts(&oldest.kymd, &oldest.khms)
             .ok_or_else(|| anyhow!("해외 분봉 타임스탬프 파싱 실패"))?
-            - ChronoDuration::minutes(period.minutes() as i64);
+            - ChronoDuration::minutes(period.api_nmin() as i64);
         keyb = next_dt.format("%Y%m%d%H%M%S").to_string();
         next_flag = "1".into();
     }
@@ -178,7 +178,7 @@ fn to_series_dome(bars: Vec<dome_min::Bar>) -> Series {
 /// 1분봉 Series → N분봉으로 집계. 첫 봉 시각을 N 경계에 맞추지 않고, 연속 N개씩 묶음.
 /// 공백 구간(점심휴장/장외)은 date/hour prefix가 다르면 끊어서 집계.
 fn aggregate(src: Series, period: Period) -> Series {
-    let step = period.minutes() as usize;
+    let step = period.aggregate_step_min() as usize;
     if step <= 1 {
         return src;
     }

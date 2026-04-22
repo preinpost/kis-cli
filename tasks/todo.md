@@ -108,14 +108,10 @@ kis daytrade backtest     <strategy> <symbol> [--usa] [--period ...] [--from] [-
 
 ## Phase 3 — `daytrade run` (실주문)
 
-- [ ] 주문 어댑터 (국내 `buy`/`sell`, 해외 `order`)
-- [ ] 호가 스냅 지정가 (현재가 ± N틱)
-- [ ] 포지션 사이징 (`--qty` 고정 / `--qty-pct N%`)
-- [ ] 손절/익절 (% 또는 ATR 배수)
-- [ ] **장 마감 10분 전 실제 시장가 매도 주문 발주**
-- [ ] 쿨다운 (체결 후 N봉 대기)
-- [ ] 일일 매매 횟수 제한
-- [ ] 일일 손실 킬스위치
+→ 세부 계획: [`tasks/phase3/todo.md`](phase3/todo.md)
+
+요약: 공통 엔진 추출(`engine.rs` + `Executor` trait) → `LiveExecutor` 실주문 어댑터 → 실주문 안전장치(쿨다운·일일 횟수·킬스위치·포지션 동기화) → EOD 시장가 강제청산 → ATR 기반 SL/TP(공통) → 텔레그램 알림.
+포지션 사이징은 `--qty + --budget` 필수 (paper와 동일, `--qty-pct` 는 사용 안 함).
 
 ## Phase 4 — `daytrade backtest` + 특화 전략
 

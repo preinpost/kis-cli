@@ -200,6 +200,33 @@ pub fn obv(close: &[f64], volume: &[f64]) -> Vec<f64> {
     out
 }
 
+/// ATR (Average True Range) — Wilder's smoothing.
+///
+/// `true_range[i] = max(high[i]-low[i], |high[i]-close[i-1]|, |low[i]-close[i-1]|)`
+/// 첫 봉은 `high-low`, 이후 `period` 길이로 SMMA 적용.
+pub fn atr(high: &[f64], low: &[f64], close: &[f64], period: usize) -> Vec<f64> {
+    let n = high.len().min(low.len()).min(close.len());
+    let mut out = vec![f64::NAN; n];
+    if period == 0 || n <= period {
+        return out;
+    }
+    let mut tr = vec![0.0f64; n];
+    tr[0] = high[0] - low[0];
+    for i in 1..n {
+        let hl = high[i] - low[i];
+        let hc = (high[i] - close[i - 1]).abs();
+        let lc = (low[i] - close[i - 1]).abs();
+        tr[i] = hl.max(hc).max(lc);
+    }
+    // 초기 ATR = 첫 period 봉의 TR 평균
+    let seed: f64 = tr[1..=period].iter().sum::<f64>() / period as f64;
+    out[period] = seed;
+    for i in (period + 1)..n {
+        out[i] = (out[i - 1] * (period as f64 - 1.0) + tr[i]) / period as f64;
+    }
+    out
+}
+
 fn hl_midpoint(high: &[f64], low: &[f64], period: usize) -> Vec<f64> {
     let n = high.len().min(low.len());
     let mut out = vec![f64::NAN; n];
@@ -247,6 +274,27 @@ mod tests {
         assert!(!b.middle[last].is_nan());
         assert!(b.upper[last] > b.middle[last]);
         assert!(b.lower[last] < b.middle[last]);
+    }
+
+    #[test]
+    fn atr_constant_range() {
+        // 매봉 H-L=2, gap 없음 → TR 고정 2 → ATR=2
+        let h: Vec<f64> = (0..30).map(|i| 10.0 + i as f64).collect();
+        let l: Vec<f64> = h.iter().map(|x| x - 2.0).collect();
+        let c: Vec<f64> = h.iter().map(|x| x - 1.0).collect();
+        let a = atr(&h, &l, &c, 14);
+        assert!(a[13].is_nan());
+        assert!(approx_eq(a[14], 2.0, 1e-6));
+        assert!(approx_eq(a[29], 2.0, 1e-6));
+    }
+
+    #[test]
+    fn atr_short_input() {
+        let h = vec![1.0; 5];
+        let l = vec![0.0; 5];
+        let c = vec![0.5; 5];
+        let a = atr(&h, &l, &c, 14);
+        assert!(a.iter().all(|v| v.is_nan()));
     }
 
     #[test]
