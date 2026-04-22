@@ -433,7 +433,7 @@ struct DaytradePaperCommonArgs {
     #[command(flatten)]
     base: DaytradeCommonArgs,
     /// 1회 매수 수량 (주)
-    #[arg(long, default_value_t = 1)]
+    #[arg(long)]
     qty: u64,
     /// 수수료 bps (매매 한쪽당). 국내 ~15, 해외 ~5
     #[arg(long, default_value_t = 15.0)]
@@ -447,6 +447,9 @@ struct DaytradePaperCommonArgs {
     /// 익절 임계 % (진입가 대비 +N% 도달 시 즉시 청산). 미지정 시 익절 없음
     #[arg(long)]
     take_profit_pct: Option<f64>,
+    /// 총 예산 (USA: USD, KRX: KRW). 보유 중에도 롱 신호마다 예산 한도 내에서 `qty`주씩 추가 매수(피라미딩).
+    #[arg(long)]
+    budget: f64,
 }
 
 #[derive(Subcommand)]
@@ -1144,6 +1147,7 @@ fn unpack_daytrade_paper(
         slippage_bps: 5.0,
         stop_loss_pct: None,
         take_profit_pct: None,
+        budget: 0.0,
         fast: None,
         slow: None,
         rsi_period: None,
@@ -1164,6 +1168,7 @@ fn unpack_daytrade_paper(
         cfg.slippage_bps = c.slippage_bps;
         cfg.stop_loss_pct = c.stop_loss_pct;
         cfg.take_profit_pct = c.take_profit_pct;
+        cfg.budget = c.budget;
         Ok(())
     };
     match s {

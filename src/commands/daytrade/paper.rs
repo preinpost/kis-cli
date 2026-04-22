@@ -43,6 +43,9 @@ pub struct Config {
     pub stop_loss_pct: Option<f64>,
     /// 익절 임계 (%). `Some(3.0)` = 진입가 대비 +3% 도달 시 즉시 청산.
     pub take_profit_pct: Option<f64>,
+    /// 총 예산 한도. 보유 중에도 롱 신호마다 `qty`주씩 추가 매수(피라미딩),
+    /// 단 `보유 비용 + 다음 체결 비용 ≤ budget` 조건을 충족할 때만.
+    pub budget: f64,
     pub fast: Option<usize>,
     pub slow: Option<usize>,
     pub rsi_period: Option<usize>,
@@ -81,9 +84,10 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
         .map(|p| format!("{:.2}%", p))
         .unwrap_or_else(|| "off".into());
     log_info(&format!(
-        "daytrade paper 시작 (실전 서버 기반 모의테스트): [{}] {} ({}) · {} · qty={} · fee={:.1}bps · slip={:.1}bps · SL={} · TP={} · session={}",
+        "daytrade paper 시작 (실전 서버 기반 모의테스트): [{}] {} ({}) · {} · qty={} · budget={} · fee={:.1}bps · slip={:.1}bps · SL={} · TP={} · session={}",
         sym.code, name, market.label(), cfg.period.label(),
-        cfg.qty, cfg.fee_bps, cfg.slippage_bps, sl_label, tp_label, session_id
+        cfg.qty, format_price(cfg.budget, cfg.usa),
+        cfg.fee_bps, cfg.slippage_bps, sl_label, tp_label, session_id
     ));
 
     let cfg = Arc::new(cfg);
@@ -177,11 +181,14 @@ async fn tick(
     ));
 
     if let Some(pos) = position {
+        let used = pos.qty as f64 * pos.avg_price;
         log_info(&format!(
-            "  보유: {}주 @ {} (진입 {})",
+            "  보유: {}주 @ {} (진입 {}) · used {} / budget {}",
             pos.qty,
             format_price(pos.avg_price, cfg.usa),
-            pos.entry_time.format("%m-%d %H:%M")
+            pos.entry_time.format("%m-%d %H:%M"),
+            format_price(used, cfg.usa),
+            format_price(cfg.budget, cfg.usa),
         ));
     } else {
         log_info("  보유 없음");
@@ -232,10 +239,19 @@ async fn tick(
     // 3) 신호 기반 ---------------------------------------------------------
     match (signal, position.as_ref()) {
         (s, None) if s > 0 => {
-            let new_pos = execute_entry(
-                storage, session_id, code, market, cfg, last_price, now,
-            )?;
-            *position = Some(new_pos);
+            if let Some(new_pos) = execute_entry(
+                storage, session_id, code, market, cfg, None, last_price, now,
+            )? {
+                *position = Some(new_pos);
+            }
+        }
+        (s, Some(_)) if s > 0 => {
+            let current = position.as_ref().unwrap().clone();
+            if let Some(new_pos) = execute_entry(
+                storage, session_id, code, market, cfg, Some(&current), last_price, now,
+            )? {
+                *position = Some(new_pos);
+            }
         }
         (s, Some(_)) if s <= 0 => {
             let pos = position.take().unwrap();
@@ -249,16 +265,36 @@ async fn tick(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_entry(
     storage: &Storage,
     session_id: &str,
     code: &str,
     market: Market,
     cfg: &Config,
+    current: Option<&Position>,
     base_price: f64,
     now: DateTime<Tz>,
-) -> Result<Position> {
+) -> Result<Option<Position>> {
     let fill = base_price * (1.0 + cfg.slippage_bps / 10_000.0);
+    let add_cost = cfg.qty as f64 * fill;
+    let current_cost = current.map(|p| p.qty as f64 * p.avg_price).unwrap_or(0.0);
+
+    if current_cost + add_cost > cfg.budget {
+        let remain = (cfg.budget - current_cost).max(0.0);
+        log_info(&format!(
+            "  → 진입 보류: 예산 초과 (필요 {}, 남은 예산 {})",
+            format_price(add_cost, cfg.usa),
+            format_price(remain, cfg.usa),
+        ));
+        return Ok(None);
+    }
+
+    let (reason, label) = if current.is_some() {
+        ("피라미딩 매수", "추가 매수")
+    } else {
+        ("신호 진입", "진입")
+    };
     let strategy = strategy_label(cfg);
     storage.insert_trade(&TradeInsert {
         session_id,
@@ -272,15 +308,26 @@ fn execute_entry(
         mode: Mode::Paper,
         pnl: None,
         pnl_pct: None,
-        reason: "신호 진입",
+        reason,
     })?;
+
+    let new_qty = current.map(|p| p.qty).unwrap_or(0) + cfg.qty;
+    let new_avg = (current_cost + add_cost) / new_qty as f64;
+    let entry_time = current.map(|p| p.entry_time).unwrap_or(now);
+
     log_info(&format!(
-        "  → ▲ 진입 (가상): {}주 @ {} [슬리피지 +{:.1}bps]",
+        "  → ▲ {} (가상): {}주 @ {} [슬리피지 +{:.1}bps] · 보유 {}주 @ avg {} · used {} / budget {}",
+        label,
         cfg.qty,
         format_price(fill, cfg.usa),
-        cfg.slippage_bps
+        cfg.slippage_bps,
+        new_qty,
+        format_price(new_avg, cfg.usa),
+        format_price(new_qty as f64 * new_avg, cfg.usa),
+        format_price(cfg.budget, cfg.usa),
     ));
-    Ok(Position { qty: cfg.qty, avg_price: fill, entry_time: now })
+
+    Ok(Some(Position { qty: new_qty, avg_price: new_avg, entry_time }))
 }
 
 #[allow(clippy::too_many_arguments)]
