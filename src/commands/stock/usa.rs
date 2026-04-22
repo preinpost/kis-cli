@@ -2,7 +2,9 @@
 
 use anyhow::{anyhow, Result};
 
-use crate::api::overseas_stock::order_account::{inquire_balance, inquire_ccnl, order};
+use crate::api::overseas_stock::order_account::{
+    inquire_balance, inquire_ccnl, inquire_present_balance, order,
+};
 use crate::api::overseas_stock::quotations::{inquire_daily_chartprice, price};
 use crate::client::KisClient;
 use crate::commands::helpers::{format_number, resolve_symbol};
@@ -120,10 +122,30 @@ pub async fn run_balance(client: &KisClient, exchange: &str) -> Result<()> {
             );
         }
     }
+    println!("{}", "═".repeat(80));
+
+    let pb_req = inquire_present_balance::Request {
+        cano: client.cano().into(),
+        acnt_prdt_cd: client.product_code().into(),
+        wcrc_frcr_dvsn_cd: "02".into(),
+        natn_cd: "840".into(),
+        tr_mket_cd: "00".into(),
+        inqr_dvsn_cd: "00".into(),
+    };
+    let pb = inquire_present_balance::call(client, &pb_req).await?;
+    if let Some(usd) = pb.currencies.iter().find(|c| c.crcy_cd == "USD") {
+        let dncl = usd.frcr_dncl_amt_2.parse::<f64>().unwrap_or(0.0);
+        let drwg = usd.frcr_drwg_psbl_amt_1.parse::<f64>().unwrap_or(0.0);
+        let exrt = usd.frst_bltn_exrt.parse::<f64>().unwrap_or(0.0);
+        println!("USD 예수금:    {:>14.2}", dncl);
+        println!("USD 출금가능:  {:>14.2}", drwg);
+        println!("기준환율:      {:>14.2}", exrt);
+    }
     if let Some(s) = r.summary {
-        println!("{}", "═".repeat(80));
-        println!("총 평가손익: {:>15}", format_number(&s.tot_evlu_pfls_amt));
-        println!("총 수익률:   {:>15}%", s.tot_pftrt);
+        let pfls = s.tot_evlu_pfls_amt.parse::<f64>().unwrap_or(0.0);
+        let pftrt = s.tot_pftrt.parse::<f64>().unwrap_or(0.0);
+        println!("총 평가손익:   {:>14.2}", pfls);
+        println!("총 수익률:     {:>13.2}%", pftrt);
     }
     Ok(())
 }
