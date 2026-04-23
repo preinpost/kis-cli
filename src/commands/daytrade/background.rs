@@ -196,6 +196,86 @@ pub fn list_services() -> Result<()> {
     Ok(())
 }
 
+/// 등록된 모든 `kis-daytrade-*` 서비스를 찾아 `disable --now` 후 unit 파일 삭제.
+/// `--yes` 없이 TTY 면 y/N 프롬프트, 비-TTY 면 에러.
+pub fn remove_all_services(yes: bool) -> Result<()> {
+    let dir = std::path::Path::new(UNIT_DIR);
+    if !dir.exists() {
+        return Err(anyhow!("{} 가 없습니다 (Linux 전용)", UNIT_DIR));
+    }
+    let services: Vec<String> = std::fs::read_dir(dir)?
+        .flatten()
+        .filter_map(|e| e.file_name().into_string().ok())
+        .filter(|n| n.starts_with(UNIT_PREFIX) && n.ends_with(".service"))
+        .map(|n| n.trim_end_matches(".service").to_string())
+        .collect();
+
+    if services.is_empty() {
+        eprintln!("(등록된 kis-daytrade 서비스 없음)");
+        return Ok(());
+    }
+
+    eprintln!("다음 서비스가 모두 제거됩니다 ({} 개):", services.len());
+    for s in &services {
+        eprintln!("  - {}.service", s);
+    }
+
+    if !yes {
+        if !is_tty() {
+            return Err(anyhow!(
+                "비-TTY 환경 — 확인 건너뛰려면 `--yes` 를 추가하세요."
+            ));
+        }
+        eprint!("정말 모두 제거하시겠습니까? [y/N]: ");
+        use std::io::Write;
+        std::io::stderr().flush().ok();
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line)?;
+        let ans = line.trim().to_lowercase();
+        if ans != "y" && ans != "yes" {
+            eprintln!("취소됨.");
+            return Ok(());
+        }
+    }
+
+    let mut ok = 0usize;
+    let mut failed: Vec<(String, String)> = Vec::new();
+    for service_name in &services {
+        let unit_path = format!("{}/{}.service", UNIT_DIR, service_name);
+        if let Err(e) = run_systemctl(&["disable", "--now", service_name]) {
+            eprintln!("[background] {} disable --now 실패 (무시하고 파일 삭제 시도): {e}", service_name);
+        }
+        match std::fs::remove_file(&unit_path) {
+            Ok(()) => ok += 1,
+            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                return Err(anyhow!(
+                    "{} 삭제 권한이 없습니다. 재실행:\n  sudo $(which kis) daytrade remove --all{}",
+                    unit_path,
+                    if yes { " --yes" } else { "" },
+                ));
+            }
+            Err(e) => failed.push((service_name.clone(), format!("{e}"))),
+        }
+    }
+
+    run_systemctl(&["daemon-reload"])?;
+    eprintln!("[background] ✓ {} 개 제거 완료", ok);
+    for (name, err) in &failed {
+        eprintln!("[background] ✗ {} 실패: {}", name, err);
+    }
+    if !failed.is_empty() {
+        return Err(anyhow!("{} 개 서비스 제거 실패", failed.len()));
+    }
+    Ok(())
+}
+
+fn is_tty() -> bool {
+    unsafe extern "C" {
+        fn isatty(fd: i32) -> i32;
+    }
+    unsafe { isatty(0) == 1 }
+}
+
 pub fn remove_service(target: &str) -> Result<()> {
     let service_name = resolve_service_name(target)?;
     let unit_path = format!("{}/{}.service", UNIT_DIR, service_name);

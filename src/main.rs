@@ -361,8 +361,14 @@ enum DaytradeAction {
     List,
     /// `--background` 서비스 중지 + 제거 (루트 필요). target: 전체 서비스명 또는 고유 부분 문자열
     Remove {
-        /// 서비스명 (kis-daytrade-...) 또는 일부 (예: TSLA)
-        target: String,
+        /// 서비스명 (kis-daytrade-...) 또는 일부 (예: TSLA). `--all` 과 함께는 무시됨.
+        target: Option<String>,
+        /// 등록된 모든 kis-daytrade-* 서비스를 한꺼번에 제거
+        #[arg(long)]
+        all: bool,
+        /// 확인 프롬프트 건너뛰기 (스크립트/비-TTY 용). `--all` 사용 시 비-TTY 면 필수.
+        #[arg(long)]
+        yes: bool,
     },
     /// 체결 기록 조회 — SQLite에 쌓인 paper/run 매매 내역 검색
     History {
@@ -1634,8 +1640,15 @@ async fn async_main(cli: Cli) -> Result<()> {
                 commands::daytrade::run::run(client, cfg).await
             }
             DaytradeAction::List => commands::daytrade::background::list_services(),
-            DaytradeAction::Remove { target } => {
-                commands::daytrade::background::remove_service(&target)
+            DaytradeAction::Remove { target, all, yes } => {
+                if all {
+                    commands::daytrade::background::remove_all_services(yes)
+                } else {
+                    let target = target.ok_or_else(|| anyhow::anyhow!(
+                        "target 이 필요합니다. 전체 서비스명/부분일치 또는 `--all` 을 지정하세요."
+                    ))?;
+                    commands::daytrade::background::remove_service(&target)
+                }
             }
             DaytradeAction::History { session, symbol, today, days, limit, json } => {
                 let opts = commands::daytrade::history::Opts {
