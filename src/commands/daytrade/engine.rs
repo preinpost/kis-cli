@@ -142,7 +142,7 @@ pub async fn run<E: Executor>(client: Arc<KisClient>, cfg: EngineConfig, executo
                 }
                 return Ok(());
             }
-            _ = sleep_until_next_tick(market, cfg.period) => {}
+            _ = sleep_until_next_tick(market, cfg.period, &code) => {}
         }
 
         if let Err(e) = tick(
@@ -154,7 +154,7 @@ pub async fn run<E: Executor>(client: Arc<KisClient>, cfg: EngineConfig, executo
     }
 }
 
-async fn sleep_until_next_tick(market: Market, period: Period) {
+async fn sleep_until_next_tick(market: Market, period: Period, code: &str) {
     let now = session::now_kst();
     if !session::is_in_session(market, now) {
         let wait = session::time_until_open(market, now);
@@ -162,12 +162,20 @@ async fn sleep_until_next_tick(market: Market, period: Period) {
         log_info(&format!("세션 밖 — 다음 개장까지 약 {}분 대기", mins));
         let chunk = if mins > 30 { 30 } else { mins };
         tokio::time::sleep(std::time::Duration::from_secs((chunk * 60) as u64)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(code_jitter_ms(code))).await;
         return;
     }
     let now = session::now_kst();
     let next = session::next_bar_boundary_kst(period, now, 10);
     let wait = (next - now).to_std().unwrap_or(std::time::Duration::from_secs(60));
     tokio::time::sleep(wait).await;
+    tokio::time::sleep(std::time::Duration::from_millis(code_jitter_ms(code))).await;
+}
+
+/// 여러 daytrade 서비스가 같은 tick 경계에서 동시에 깨어나 KIS TPS를 초과하는 걸 막기 위한
+/// 종목코드 기반 결정적 지터 (0~2999ms).
+fn code_jitter_ms(code: &str) -> u64 {
+    code.bytes().map(|b| b as u64).sum::<u64>() % 3000
 }
 
 #[allow(clippy::too_many_arguments)]

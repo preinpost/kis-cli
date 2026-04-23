@@ -120,10 +120,26 @@ fn looks_like_code(s: &str) -> bool {
 
 fn prompt_pick(candidates: &[Symbol]) -> Result<Symbol> {
     if !is_tty() {
-        return Err(anyhow!(
-            "복수 매칭({})이나 TTY 아님. --pick N 으로 선택하세요.",
+        let mut msg = format!(
+            "복수 매칭({})이나 TTY 아님 (systemd/파이프 등). 아래 중 하나로 해결:\n",
             candidates.len()
-        ));
+        );
+        for (i, s) in candidates.iter().enumerate() {
+            msg.push_str(&format!(
+                "  [{}] {:10} {:<7} {} / {}\n",
+                i + 1,
+                s.code,
+                s.market.as_str(),
+                s.name_kr,
+                s.name_en
+            ));
+        }
+        msg.push_str(
+            "  1) 입력을 정확한 코드/이름으로 바꾸세요 (예: `삼성전자`)\n\
+             \x202) `--pick N` 으로 번호를 고정하세요 (위 목록 기준)\n\
+             \x203) 코드 입력인데 정확 매칭이 안 잡히면 `kis symbols sync` 로 마스터 재빌드 필요",
+        );
+        return Err(anyhow!(msg));
     }
 
     eprintln!("\n여러 종목이 일치합니다:");

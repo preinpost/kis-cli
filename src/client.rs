@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{bail, Context, Result};
 use reqwest::{Client, Method};
@@ -68,27 +69,38 @@ impl KisClient {
         tr_id: &str,
         params: &[(&str, &str)],
     ) -> Result<ApiResponse> {
-        crate::rate_limit::acquire(self.is_mock).await?;
-        let headers = self.headers(tr_id).await?;
-        let url = format!("{}{endpoint}", self.base_url());
+        let mut attempt = 0u32;
+        loop {
+            crate::rate_limit::acquire(self.is_mock).await?;
+            let headers = self.headers(tr_id).await?;
+            let url = format!("{}{endpoint}", self.base_url());
 
-        let mut req = self.http.get(&url);
-        for (k, v) in &headers {
-            req = req.header(k.as_str(), v.as_str());
+            let mut req = self.http.get(&url);
+            for (k, v) in &headers {
+                req = req.header(k.as_str(), v.as_str());
+            }
+
+            let upper_params: Vec<(String, String)> = params
+                .iter()
+                .map(|(k, v)| (k.to_uppercase(), v.to_string()))
+                .collect();
+            let refs: Vec<(&str, &str)> = upper_params
+                .iter()
+                .map(|(k, v)| (k.as_str(), v.as_str()))
+                .collect();
+            req = req.query(&refs);
+
+            let resp = req.send().await.context("API 요청 실패")?;
+            match parse_response(resp).await {
+                Ok(ok) => return Ok(ok),
+                Err(e) if attempt == 0 && is_rate_limited(&e) => {
+                    attempt += 1;
+                    tokio::time::sleep(backoff_duration()).await;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
         }
-
-        let upper_params: Vec<(String, String)> = params
-            .iter()
-            .map(|(k, v)| (k.to_uppercase(), v.to_string()))
-            .collect();
-        let refs: Vec<(&str, &str)> = upper_params
-            .iter()
-            .map(|(k, v)| (k.as_str(), v.as_str()))
-            .collect();
-        req = req.query(&refs);
-
-        let resp = req.send().await.context("API 요청 실패")?;
-        parse_response(resp).await
     }
 
     /// POST 요청 (JSON body). extra_headers는 tr_cont, hashkey 등 API별 추가 헤더.
@@ -111,21 +123,32 @@ impl KisClient {
         body: &B,
         extra_headers: &[(&str, &str)],
     ) -> Result<ApiResponse> {
-        crate::rate_limit::acquire(self.is_mock).await?;
-        let headers = self.headers(tr_id).await?;
-        let url = format!("{}{endpoint}", self.base_url());
+        let mut attempt = 0u32;
+        loop {
+            crate::rate_limit::acquire(self.is_mock).await?;
+            let headers = self.headers(tr_id).await?;
+            let url = format!("{}{endpoint}", self.base_url());
 
-        let mut req = self.http.request(method, &url);
-        for (k, v) in &headers {
-            req = req.header(k.as_str(), v.as_str());
-        }
-        for (k, v) in extra_headers {
-            req = req.header(*k, *v);
-        }
-        req = req.json(body);
+            let mut req = self.http.request(method.clone(), &url);
+            for (k, v) in &headers {
+                req = req.header(k.as_str(), v.as_str());
+            }
+            for (k, v) in extra_headers {
+                req = req.header(*k, *v);
+            }
+            req = req.json(body);
 
-        let resp = req.send().await.context("API 요청 실패")?;
-        parse_response(resp).await
+            let resp = req.send().await.context("API 요청 실패")?;
+            match parse_response(resp).await {
+                Ok(ok) => return Ok(ok),
+                Err(e) if attempt == 0 && is_rate_limited(&e) => {
+                    attempt += 1;
+                    tokio::time::sleep(backoff_duration()).await;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
+        }
     }
 
     pub fn cano(&self) -> &str {
@@ -155,4 +178,19 @@ async fn parse_response(resp: reqwest::Response) -> Result<ApiResponse> {
     }
 
     Ok(data)
+}
+
+/// KIS 초당 거래건수 초과(EGW00201) 판정 — HTTP 500 body 또는 rt_cd!=0 메시지 어디서나 커버.
+fn is_rate_limited(err: &anyhow::Error) -> bool {
+    let msg = format!("{err}");
+    msg.contains("EGW00201") || msg.contains("초당 거래건수")
+}
+
+/// 250~500ms 범위의 결정론 아닌 backoff — 다중 프로세스가 동시에 재시도해도 분산되도록 시간 기반 지터.
+fn backoff_duration() -> Duration {
+    let jitter = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| (d.subsec_nanos() as u64) % 250)
+        .unwrap_or(0);
+    Duration::from_millis(250 + jitter)
 }

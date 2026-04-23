@@ -127,6 +127,7 @@ enum Commands {
         /// HTML 파일 저장 (경로 지정)
         #[arg(long)]
         save: Option<String>,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -303,6 +304,7 @@ enum SignalWatchStrategy {
         /// 해외 종목
         #[arg(long)]
         usa: bool,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
         /// /etc/systemd/system 에 unit 생성 + enable --now (루트 필요).
@@ -333,6 +335,7 @@ struct SignalWatchCommonArgs {
     /// 해외 종목 (기본: 국내). 미장 감시 시 cron 은 KST 기준 미국 장중 시각으로 직접 지정해야 함
     #[arg(long)]
     usa: bool,
+    /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
     #[arg(long)]
     pick: Option<usize>,
 }
@@ -615,6 +618,7 @@ struct DaytradeCommonArgs {
     /// 해외 종목 (기본: 국내)
     #[arg(long)]
     usa: bool,
+    /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
     #[arg(long)]
     pick: Option<usize>,
 }
@@ -633,6 +637,7 @@ struct BacktestChartSeed {
     /// 종료일 YYYYMMDD (없으면 최신)
     #[arg(long)]
     to: Option<String>,
+    /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
     #[arg(long)]
     pick: Option<usize>,
 }
@@ -675,6 +680,7 @@ struct BacktestCommonArgs {
     /// JSON 덤프
     #[arg(long)]
     json: bool,
+    /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
     #[arg(long)]
     pick: Option<usize>,
 }
@@ -767,6 +773,7 @@ enum DomeStockAction {
     /// 현재가
     Price {
         symbol: String,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -775,12 +782,14 @@ enum DomeStockAction {
         symbol: String,
         #[arg(long, default_value = "D")]
         period: String,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
     /// 호가
     Asking {
         symbol: String,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -798,6 +807,7 @@ enum DomeStockAction {
     /// 실시간 체결가 스트리밍
     Watch {
         symbol: String,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -811,6 +821,7 @@ enum DomeOrderAction {
         qty: u64,
         #[arg(long)]
         price: Option<u64>,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -820,6 +831,7 @@ enum DomeOrderAction {
         qty: u64,
         #[arg(long)]
         price: Option<u64>,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -836,6 +848,7 @@ enum UsaStockAction {
     /// 현재가
     Price {
         symbol: String,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -844,6 +857,7 @@ enum UsaStockAction {
         symbol: String,
         #[arg(long, default_value = "D")]
         period: String,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -866,6 +880,7 @@ enum UsaStockAction {
     /// 실시간 체결가 스트리밍
     Watch {
         symbol: String,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -879,6 +894,7 @@ enum UsaOrderAction {
         qty: u64,
         #[arg(long)]
         price: f64,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -888,6 +904,7 @@ enum UsaOrderAction {
         qty: u64,
         #[arg(long)]
         price: f64,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
@@ -949,6 +966,7 @@ enum DomeFoAction {
     /// 심볼은 선물 마스터 이름(예: KOSPI200) 또는 직접 단축코드. 마스터는 `kis symbols sync` 후 사용.
     WatchNight {
         symbol: String,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
         #[arg(long)]
         pick: Option<usize>,
     },
