@@ -91,8 +91,49 @@ fn print_sessions_table(sessions: &[SessionRow]) {
             range,
         );
     }
+    println!("{}", "─".repeat(130));
+    print_sessions_totals(sessions);
     println!();
     println!("상세: kis daytrade history --session <session_id>");
+}
+
+fn print_sessions_totals(sessions: &[SessionRow]) {
+    use std::collections::BTreeMap;
+    let mut by_market: BTreeMap<&str, (usize, usize, usize, f64, f64, usize)> = BTreeMap::new();
+    for s in sessions {
+        let e = by_market.entry(s.market.as_str()).or_insert((0, 0, 0, 0.0, 0.0, 0));
+        e.0 += s.trades;
+        e.1 += s.sells;
+        e.2 += s.wins;
+        e.3 += s.total_pnl;
+        if s.sells > 0 {
+            e.4 += s.avg_pnl_pct;
+            e.5 += 1;
+        }
+    }
+    for (market, (trades, sells, wins, total_pnl, avg_sum, avg_cnt)) in by_market {
+        let win_rate = if sells > 0 {
+            format!("{:.1}%", wins as f64 / sells as f64 * 100.0)
+        } else {
+            "-".into()
+        };
+        let avg = if avg_cnt > 0 {
+            format!("{:+.2}%", avg_sum / avg_cnt as f64)
+        } else {
+            "-".into()
+        };
+        println!(
+            "합계 ({}): {} sessions, {} trades, {}/{} win/sell ({}), {}, avg {}",
+            market,
+            sessions.iter().filter(|s| s.market == market).count(),
+            trades,
+            wins,
+            sells,
+            win_rate,
+            format_pnl(total_pnl, market),
+            avg,
+        );
+    }
 }
 
 fn print_session_detail(session_id: &str, trades: &[TradeRow]) {
@@ -108,6 +149,51 @@ fn print_session_detail(session_id: &str, trades: &[TradeRow]) {
     for t in trades {
         print_trade_row(t);
     }
+    println!("{}", "─".repeat(110));
+    print_trades_totals(trades);
+}
+
+fn print_trades_totals(trades: &[TradeRow]) {
+    let market = &trades[0].market;
+    let mut sells = 0usize;
+    let mut wins = 0usize;
+    let mut total_pnl = 0.0f64;
+    let mut pct_sum = 0.0f64;
+    let mut pct_cnt = 0usize;
+    for t in trades {
+        if t.side == "SELL" {
+            sells += 1;
+            if let Some(pnl) = t.pnl {
+                total_pnl += pnl;
+                if pnl > 0.0 {
+                    wins += 1;
+                }
+            }
+            if let Some(pct) = t.pnl_pct {
+                pct_sum += pct;
+                pct_cnt += 1;
+            }
+        }
+    }
+    let win_rate = if sells > 0 {
+        format!("{:.1}%", wins as f64 / sells as f64 * 100.0)
+    } else {
+        "-".into()
+    };
+    let avg = if pct_cnt > 0 {
+        format!("{:+.2}%", pct_sum / pct_cnt as f64)
+    } else {
+        "-".into()
+    };
+    println!(
+        "합계: {} trades, {}/{} win/sell ({}), {}, avg {}",
+        trades.len(),
+        wins,
+        sells,
+        win_rate,
+        format_pnl(total_pnl, market),
+        avg,
+    );
 }
 
 fn print_filtered_trades(trades: &[TradeRow], opts: &Opts) {
