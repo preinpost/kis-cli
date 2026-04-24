@@ -10,7 +10,7 @@
 //! 반환 `Series.dates` 는 분봉에서 `"YYYYMMDDHHmm"` 12자리. 전략 계산은 인덱스 기반이라 포맷 비의존.
 
 use anyhow::{anyhow, bail, Result};
-use chrono::{Duration as ChronoDuration, NaiveDateTime};
+use chrono::{Duration as ChronoDuration, FixedOffset, NaiveDateTime};
 
 use crate::api::domestic_stock::quotations::inquire_time_dailychartprice as dome_min;
 use crate::api::overseas_stock::quotations::inquire_time_itemchartprice as usa_min;
@@ -33,7 +33,10 @@ pub async fn fetch_domestic(client: &KisClient, code: &str, period: Period) -> R
     let pages = need_1m.div_ceil(DOME_PER_PAGE) + 1;
 
     let mut all_1m: Vec<dome_min::Bar> = Vec::new();
-    let now = chrono::Local::now();
+    // KIS 국내 분봉 API는 cursor 시각을 KST(Asia/Seoul)로 해석한다.
+    // 서버가 UTC 등 다른 TZ여도 항상 KST로 커서를 만들어야 한다.
+    let kst = FixedOffset::east_opt(9 * 3600).expect("KST offset");
+    let now = chrono::Utc::now().with_timezone(&kst);
     let mut cursor_date = now.format("%Y%m%d").to_string();
     let mut cursor_hour = now.format("%H%M%S").to_string();
 
