@@ -380,6 +380,8 @@ enum DaytradeAction {
     Start,
     /// daytrade 데몬 중지 (disable + stop + unit 파일 삭제)
     Stop,
+    /// daytrade 데몬 재시작 (`systemctl restart`. 새 바이너리 반영용 — `kis update` 직후 사용)
+    Restart,
     /// daytrade 데몬 상태 표시
     Status,
     /// daytrade 데몬 로그 조회 (`/var/log/kis-cli/daytrade.log` 또는 사용자 폴백 경로)
@@ -1834,6 +1836,7 @@ async fn async_main(cli: Cli) -> Result<()> {
             DaytradeAction::List => commands::daytrade::lifecycle::list(),
             DaytradeAction::Start => commands::daytrade::lifecycle::start(),
             DaytradeAction::Stop => commands::daytrade::lifecycle::stop(),
+            DaytradeAction::Restart => commands::daytrade::lifecycle::restart(),
             DaytradeAction::Status => commands::daytrade::lifecycle::status(),
             DaytradeAction::Logs { follow, lines, path } => {
                 commands::daytrade::lifecycle::logs(follow, lines, path)

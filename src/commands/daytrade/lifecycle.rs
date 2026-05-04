@@ -331,6 +331,22 @@ pub fn start() -> Result<()> {
     Ok(())
 }
 
+pub fn restart() -> Result<()> {
+    if !cfg!(target_os = "linux") {
+        return Err(anyhow!("systemd는 Linux 전용입니다."));
+    }
+    if !Path::new(DAEMON_UNIT_PATH).exists() {
+        return Err(anyhow!(
+            "{} 가 설치돼 있지 않습니다 — `sudo $(which kis) daytrade start` 로 먼저 시작하세요",
+            DAEMON_UNIT_PATH
+        ));
+    }
+    run_systemctl(&["restart", DAEMON_UNIT_NAME])?;
+    eprintln!("[restart] ✓ {}.service 재시작", DAEMON_UNIT_NAME);
+    eprintln!("로그:   kis daytrade logs -f");
+    Ok(())
+}
+
 pub fn stop() -> Result<()> {
     if !cfg!(target_os = "linux") {
         return Err(anyhow!("systemd는 Linux 전용입니다."));
