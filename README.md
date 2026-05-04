@@ -247,6 +247,135 @@ kis signal-watch bollinger 005930 --bb-period 20 --bb-sigma 2.0
 
 cron 표현식은 6필드(초·분·시·일·월·요일). 전략 서브커맨드: `ma-cross`, `rsi`, `macd`, `bollinger`, `ichimoku`, `obv`.
 
+## 데이트레이드 (분봉 기반 매매)
+
+`kis daytrade` — 분봉 신호 기반 자동 매매. **단일 데몬 + `daytrade.toml` 모델**: 한 프로세스가 다수 종목·전략을 격리된 task로 동시에 돌리고, 설정 파일을 hot-reload 한다. `paper` (가상 체결) / `run` (실주문) 두 모드, 장 마감 10분 전 EOD 강제 청산.
+
+### 빠른 시작
+
+```bash
+# 1. 전략 등록 — 1회 resolve 후 ~/.config/kis-cli/daytrade.toml 에 적힘 (ULID 부여)
+kis daytrade add paper rsi 000660 --qty 1 --budget 1000000
+kis daytrade add paper rsi TSLA --usa --qty 1 --budget 5000
+
+# 2. 등록 확인 (git short-hash 스타일 id)
+kis daytrade list
+
+# 3. 데몬 활성화 — 단일 systemd unit `kis-daytrade.service`
+sudo $(which kis) daytrade start
+
+# 4. 로그 확인
+sudo journalctl -u kis-daytrade -f
+
+# 5. 상태 확인
+kis daytrade status
+```
+
+### 라이프사이클 명령
+
+| 명령 | 설명 |
+|---|---|
+| `daytrade add <mode> <kind> <symbol> ...` | toml에 strategy 추가. `mode` = `paper` \| `run`, `kind` = `rsi`/`macd`/`bollinger`/`ichimoku`/`obv`/`ma-cross`/`composite` |
+| `daytrade list` | 등록된 전략 표 출력 |
+| `daytrade rm <id>` | id (또는 unique substring) 로 제거 |
+| `daytrade rm --all [--yes]` | 전체 삭제 (TTY면 y/n 프롬프트, 비-TTY면 `--yes` 필수) |
+| `daytrade start` | systemd unit 작성 + `enable --now` (Linux 외 OS 는 unit 텍스트만 출력) |
+| `daytrade stop` | disable + stop + unit 파일 삭제 |
+| `daytrade status` | 데몬 active/enabled 상태 + 등록된 strategy 표시 |
+| `daytrade daemon` | 포그라운드 실행 (디버그·테스트용; systemd ExecStart 가 호출) |
+| `daytrade legacy-clean [--yes]` | 옛 `kis-daytrade-*-*` 서비스 일괄 제거 (단일 데몬 마이그레이션용) |
+| `daytrade history` | SQLite 체결 기록 조회 (`--session`/`--symbol`/`--today`/`--days`/`--json`) |
+
+### Hot-reload
+
+데몬 실행 중 `add`/`rm` 하면 `notify` watcher가 toml 변경 감지(500ms debounce) → 자동 spawn / cancel. 데몬 재시작 불필요.
+
+```bash
+# 데몬 켜둔 채로
+kis daytrade add paper macd 005930 --qty 1 --budget 1000000
+# → journalctl 에 즉시 "strategy 추가: 01kqsk0r... paper macd 005930 (삼성전자)"
+```
+
+파라미터 변경(예: budget 수정)은 안전상 **다음 진입부터 적용**. 즉시 교체하려면 `rm` + `add`.
+
+### 복합 전략 (composite)
+
+여러 child를 AND/OR 결합해 더 보수적/공격적 진입.
+
+```bash
+# RSI 반전 AND MACD 양 — 둘 다 +1 일 때만 진입, 하나라도 ≤0 면 청산
+kis daytrade add paper composite 000660 \
+  --qty 1 --budget 1000000 \
+  --kinds rsi,macd \
+  --combinator and \
+  --rsi-period 14 --rsi-oversold 25 --rsi-overbought 75
+```
+
+| 결합 | 진입 | 청산 |
+|---|---|---|
+| `and` (기본) | 모든 child 가 +1 | 하나라도 ≤0 |
+| `or` | 하나라도 +1 | 모두 ≤0 |
+
+지원 child kind: `rsi`, `macd`, `bollinger`, `ichimoku`, `obv`, `ma-cross`. 중첩 composite 미지원. backtest는 미지원 — child 별로 따로 백테스트 가능.
+
+복잡한 composite는 toml 직접 편집이 더 편리:
+```toml
+[[strategy]]
+id = "01kqsjjxxd..."
+mode = "paper"
+kind = "composite"
+combinator = "and"
+code = "000660"
+market = "KOSPI"
+qty = 1
+budget = 1000000.0
+period = "5m"
+
+[[strategy.children]]
+kind = "rsi"
+rsi_period = 14
+rsi_oversold = 25.0
+rsi_overbought = 70.0
+
+[[strategy.children]]
+kind = "bollinger"
+bb_period = 20
+bb_sigma = 2.0
+```
+
+### 모드 차이
+
+| | `paper` | `run` |
+|---|---|---|
+| 체결 | slippage 적용한 가상 체결 | KIS 계좌에서 실제 지정가 주문 |
+| 포지션 | 메모리 + SQLite | KIS 계좌 잔고 (sync_position 으로 매 tick 동기화) |
+| 첫 주문 확인 | 없음 | `--yes` 없으면 y/n 프롬프트 |
+| EOD 청산 | 가상 매도 | 시장가 매도 (장 마감 10분 전) |
+| KIS 모의투자 사용 | 분봉 API 미지원 → 실전 계정 사용 | 실전 계정 |
+
+### Foreground 일회성 실행
+
+데몬 없이 한 종목·전략만 즉시 돌려보고 싶으면:
+
+```bash
+# paper (가상)
+kis daytrade paper rsi 000660 --qty 1 --budget 1000000
+
+# run (실주문) — 첫 진입 전 y/n 확인
+kis daytrade run rsi 000660 --qty 1 --budget 1000000
+```
+
+이 경로는 `--background` 플래그 없음 — 백그라운드 실행은 `add` + `start` 모델로 통일.
+
+### 옛 모델에서 마이그레이션
+
+이전 버전은 종목·전략별로 `kis-daytrade-*-*.service` 를 따로 등록했다. v1.0.15 부터 단일 데몬 모델로 변경. 정리:
+
+```bash
+sudo $(which kis) daytrade legacy-clean --yes   # 기존 N개 서비스 일괄 제거
+# 그리고 위 "빠른 시작" 절차 진행
+```
+
 ## 자동 손절 (stop-loss 데몬)
 
 잔고를 주기적으로 조회(또는 WebSocket tick 수신)하고, 평가손익이 임계치를 벗어나면 매도 주문을 낸다.

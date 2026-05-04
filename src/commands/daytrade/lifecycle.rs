@@ -173,9 +173,9 @@ fn append_entry(entry: StrategyEntry) -> Result<()> {
 // rm: toml에서 id 일치 항목 제거
 // ─────────────────────────────────────────────────────────────────────
 
-pub fn remove(id_or_prefix: &str) -> Result<()> {
+pub fn remove(id_or_substring: &str) -> Result<()> {
     let mut cfg = DaytradeConfig::load()?;
-    let removed = cfg.remove(id_or_prefix)?;
+    let removed = cfg.remove(id_or_substring)?;
     cfg.save()?;
     println!(
         "✓ 제거됨 — id={} mode={} kind={} {} ({}) [{}]",
@@ -187,6 +187,44 @@ pub fn remove(id_or_prefix: &str) -> Result<()> {
         removed.market,
     );
     println!("  데몬이 실행 중이면 해당 strategy task가 곧 종료됩니다.");
+    Ok(())
+}
+
+pub fn remove_all(yes: bool) -> Result<()> {
+    let mut cfg = DaytradeConfig::load()?;
+    if cfg.strategies.is_empty() {
+        println!("(daytrade.toml 에 등록된 strategy 없음 — 제거할 게 없음)");
+        return Ok(());
+    }
+    let n = cfg.strategies.len();
+    eprintln!("아래 {}개 strategy가 daytrade.toml 에서 제거됩니다:", n);
+    for s in &cfg.strategies {
+        eprintln!(
+            "  - {} {} {} {} ({})",
+            short_id(&s.id),
+            s.mode.as_str(),
+            s.kind.as_str(),
+            s.code,
+            s.display_name,
+        );
+    }
+    if !yes {
+        if !is_tty() {
+            return Err(anyhow!("비-TTY 환경 — `--yes` 필수"));
+        }
+        eprint!("진행하시겠습니까? [y/N]: ");
+        use std::io::Write;
+        std::io::stderr().flush().ok();
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line)?;
+        if !matches!(line.trim().to_lowercase().as_str(), "y" | "yes") {
+            eprintln!("취소됨.");
+            return Ok(());
+        }
+    }
+    cfg.strategies.clear();
+    cfg.save()?;
+    println!("✓ {}개 strategy 제거됨. 데몬이 실행 중이면 모든 task가 곧 종료됩니다.", n);
     Ok(())
 }
 

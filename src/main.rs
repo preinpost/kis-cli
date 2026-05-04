@@ -362,10 +362,16 @@ enum DaytradeAction {
         #[command(subcommand)]
         mode: DaytradeAddMode,
     },
-    /// daytrade.toml 에서 strategy 제거 (id 전체 또는 prefix)
+    /// daytrade.toml 에서 strategy 제거 (id 전체 또는 substring)
     Rm {
-        /// strategy id (ULID, 또는 prefix — 단일 일치 시 OK)
-        id: String,
+        /// strategy id (ULID, 또는 unique substring). `--all` 사용 시 무시.
+        id: Option<String>,
+        /// 등록된 모든 strategy 제거. 비-TTY 면 `--yes` 필수.
+        #[arg(long)]
+        all: bool,
+        /// 확인 프롬프트 건너뛰기 (스크립트/비-TTY)
+        #[arg(long)]
+        yes: bool,
     },
     /// daytrade.toml 항목 표시
     List,
@@ -1802,7 +1808,16 @@ async fn async_main(cli: Cli) -> Result<()> {
                     commands::daytrade::lifecycle::add_run(cfg)
                 }
             },
-            DaytradeAction::Rm { id } => commands::daytrade::lifecycle::remove(&id),
+            DaytradeAction::Rm { id, all, yes } => {
+                if all {
+                    commands::daytrade::lifecycle::remove_all(yes)
+                } else {
+                    let id = id.ok_or_else(|| {
+                        anyhow::anyhow!("id 가 필요합니다. 전체 제거하려면 `--all` 사용.")
+                    })?;
+                    commands::daytrade::lifecycle::remove(&id)
+                }
+            }
             DaytradeAction::List => commands::daytrade::lifecycle::list(),
             DaytradeAction::Start => commands::daytrade::lifecycle::start(),
             DaytradeAction::Stop => commands::daytrade::lifecycle::stop(),
