@@ -1782,7 +1782,7 @@ dependencies = [
 
 [[package]]
 name = "kis-cli"
-version = "1.0.14"
+version = "1.0.15"
 dependencies = [
  "aes",
  "anyhow",
