@@ -303,7 +303,7 @@ kis daytrade logs -f
 
 ### 로그
 
-`tracing` + 일별 롤링 파일 appender (non-blocking). `daytrade start`(sudo) 가 디렉터리를 만들고 데몬 유저로 chown.
+`tracing` + 단일 파일 appender (non-blocking). 롤링은 외부 도구(logrotate)에 위임 — `tail -F` 가 안전하게 follow 하도록. `daytrade start`(sudo) 가 디렉터리를 만들고 데몬 유저로 chown.
 
 | OS | 위치 |
 |---|---|

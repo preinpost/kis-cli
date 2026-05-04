@@ -384,7 +384,7 @@ pub fn status() -> Result<()> {
         println!("  active:     {}", active);
         println!("  enabled:    {}", enabled);
         println!();
-        println!("  → 자세히: sudo journalctl -u {} -f", DAEMON_UNIT_NAME);
+        println!("  → 로그:   kis daytrade logs -f");
     } else if !cfg!(target_os = "linux") {
         println!("  ※ Linux 외 OS — systemd 미사용. `kis daytrade daemon` 직접 실행.");
     }

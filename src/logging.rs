@@ -10,7 +10,9 @@
 //! 1. `/var/log/kis-cli/<name>.log` (디렉터리가 쓰기 가능하면)
 //! 2. 그 외 (macOS / 권한 없음): `~/.local/state/kis-cli/logs/<name>.log`
 //!
-//! 파일은 일별 롤링 (`<name>.log.YYYY-MM-DD`). stderr 에도 동시 출력해서 foreground 디버깅 가능.
+//! 단일 파일 append. 롤링은 OS의 logrotate 등 외부 도구에 맡긴다 (`tail -F` 가 안전하게
+//! 동작하도록 — daily 롤링은 파일명이 매일 바뀌어 `tail -F <fixed_path>` 가 따라가지 못한다).
+//! stderr 에도 동시 출력해서 foreground 디버깅 가능.
 
 use std::fs;
 use std::path::PathBuf;
@@ -34,7 +36,7 @@ pub fn init_daemon(name: &str) -> Result<DaemonLogging> {
     fs::create_dir_all(&dir)
         .with_context(|| format!("로그 디렉터리 생성 실패: {}", dir.display()))?;
 
-    let appender = tracing_appender::rolling::daily(&dir, &file_name);
+    let appender = tracing_appender::rolling::never(&dir, &file_name);
     let (file_writer, guard) = tracing_appender::non_blocking(appender);
 
     let env_filter = EnvFilter::try_from_default_env()
