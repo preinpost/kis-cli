@@ -11,9 +11,12 @@ use chrono_tz::Tz;
 use rusqlite::{params, params_from_iter, types::ToSqlOutput, Connection, ToSql};
 use serde::Serialize;
 use std::path::Path;
+use std::sync::Mutex;
 
+/// Connection을 Mutex로 감싸 `&Storage` 를 await 경계 너머로 보낼 수 있게 한다 (Send + Sync).
+/// daemon에서 multi-task 가 같은 DB를 쓰지만 SQLite는 직렬화된 쓰기로 충분.
 pub struct Storage {
-    conn: Connection,
+    conn: Mutex<Connection>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,13 +81,14 @@ impl Storage {
         }
         let conn = Connection::open(path)
             .with_context(|| format!("daytrade DB 열기 실패: {}", path.display()))?;
-        let s = Storage { conn };
+        let s = Storage { conn: Mutex::new(conn) };
         s.init_schema()?;
         Ok(s)
     }
 
     fn init_schema(&self) -> Result<()> {
-        self.conn.execute_batch(
+        let conn = self.conn.lock().unwrap();
+        conn.execute_batch(
             r#"
             CREATE TABLE IF NOT EXISTS trades (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +116,8 @@ impl Storage {
         // UTC 저장 (세션 간 비교 일관성)
         let ts_utc: DateTime<Utc> = t.ts.with_timezone(&Utc);
         let ts_str = ts_utc.to_rfc3339();
-        self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
             "INSERT INTO trades
                 (session_id, symbol, market, side, qty, price, ts, strategy, mode, pnl, pnl_pct, reason)
              VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
@@ -131,17 +136,18 @@ impl Storage {
                 t.reason,
             ],
         )?;
-        Ok(self.conn.last_insert_rowid())
+        Ok(conn.last_insert_rowid())
     }
 
     pub fn session_summary(&self, session_id: &str) -> Result<SessionSummary> {
+        let conn = self.conn.lock().unwrap();
         let mut s = SessionSummary::default();
-        let mut stmt = self.conn.prepare(
+        let mut stmt = conn.prepare(
             "SELECT COUNT(*) FROM trades WHERE session_id = ?1",
         )?;
         s.trades = stmt.query_row([session_id], |r| r.get::<_, i64>(0))? as usize;
 
-        let mut stmt = self.conn.prepare(
+        let mut stmt = conn.prepare(
             "SELECT COUNT(*), COALESCE(SUM(pnl),0), COALESCE(AVG(pnl_pct),0)
                FROM trades
               WHERE session_id = ?1 AND side = 'SELL'",
@@ -152,7 +158,7 @@ impl Storage {
         s.total_pnl = total_pnl;
         s.avg_pnl_pct = avg_pnl_pct;
 
-        let mut stmt = self.conn.prepare(
+        let mut stmt = conn.prepare(
             "SELECT COUNT(*) FROM trades WHERE session_id = ?1 AND side = 'SELL' AND pnl > 0",
         )?;
         s.wins = stmt.query_row([session_id], |r| r.get::<_, i64>(0))? as usize;
@@ -161,7 +167,8 @@ impl Storage {
 
     /// 최근 세션 요약 — 완료 시각(MAX ts) 내림차순.
     pub fn recent_sessions(&self, limit: usize) -> Result<Vec<SessionRow>> {
-        let mut stmt = self.conn.prepare(
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT session_id,
                     MAX(market), MAX(symbol), MAX(strategy),
                     MIN(ts), MAX(ts),
@@ -199,7 +206,8 @@ impl Storage {
 
     /// 특정 세션의 체결 내역 (ts 오름차순).
     pub fn trades_for_session(&self, session_id: &str) -> Result<Vec<TradeRow>> {
-        let mut stmt = self.conn.prepare(
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT id, session_id, symbol, market, side, qty, price, ts,
                     strategy, mode, pnl, pnl_pct, reason
                FROM trades WHERE session_id = ?1 ORDER BY ts ASC",
@@ -234,7 +242,8 @@ impl Storage {
         }
         sql.push_str(" ORDER BY ts DESC");
 
-        let mut stmt = self.conn.prepare(&sql)?;
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(&sql)?;
         let rows = stmt.query_map(params_from_iter(bind.iter()), map_trade)?;
         let mut out = Vec::new();
         for row in rows {

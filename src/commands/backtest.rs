@@ -23,7 +23,8 @@ use crate::commands::analyze::{self, Series};
 use crate::commands::helpers::{format_number, resolve_symbol};
 use crate::symbols::ResolveMode;
 
-#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum StrategyKind {
     MaCross,
     Rsi,
@@ -32,6 +33,8 @@ pub enum StrategyKind {
     Ichimoku,
     Obv,
     Manual,
+    /// 복합 전략 — daytrade.toml 의 `children`+`combinator` 로 정의. backtest 미지원.
+    Composite,
 }
 
 impl StrategyKind {
@@ -44,7 +47,26 @@ impl StrategyKind {
             StrategyKind::Ichimoku => "ichimoku",
             StrategyKind::Obv => "obv",
             StrategyKind::Manual => "manual",
+            StrategyKind::Composite => "composite",
         }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "ma-cross" | "macross" => Some(Self::MaCross),
+            "rsi" => Some(Self::Rsi),
+            "macd" => Some(Self::Macd),
+            "bollinger" => Some(Self::Bollinger),
+            "ichimoku" => Some(Self::Ichimoku),
+            "obv" => Some(Self::Obv),
+            "manual" => Some(Self::Manual),
+            "composite" => Some(Self::Composite),
+            _ => None,
+        }
+    }
+
+    pub fn is_composite(&self) -> bool {
+        matches!(self, StrategyKind::Composite)
     }
 }
 
@@ -370,6 +392,11 @@ fn build_strategy(p: &Params) -> Strategy {
         StrategyKind::Obv => Strategy::Obv {
             period: p.obv_period.unwrap_or(20),
         },
+        StrategyKind::Composite => {
+            // Composite는 daytrade 데몬 전용 — backtest에선 해당 entry를 macross 디폴트로 폴백.
+            // 실수로 호출되지 않도록 호출처(daytrade.toml/engine)는 별도 분기를 두고 있음.
+            Strategy::MaCross { fast: 20, slow: 60 }
+        }
         StrategyKind::Manual => {
             let entry_date = p.manual_entry_date.clone().unwrap_or_default();
             let exit_date = p.manual_exit_date.clone();
@@ -982,6 +1009,8 @@ fn sweep_space(kind: StrategyKind) -> Vec<Strategy> {
             .collect(),
         // Manual 은 스윕 대상이 아님 (단일 시나리오)
         StrategyKind::Manual => vec![],
+        // Composite는 backtest 미지원 — 빈 스윕 공간.
+        StrategyKind::Composite => vec![],
     }
 }
 

@@ -9,13 +9,13 @@ use std::io::{self, Write};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use tokio_util::sync::CancellationToken;
 
 use crate::client::KisClient;
 use crate::commands::backtest::StrategyKind;
 use crate::commands::helpers::resolve_symbol;
 use crate::symbols::ResolveMode;
 
-use super::background::{self, UnitSpec};
 use super::engine::{self, EngineConfig};
 use super::live::LiveExecutor;
 use super::period::Period;
@@ -34,11 +34,11 @@ pub struct Config {
     pub take_profit_atr: Option<f64>,
     pub atr_period: usize,
     pub budget: f64,
+    pub composite: Option<super::engine::CompositeConfig>,
     pub tick_offset: i32,
     pub fill_timeout_secs: u64,
     pub poll_interval_secs: u64,
     pub yes: bool,
-    pub background: bool,
     pub fast: Option<usize>,
     pub slow: Option<usize>,
     pub rsi_period: Option<usize>,
@@ -56,16 +56,6 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
         else if !sym.name_en.is_empty() { sym.name_en.clone() }
         else { sym.code.clone() };
 
-    if cfg.background {
-        return background::install_unit(&UnitSpec {
-            mode: "run",
-            strategy: cfg.strategy.as_str(),
-            code: &sym.code,
-            display_name: &name,
-            usa: cfg.usa,
-        });
-    }
-
     if !cfg.yes {
         confirm_live_trading(
             &sym.code, &name, cfg.usa, cfg.qty, cfg.budget,
@@ -80,7 +70,9 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
 
     let engine_cfg = EngineConfig {
         symbol: cfg.symbol,
+        pre_resolved: None,
         strategy: cfg.strategy,
+        composite: cfg.composite,
         period: cfg.period,
         usa: cfg.usa,
         pick: cfg.pick,
@@ -101,7 +93,19 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
         bb_sigma: cfg.bb_sigma,
         obv_period: cfg.obv_period,
     };
-    engine::run(client, engine_cfg, executor).await
+    let cancel = ctrl_c_token();
+    engine::run(client, engine_cfg, executor, cancel).await
+}
+
+fn ctrl_c_token() -> CancellationToken {
+    let token = CancellationToken::new();
+    let signal_token = token.clone();
+    tokio::spawn(async move {
+        if tokio::signal::ctrl_c().await.is_ok() {
+            signal_token.cancel();
+        }
+    });
+    token
 }
 
 fn confirm_live_trading(

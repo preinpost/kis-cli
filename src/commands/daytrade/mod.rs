@@ -4,9 +4,12 @@
 //! Phase 2+: paper / run / backtest (추후 구현)
 
 pub mod background;
+pub mod daemon;
+pub mod dconfig;
 pub mod engine;
 pub mod fetch;
 pub mod history;
+pub mod lifecycle;
 pub mod live;
 pub mod paper;
 pub mod period;

@@ -14,13 +14,11 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use tokio_util::sync::CancellationToken;
 
 use crate::client::KisClient;
 use crate::commands::backtest::StrategyKind;
-use crate::commands::helpers::resolve_symbol;
-use crate::symbols::ResolveMode;
 
-use super::background::{self, UnitSpec};
 use super::engine::{self, EngineConfig, Executor, Fill};
 use super::period::Period;
 use super::session::Market;
@@ -41,7 +39,7 @@ pub struct Config {
     pub take_profit_atr: Option<f64>,
     pub atr_period: usize,
     pub budget: f64,
-    pub background: bool,
+    pub composite: Option<super::engine::CompositeConfig>,
     pub fast: Option<usize>,
     pub slow: Option<usize>,
     pub rsi_period: Option<usize>,
@@ -52,8 +50,8 @@ pub struct Config {
     pub obv_period: Option<usize>,
 }
 
-struct PaperExecutor {
-    slippage_bps: f64,
+pub struct PaperExecutor {
+    pub slippage_bps: f64,
 }
 
 impl Executor for PaperExecutor {
@@ -73,24 +71,12 @@ impl Executor for PaperExecutor {
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
-    if cfg.background {
-        let resolve_mode = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
-        let sym = resolve_symbol(&cfg.symbol, resolve_mode, cfg.pick)?;
-        let name = if !sym.name_kr.is_empty() { sym.name_kr.clone() }
-            else if !sym.name_en.is_empty() { sym.name_en.clone() }
-            else { sym.code.clone() };
-        return background::install_unit(&UnitSpec {
-            mode: "paper",
-            strategy: cfg.strategy.as_str(),
-            code: &sym.code,
-            display_name: &name,
-            usa: cfg.usa,
-        });
-    }
     let executor = PaperExecutor { slippage_bps: cfg.slippage_bps };
     let engine_cfg = EngineConfig {
         symbol: cfg.symbol,
+        pre_resolved: None,
         strategy: cfg.strategy,
+        composite: cfg.composite,
         period: cfg.period,
         usa: cfg.usa,
         pick: cfg.pick,
@@ -111,5 +97,18 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
         bb_sigma: cfg.bb_sigma,
         obv_period: cfg.obv_period,
     };
-    engine::run(client, engine_cfg, executor).await
+    let cancel = ctrl_c_token();
+    engine::run(client, engine_cfg, executor, cancel).await
+}
+
+/// SIGINT 수신 시 cancel 되는 토큰 — foreground 단발성 호출용.
+fn ctrl_c_token() -> CancellationToken {
+    let token = CancellationToken::new();
+    let signal_token = token.clone();
+    tokio::spawn(async move {
+        if tokio::signal::ctrl_c().await.is_ok() {
+            signal_token.cancel();
+        }
+    });
+    token
 }

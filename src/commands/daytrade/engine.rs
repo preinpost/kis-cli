@@ -11,24 +11,58 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Local};
 use chrono_tz::Tz;
+use tokio_util::sync::CancellationToken;
 
 use crate::analysis::indicators;
 use crate::client::KisClient;
 use crate::commands::backtest::{self, Params, StrategyKind};
 use crate::commands::helpers::{format_number, resolve_symbol};
 use crate::config;
-use crate::symbols::{Market as SymMarket, ResolveMode};
+use crate::symbols::{Market as SymMarket, ResolveMode, ResolvedSymbol};
 
 use super::fetch;
 use super::period::Period;
 use super::session::{self, Market};
 use super::storage::{Mode, Side, Storage, TradeInsert};
 
+/// 복합 전략 결합 방식.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Combinator {
+    /// 모든 child가 +1 → +1 (보수적). 어느 하나가 ≤0 이면 청산.
+    And,
+    /// 하나라도 +1 → +1. 모두 ≤0 이면 청산.
+    Or,
+}
+
+/// composite child 의 신호 파라미터 — `Params` 의 strategy-specific 필드만 추림.
+#[derive(Debug, Clone)]
+pub struct CompositeChild {
+    pub strategy: StrategyKind,
+    pub fast: Option<usize>,
+    pub slow: Option<usize>,
+    pub rsi_period: Option<usize>,
+    pub rsi_oversold: Option<f64>,
+    pub rsi_overbought: Option<f64>,
+    pub bb_period: Option<usize>,
+    pub bb_sigma: Option<f64>,
+    pub obv_period: Option<usize>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompositeConfig {
+    pub combinator: Combinator,
+    pub children: Vec<CompositeChild>,
+}
+
 /// 엔진 공통 설정. `paper::Config` / `run::Config` 에서 공통 필드만 추출.
 /// 체결 방식별 파라미터(slippage/order_type 등)는 `Executor` 구현체에 둔다.
 pub struct EngineConfig {
     pub symbol: String,
+    /// 사전 해석된 심볼. 있으면 `symbol`/`pick` 무시하고 그대로 사용 — 데몬 경로에서 재해석 회피.
+    pub pre_resolved: Option<ResolvedSymbol>,
     pub strategy: StrategyKind,
+    /// `strategy == Composite` 일 때만 사용. None 이면 단일 전략으로 동작.
+    pub composite: Option<CompositeConfig>,
     pub period: Period,
     pub usa: bool,
     pub pick: Option<usize>,
@@ -93,10 +127,19 @@ pub struct Position {
     pub entry_time: DateTime<Tz>,
 }
 
-pub async fn run<E: Executor>(client: Arc<KisClient>, cfg: EngineConfig, executor: E) -> Result<()> {
+pub async fn run<E: Executor>(
+    client: Arc<KisClient>,
+    cfg: EngineConfig,
+    executor: E,
+    cancel: CancellationToken,
+) -> Result<()> {
     let market = if cfg.usa { Market::Usa } else { Market::Krx };
-    let resolve = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
-    let sym = resolve_symbol(&cfg.symbol, resolve, cfg.pick)?;
+    let sym = if let Some(pre) = cfg.pre_resolved.clone() {
+        pre
+    } else {
+        let mode = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
+        resolve_symbol(&cfg.symbol, mode, cfg.pick)?
+    };
     let name = if !sym.name_kr.is_empty() { sym.name_kr.clone() }
         else if !sym.name_en.is_empty() { sym.name_en.clone() }
         else { sym.code.clone() };
@@ -133,7 +176,7 @@ pub async fn run<E: Executor>(client: Arc<KisClient>, cfg: EngineConfig, executo
 
     loop {
         tokio::select! {
-            _ = tokio::signal::ctrl_c() => {
+            _ = cancel.cancelled() => {
                 if !session_reported {
                     log_info("종료 신호 수신 — 일일 리포트 출력");
                     print_report(&storage, &session_id, &cfg, market);
@@ -211,8 +254,7 @@ async fn tick<E: Executor>(
     if series.closes.len() < 30 {
         return Err(anyhow!("데이터 부족 ({}봉)", series.closes.len()));
     }
-    let params = build_params(cfg);
-    let signal = backtest::latest_signal(&series, &params);
+    let signal = compute_signal(cfg, &series);
     let last_price = series.closes.last().copied().unwrap_or(f64::NAN);
     let last_ts = series.dates.last().cloned().unwrap_or_default();
     log_info(&format!(
@@ -493,6 +535,69 @@ fn new_session_id(code: &str, market: Market) -> String {
     format!("{}_{}_{}", market.label(), code, now.format("%Y%m%d_%H%M%S"))
 }
 
+/// 단일 또는 복합 전략에 따라 분기. composite는 child별 신호를 backtest::latest_signal 로 받아 결합.
+fn compute_signal(cfg: &EngineConfig, series: &crate::commands::analyze::Series) -> i8 {
+    if let (StrategyKind::Composite, Some(comp)) = (cfg.strategy, &cfg.composite) {
+        if comp.children.is_empty() {
+            return 0;
+        }
+        let signals: Vec<i8> = comp
+            .children
+            .iter()
+            .map(|c| backtest::latest_signal(series, &child_params(c, cfg.fee_bps)))
+            .collect();
+        match comp.combinator {
+            Combinator::And => and_signal(&signals),
+            Combinator::Or => or_signal(&signals),
+        }
+    } else {
+        let params = build_params(cfg);
+        backtest::latest_signal(series, &params)
+    }
+}
+
+fn and_signal(signals: &[i8]) -> i8 {
+    if signals.iter().all(|&s| s > 0) {
+        1
+    } else {
+        0
+    }
+}
+
+fn or_signal(signals: &[i8]) -> i8 {
+    if signals.iter().any(|&s| s > 0) {
+        1
+    } else {
+        0
+    }
+}
+
+fn child_params(c: &CompositeChild, fee_bps: f64) -> Params {
+    Params {
+        strategy: c.strategy,
+        period: 'D',
+        from: None,
+        to: None,
+        fee_bps,
+        slippage_bps: 0.0,
+        allow_short: false,
+        leverage: 1.0,
+        stop_loss_pct: None,
+        take_profit_pct: None,
+        fast: c.fast,
+        slow: c.slow,
+        rsi_period: c.rsi_period,
+        rsi_oversold: c.rsi_oversold,
+        rsi_overbought: c.rsi_overbought,
+        bb_period: c.bb_period,
+        bb_sigma: c.bb_sigma,
+        obv_period: c.obv_period,
+        manual_entry_date: None,
+        manual_exit_date: None,
+        manual_direction: None,
+    }
+}
+
 fn build_params(cfg: &EngineConfig) -> Params {
     Params {
         strategy: cfg.strategy,
@@ -568,6 +673,39 @@ fn strategy_label(cfg: &EngineConfig) -> String {
         StrategyKind::Ichimoku => "ichimoku(9/26/52)".into(),
         StrategyKind::Obv => format!("obv({})", cfg.obv_period.unwrap_or(20)),
         StrategyKind::Manual => "manual".into(),
+        StrategyKind::Composite => match &cfg.composite {
+            Some(c) => {
+                let parts: Vec<String> = c.children.iter().map(child_label).collect();
+                let sep = if matches!(c.combinator, Combinator::And) { " ∧ " } else { " ∨ " };
+                format!("composite[{}]", parts.join(sep))
+            }
+            None => "composite[?]".into(),
+        },
+    }
+}
+
+fn child_label(c: &CompositeChild) -> String {
+    match c.strategy {
+        StrategyKind::MaCross => format!(
+            "ma-cross({}/{})",
+            c.fast.unwrap_or(20),
+            c.slow.unwrap_or(60),
+        ),
+        StrategyKind::Rsi => format!(
+            "rsi({}, {:.0}/{:.0})",
+            c.rsi_period.unwrap_or(14),
+            c.rsi_oversold.unwrap_or(30.0),
+            c.rsi_overbought.unwrap_or(70.0),
+        ),
+        StrategyKind::Macd => "macd(12/26/9)".into(),
+        StrategyKind::Bollinger => format!(
+            "bollinger({}, {}σ)",
+            c.bb_period.unwrap_or(20),
+            c.bb_sigma.unwrap_or(2.0),
+        ),
+        StrategyKind::Ichimoku => "ichimoku(9/26/52)".into(),
+        StrategyKind::Obv => format!("obv({})", c.obv_period.unwrap_or(20)),
+        StrategyKind::Manual | StrategyKind::Composite => "?".into(),
     }
 }
 

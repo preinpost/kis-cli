@@ -113,6 +113,11 @@ pub fn daytrade_db_path() -> Result<PathBuf> {
     Ok(config_dir()?.join("daytrade.db"))
 }
 
+/// 데이트레이드 데몬 설정 파일 경로 (`daytrade.toml`)
+pub fn daytrade_config_path() -> Result<PathBuf> {
+    Ok(config_dir()?.join("daytrade.toml"))
+}
+
 /// 설정 파일 로딩
 pub fn load_config() -> Result<AppConfig> {
     let path = config_path()?;

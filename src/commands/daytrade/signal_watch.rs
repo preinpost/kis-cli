@@ -254,6 +254,7 @@ fn strategy_label(cfg: &Config) -> String {
         StrategyKind::Ichimoku => "ichimoku(9/26/52)".into(),
         StrategyKind::Obv => format!("obv({})", cfg.obv_period.unwrap_or(20)),
         StrategyKind::Manual => "manual (signal-watch 부적합)".into(),
+        StrategyKind::Composite => "composite (signal-watch 부적합)".into(),
     }
 }
 

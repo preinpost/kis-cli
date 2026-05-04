@@ -127,3 +127,74 @@ kis daytrade backtest     <strategy> <symbol> [--usa] [--period ...] [--from] [-
 2. **분봉 파싱 형식** — `"1m"`, `"5m"`, `"5min"`, 아니면 정수 `--minutes 5`? (`"1m"` 제안)
 3. **미장 cron** — 정적 cron은 DST 때문에 깨짐. `tokio` 루프로 동적 스케줄링 제안.
 4. **Period enum 도입 위치** — 기존 `backtest`/`signal-watch`의 `period: char`도 같이 바꿀지, 아니면 `daytrade`만 신규 enum 쓰고 기존은 유지할지.
+
+---
+
+# Phase 5 — `daytrade daemon` (단일 프로세스 + toml 기반)
+
+## 배경
+- 현재 `paper|run --background` 는 종목·전략별로 systemd unit을 따로 등록 → N개의 프로세스 = N개의 KIS API 클라이언트 = TPS 압박 (EGW00201) + 토큰 중복 + 분봉 fetch 중복.
+- systemd가 unit을 재실행할 때 매번 symbol resolve 를 다시 함 → "복수 매칭(N) TTY 아님" 에러로 30초마다 크래시 루프 (관측됨: SK하이닉스 000660).
+- 단일 데몬 + toml 설정 + 파일 watch hot-reload 로 통합.
+
+## 설계 (확정)
+- **설정**: `~/.config/kis-cli/daytrade.toml` (`[[strategy]]` 배열, `id` = ULID, `code`+`market` = 사전 resolve)
+- **CLI 진입 관리** (toml만 수정, 데몬 무관):
+  - `add <mode> <kind> <symbol> [opts]` — 1회 resolve, ULID 부여, append
+  - `rm <id>` — 제거
+  - `list` — toml 항목 표시 (+ 데몬 살아있으면 라이브 상태 병합)
+- **CLI 라이프사이클**:
+  - `start` — `kis-daytrade.service` (단일 unit) 설치 + enable + start
+  - `stop` — stop + disable + unit 파일 삭제
+  - `status` — systemctl status + 라이브 strategy 상태
+- **내부**: `daemon` — 포그라운드 실행, systemd ExecStart 가 호출
+- **`paper|run --background` 제거** (CLI 단계에서 깔끔히 제거)
+
+## Daemon 동작
+- 시작 시 toml 로드 → strategy별 `tokio::spawn`, 각 task `CancellationToken` 보유
+- `notify` 로 toml watch (debounce 500ms): 신규 spawn / 삭제 cancel / 변경은 다음 진입부터 적용 (즉시 교체는 rm+add)
+- `KisClient` Arc 공유 (TPS·토큰 중앙)
+- 같은 `(code, period)` 분봉 fetch dedup (한 번 받아 fan-out)
+- panic 격리: JoinHandle 감시 → panic 시 30초 후 재spawn (해당 strategy만)
+- SIGTERM: 모든 task cancel, `run` 모드 보유 포지션 평탄화 후 종료
+
+## 구현 단계
+
+### 5.1 의존성·기반
+- [ ] `Cargo.toml`: `notify = "8"`, `ulid = "1"`, `tokio-util` (CancellationToken; 이미 있으면 skip)
+- [ ] `src/commands/daytrade/dconfig.rs` — toml 스키마 (`StrategyEntry`, `DaytradeConfig`), load/save/diff
+
+### 5.2 engine 어댑터
+- [ ] `EngineConfig` 에 `pre_resolved: Option<ResolvedSymbol>` 추가 (있으면 lookup skip)
+- [ ] `engine::run` 시그니처 유지하되 cfg.symbol 비어있고 pre_resolved 있으면 그걸 사용
+
+### 5.3 CLI 진입 관리
+- [ ] `kis daytrade add` — symbol resolve → `StrategyEntry` 생성 → toml append
+- [ ] `kis daytrade rm <id>` — toml에서 id 일치 제거
+- [ ] `kis daytrade list` — 표 출력 (id 단축 8자, kind, code, market, mode, qty, budget)
+
+### 5.4 Daemon
+- [ ] `src/commands/daytrade/daemon.rs` — main loop:
+  - `Arc<KisClient>` 1개
+  - `HashMap<Ulid, RunningTask>` (CancellationToken + JoinHandle)
+  - 파일 watcher 스레드 → mpsc::UnboundedSender 로 reload 이벤트
+  - reload 시 diff → spawn / cancel
+  - 각 task: `engine::run(client.clone(), cfg, executor)` 무한 루프 (단, EOD 후 다음날 재시작)
+- [ ] `kis daytrade daemon` 서브커맨드 추가
+- [ ] panic 핸들링: `tokio::spawn` 결과를 별도 task에서 `await` → panic이면 toml에서 제거하지 않고 30초 후 재spawn
+- [ ] SIGTERM 핸들러 — 모든 token cancel, run 모드 평탄화 (engine 안에 이미 EOD 평탄화 로직 있음, 재사용 가능한지 확인)
+
+### 5.5 라이프사이클 CLI
+- [ ] `kis daytrade start` — `/etc/systemd/system/kis-daytrade.service` 작성, daemon-reload, enable --now
+- [ ] `kis daytrade stop` — disable --now, unit 파일 삭제
+- [ ] `kis daytrade status` — systemctl status + (가능하면) IPC 또는 `~/.local/state/kis-cli/daytrade-state.json` 읽어서 라이브 상태 표시
+
+### 5.6 정리
+- [ ] `paper|run --background` CLI 플래그 제거
+- [ ] 기존 per-strategy `kis-daytrade-*-*` unit 검출 시 `start` 에서 경고 + `daytrade remove --all` 안내
+- [ ] README/SKILL.md 업데이트
+
+### 5.7 검증
+- [ ] `cargo check` 통과
+- [ ] `add` → `list` → 로컬에서 `daemon` 포그라운드 실행 → toml 편집 시 hot-reload 확인
+- [ ] paper 한 건 + run --yes 1건으로 실제 분봉 받아 동작 확인

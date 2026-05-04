@@ -357,16 +357,29 @@ enum DaytradeAction {
         #[command(subcommand)]
         strategy: DaytradeRunStrategy,
     },
-    /// `--background` 로 등록된 daytrade 서비스 목록 출력
+    /// 데몬이 실행할 strategy를 `~/.config/kis-cli/daytrade.toml` 에 추가 (1회 resolve, ULID 부여)
+    Add {
+        #[command(subcommand)]
+        mode: DaytradeAddMode,
+    },
+    /// daytrade.toml 에서 strategy 제거 (id 전체 또는 prefix)
+    Rm {
+        /// strategy id (ULID, 또는 prefix — 단일 일치 시 OK)
+        id: String,
+    },
+    /// daytrade.toml 항목 표시
     List,
-    /// `--background` 서비스 중지 + 제거 (루트 필요). target: 전체 서비스명 또는 고유 부분 문자열
-    Remove {
-        /// 서비스명 (kis-daytrade-...) 또는 일부 (예: TSLA). `--all` 과 함께는 무시됨.
-        target: Option<String>,
-        /// 등록된 모든 kis-daytrade-* 서비스를 한꺼번에 제거
-        #[arg(long)]
-        all: bool,
-        /// 확인 프롬프트 건너뛰기 (스크립트/비-TTY 용). `--all` 사용 시 비-TTY 면 필수.
+    /// daytrade 데몬 시작 (`kis-daytrade.service` 단일 unit 설치 + enable + start)
+    Start,
+    /// daytrade 데몬 중지 (disable + stop + unit 파일 삭제)
+    Stop,
+    /// daytrade 데몬 상태 표시
+    Status,
+    /// 데몬 포그라운드 실행 (systemd ExecStart 가 호출. 디버그·테스트용으로 직접 호출 가능)
+    Daemon,
+    /// 기존 per-strategy `kis-daytrade-*-*` 서비스 일괄 제거 (단일 데몬 마이그레이션용)
+    LegacyClean {
+        /// 확인 프롬프트 건너뛰기 (비-TTY 필수)
         #[arg(long)]
         yes: bool,
     },
@@ -390,6 +403,20 @@ enum DaytradeAction {
         /// JSON 덤프
         #[arg(long)]
         json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum DaytradeAddMode {
+    /// 페이퍼 (가상) 매매 strategy 추가
+    Paper {
+        #[command(subcommand)]
+        strategy: DaytradePaperStrategy,
+    },
+    /// 실주문 매매 strategy 추가
+    Run {
+        #[command(subcommand)]
+        strategy: DaytradeRunStrategy,
     },
 }
 
@@ -447,6 +474,14 @@ enum DaytradePaperStrategy {
         #[arg(long, default_value_t = 20)]
         obv_period: usize,
     },
+    /// 복합 전략 — 여러 child를 AND/OR 결합 (분봉, 페이퍼). 예: `--kinds rsi,macd --combinator and`
+    Composite {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradePaperCommonArgs,
+        #[command(flatten)]
+        composite: CompositeArgs,
+    },
 }
 
 #[derive(Subcommand)]
@@ -503,6 +538,45 @@ enum DaytradeRunStrategy {
         #[arg(long, default_value_t = 20)]
         obv_period: usize,
     },
+    /// 복합 전략 — 여러 child를 AND/OR 결합 (분봉, 실주문). 예: `--kinds rsi,macd --combinator and`
+    Composite {
+        symbol: String,
+        #[command(flatten)]
+        common: DaytradeRunCommonArgs,
+        #[command(flatten)]
+        composite: CompositeArgs,
+    },
+}
+
+#[derive(Args)]
+struct CompositeArgs {
+    /// child 전략 종류 (콤마 구분). 사용 가능: rsi, macd, bollinger, ichimoku, obv, macross
+    #[arg(long, value_delimiter = ',')]
+    kinds: Vec<String>,
+    /// 결합 방식: and (모든 child +1 시 진입, 하나라도 ≤0 시 청산) | or (반대)
+    #[arg(long, default_value = "and")]
+    combinator: String,
+    /// MaCross fast (children에 macross 포함 시 적용)
+    #[arg(long)]
+    fast: Option<usize>,
+    /// MaCross slow
+    #[arg(long)]
+    slow: Option<usize>,
+    /// RSI 봉수 (children에 rsi 포함 시 적용)
+    #[arg(long)]
+    rsi_period: Option<usize>,
+    #[arg(long)]
+    rsi_oversold: Option<f64>,
+    #[arg(long)]
+    rsi_overbought: Option<f64>,
+    /// Bollinger 봉수 (children에 bollinger 포함 시 적용)
+    #[arg(long)]
+    bb_period: Option<usize>,
+    #[arg(long)]
+    bb_sigma: Option<f64>,
+    /// OBV SMA 봉수 (children에 obv 포함 시 적용)
+    #[arg(long)]
+    obv_period: Option<usize>,
 }
 
 #[derive(Args)]
@@ -554,10 +628,6 @@ struct DaytradePaperCommonArgs {
     /// 총 예산 (USA: USD, KRX: KRW). 보유 중에도 롱 신호마다 예산 한도 내에서 `qty`주씩 추가 매수(피라미딩).
     #[arg(long)]
     budget: f64,
-    /// systemd unit 등록 + enable --now (Linux, 루트 필요). 다른 OS는 unit 파일만 출력.
-    /// 예: `sudo $(which kis) daytrade paper rsi TSLA --usa --qty 1 --budget 5000 --background`
-    #[arg(long)]
-    background: bool,
 }
 
 #[derive(Subcommand)]
@@ -1274,7 +1344,7 @@ fn unpack_daytrade_paper(
         take_profit_atr: None,
         atr_period: 14,
         budget: 0.0,
-        background: false,
+        composite: None,
         fast: None,
         slow: None,
         rsi_period: None,
@@ -1299,7 +1369,6 @@ fn unpack_daytrade_paper(
         cfg.take_profit_atr = c.take_profit_atr;
         cfg.atr_period = c.atr_period;
         cfg.budget = c.budget;
-        cfg.background = c.background;
         Ok(())
     };
     match s {
@@ -1341,8 +1410,87 @@ fn unpack_daytrade_paper(
             cfg.obv_period = Some(obv_period);
             apply_common(&mut cfg, common)?;
         }
+        DaytradePaperStrategy::Composite { symbol, common, composite } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Composite;
+            cfg.composite = Some(build_composite_config(&composite)?);
+            apply_common(&mut cfg, common)?;
+        }
     }
     Ok(cfg)
+}
+
+fn build_composite_config(
+    args: &CompositeArgs,
+) -> Result<commands::daytrade::engine::CompositeConfig> {
+    use commands::backtest::StrategyKind;
+    use commands::daytrade::engine::{Combinator, CompositeChild, CompositeConfig};
+
+    if args.kinds.is_empty() {
+        return Err(anyhow::anyhow!(
+            "composite: --kinds 가 비어있음 (예: --kinds rsi,macd)"
+        ));
+    }
+    let combinator = match args.combinator.to_ascii_lowercase().as_str() {
+        "and" => Combinator::And,
+        "or" => Combinator::Or,
+        other => return Err(anyhow::anyhow!("--combinator 값 오류: '{}' (and|or)", other)),
+    };
+    let mut children = Vec::with_capacity(args.kinds.len());
+    for raw in &args.kinds {
+        let kind = StrategyKind::parse(raw.trim())
+            .ok_or_else(|| anyhow::anyhow!("--kinds: 알 수 없는 전략 '{}'", raw))?;
+        if matches!(kind, StrategyKind::Composite | StrategyKind::Manual) {
+            return Err(anyhow::anyhow!(
+                "composite의 child는 simple 전략만 가능 (현재: {})",
+                kind.as_str()
+            ));
+        }
+        // 각 child는 자기 kind에 해당하는 파라미터만 가져감 — toml 노이즈 최소화.
+        let child = match kind {
+            StrategyKind::MaCross => CompositeChild {
+                strategy: kind,
+                fast: args.fast,
+                slow: args.slow,
+                rsi_period: None, rsi_oversold: None, rsi_overbought: None,
+                bb_period: None, bb_sigma: None, obv_period: None,
+            },
+            StrategyKind::Rsi => CompositeChild {
+                strategy: kind,
+                fast: None, slow: None,
+                rsi_period: args.rsi_period,
+                rsi_oversold: args.rsi_oversold,
+                rsi_overbought: args.rsi_overbought,
+                bb_period: None, bb_sigma: None, obv_period: None,
+            },
+            StrategyKind::Bollinger => CompositeChild {
+                strategy: kind,
+                fast: None, slow: None,
+                rsi_period: None, rsi_oversold: None, rsi_overbought: None,
+                bb_period: args.bb_period, bb_sigma: args.bb_sigma,
+                obv_period: None,
+            },
+            StrategyKind::Obv => CompositeChild {
+                strategy: kind,
+                fast: None, slow: None,
+                rsi_period: None, rsi_oversold: None, rsi_overbought: None,
+                bb_period: None, bb_sigma: None,
+                obv_period: args.obv_period,
+            },
+            // Macd / Ichimoku는 파라미터 없음
+            _ => CompositeChild {
+                strategy: kind,
+                fast: None, slow: None,
+                rsi_period: None, rsi_oversold: None, rsi_overbought: None,
+                bb_period: None, bb_sigma: None, obv_period: None,
+            },
+        };
+        children.push(child);
+    }
+    Ok(CompositeConfig {
+        combinator,
+        children,
+    })
 }
 
 fn unpack_daytrade_run(
@@ -1366,11 +1514,11 @@ fn unpack_daytrade_run(
         take_profit_atr: None,
         atr_period: 14,
         budget: 0.0,
+        composite: None,
         tick_offset: 0,
         fill_timeout_secs: 30,
         poll_interval_secs: 2,
         yes: false,
-        background: false,
         fast: None,
         slow: None,
         rsi_period: None,
@@ -1399,7 +1547,6 @@ fn unpack_daytrade_run(
         cfg.fill_timeout_secs = c.fill_timeout_secs;
         cfg.poll_interval_secs = c.poll_interval_secs;
         cfg.yes = c.yes;
-        cfg.background = c.paper.background;
         Ok(())
     };
     match s {
@@ -1439,6 +1586,12 @@ fn unpack_daytrade_run(
             cfg.symbol = symbol;
             cfg.strategy = StrategyKind::Obv;
             cfg.obv_period = Some(obv_period);
+            apply_common(&mut cfg, common)?;
+        }
+        DaytradeRunStrategy::Composite { symbol, common, composite } => {
+            cfg.symbol = symbol;
+            cfg.strategy = StrategyKind::Composite;
+            cfg.composite = Some(build_composite_config(&composite)?);
             apply_common(&mut cfg, common)?;
         }
     }
@@ -1639,16 +1792,27 @@ async fn async_main(cli: Cli) -> Result<()> {
                 let cfg = unpack_daytrade_run(strategy)?;
                 commands::daytrade::run::run(client, cfg).await
             }
-            DaytradeAction::List => commands::daytrade::background::list_services(),
-            DaytradeAction::Remove { target, all, yes } => {
-                if all {
-                    commands::daytrade::background::remove_all_services(yes)
-                } else {
-                    let target = target.ok_or_else(|| anyhow::anyhow!(
-                        "target 이 필요합니다. 전체 서비스명/부분일치 또는 `--all` 을 지정하세요."
-                    ))?;
-                    commands::daytrade::background::remove_service(&target)
+            DaytradeAction::Add { mode } => match mode {
+                DaytradeAddMode::Paper { strategy } => {
+                    let cfg = unpack_daytrade_paper(strategy)?;
+                    commands::daytrade::lifecycle::add_paper(cfg)
                 }
+                DaytradeAddMode::Run { strategy } => {
+                    let cfg = unpack_daytrade_run(strategy)?;
+                    commands::daytrade::lifecycle::add_run(cfg)
+                }
+            },
+            DaytradeAction::Rm { id } => commands::daytrade::lifecycle::remove(&id),
+            DaytradeAction::List => commands::daytrade::lifecycle::list(),
+            DaytradeAction::Start => commands::daytrade::lifecycle::start(),
+            DaytradeAction::Stop => commands::daytrade::lifecycle::stop(),
+            DaytradeAction::Status => commands::daytrade::lifecycle::status(),
+            DaytradeAction::Daemon => {
+                let client = std::sync::Arc::new(build_client()?);
+                commands::daytrade::daemon::run(client).await
+            }
+            DaytradeAction::LegacyClean { yes } => {
+                commands::daytrade::lifecycle::legacy_clean(yes)
             }
             DaytradeAction::History { session, symbol, today, days, limit, json } => {
                 let opts = commands::daytrade::history::Opts {
