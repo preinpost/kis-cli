@@ -7,8 +7,8 @@ use std::path::Path;
 use anyhow::{anyhow, Context, Result};
 
 use super::dconfig::{
-    self, duplicate_summary, new_id, short_id, ChildStrategyEntry, Combinator as DcCombinator,
-    DaytradeConfig, ExecMode, StrategyEntry,
+    self, duplicate_summary, min_distinguishing_prefix, new_id, short_id, ChildStrategyEntry,
+    Combinator as DcCombinator, DaytradeConfig, ExecMode, StrategyEntry,
 };
 use super::engine::{Combinator as EngineCombinator, CompositeConfig};
 use super::paper;
@@ -201,14 +201,19 @@ pub fn list() -> Result<()> {
         println!("  추가: `kis daytrade add paper rsi <symbol> --qty 1 --budget 1000000 ...`");
     } else {
         println!("등록된 strategy ({}):", cfg.strategies.len());
+        let ids: Vec<&str> = cfg.strategies.iter().map(|s| s.id.as_str()).collect();
+        let id_len = min_distinguishing_prefix(&ids);
+        let id_w = id_len.max(8);
         println!(
-            "  {:<10} {:<6} {:<10} {:<8} {:<7} {:<5} {:<13} {:<7} {}",
-            "id", "mode", "kind", "code", "market", "qty", "budget", "period", "name"
+            "  {:<id_w$} {:<6} {:<10} {:<8} {:<7} {:<5} {:<13} {:<7} {}",
+            "id", "mode", "kind", "code", "market", "qty", "budget", "period", "name",
+            id_w = id_w,
         );
         for s in &cfg.strategies {
+            let id_short: String = s.id.chars().take(id_len).collect();
             println!(
-                "  {:<10} {:<6} {:<10} {:<8} {:<7} {:<5} {:<13} {:<7} {}",
-                short_id(&s.id),
+                "  {:<id_w$} {:<6} {:<10} {:<8} {:<7} {:<5} {:<13} {:<7} {}",
+                id_short,
                 s.mode.as_str(),
                 s.kind.as_str(),
                 s.code,
@@ -332,10 +337,13 @@ pub fn status() -> Result<()> {
     if cfg.strategies.is_empty() {
         println!("  (없음 — `kis daytrade add ...` 로 추가)");
     } else {
+        let ids: Vec<&str> = cfg.strategies.iter().map(|s| s.id.as_str()).collect();
+        let id_len = min_distinguishing_prefix(&ids);
         for s in &cfg.strategies {
+            let id_short: String = s.id.chars().take(id_len).collect();
             println!(
                 "  {} {} {} {} ({}) qty={} budget={}",
-                short_id(&s.id),
+                id_short,
                 s.mode.as_str(),
                 s.kind.as_str(),
                 s.code,

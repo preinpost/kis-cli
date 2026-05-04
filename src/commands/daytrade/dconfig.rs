@@ -200,21 +200,22 @@ impl DaytradeConfig {
         self.strategies.push(entry);
     }
 
-    /// id (또는 prefix) 일치 항목을 제거. 매칭 0건 → Err, 다중 → Err.
-    pub fn remove(&mut self, id_or_prefix: &str) -> Result<StrategyEntry> {
+    /// id (전체 또는 substring) 일치 항목을 제거. 매칭 0건 → Err, 다중 → Err.
+    /// substring 매칭이라 `short_id` 의 timestamp prefix뿐 아니라 random 끝자락으로도 식별 가능.
+    pub fn remove(&mut self, id_or_substring: &str) -> Result<StrategyEntry> {
         let matches: Vec<usize> = self
             .strategies
             .iter()
             .enumerate()
-            .filter(|(_, s)| s.id == id_or_prefix || s.id.starts_with(id_or_prefix))
+            .filter(|(_, s)| s.id == id_or_substring || s.id.contains(id_or_substring))
             .map(|(i, _)| i)
             .collect();
         match matches.len() {
-            0 => Err(anyhow!("'{}' 일치하는 strategy 없음", id_or_prefix)),
+            0 => Err(anyhow!("'{}' 일치하는 strategy 없음", id_or_substring)),
             1 => Ok(self.strategies.remove(matches[0])),
             n => Err(anyhow!(
-                "'{}' 가 {}개 strategy와 일치 — 더 긴 id prefix로 지정",
-                id_or_prefix, n
+                "'{}' 가 {}개 strategy와 일치 — 더 길게/구체적으로 지정 (예: short_id 끝 4자)",
+                id_or_substring, n
             )),
         }
     }
@@ -245,7 +246,30 @@ pub fn duplicate_summary(cfg: &DaytradeConfig, entry: &StrategyEntry) -> Vec<Str
         .collect()
 }
 
-/// 표시용 짧은 id (앞 8자).
+/// 단일 id 표시용 — ULID 첫 12자 (`add`/`rm` 메시지 등에서 사용).
+/// 표 출력엔 [`min_distinguishing_prefix`] 로 git 처럼 충돌 없는 최소 길이를 계산하는 게 좋음.
 pub fn short_id(id: &str) -> String {
-    id.chars().take(8).collect()
+    id.chars().take(12).collect()
+}
+
+/// git short-hash 스타일 — 주어진 id 목록에서 모두 unique 해지는 최소 prefix 길이.
+/// 최소 6자(시각적 일관성), 충돌 시 최대 26자(ULID 전체)까지 확장.
+pub fn min_distinguishing_prefix(ids: &[&str]) -> usize {
+    use std::collections::HashSet;
+    let max_len = ids.iter().map(|s| s.chars().count()).max().unwrap_or(0);
+    for len in 6..=max_len {
+        let mut seen = HashSet::with_capacity(ids.len());
+        let mut all_unique = true;
+        for id in ids {
+            let prefix: String = id.chars().take(len).collect();
+            if !seen.insert(prefix) {
+                all_unique = false;
+                break;
+            }
+        }
+        if all_unique {
+            return len;
+        }
+    }
+    max_len.max(6)
 }
