@@ -279,9 +279,11 @@ kis daytrade status
 | `daytrade list` | 등록된 전략 표 출력 |
 | `daytrade rm <id>` | id (또는 unique substring) 로 제거 |
 | `daytrade rm --all [--yes]` | 전체 삭제 (TTY면 y/n 프롬프트, 비-TTY면 `--yes` 필수) |
-| `daytrade start` | systemd unit 작성 + `enable --now` (Linux 외 OS 는 unit 텍스트만 출력) |
+| `daytrade start` | systemd unit 작성 + `enable --now` + `/var/log/kis-cli/` 준비 (Linux 외 OS 는 unit 텍스트만 출력) |
 | `daytrade stop` | disable + stop + unit 파일 삭제 |
+| `daytrade restart` | `systemctl restart kis-daytrade` — unit은 그대로 두고 프로세스만 재시작. **`kis update` 직후 새 바이너리 반영용** |
 | `daytrade status` | 데몬 active/enabled 상태 + 등록된 strategy 표시 |
+| `daytrade logs [-f] [-n N] [--path]` | 데몬 로그 조회 (기본 마지막 200줄, `-f`로 follow, `--path`로 경로만) |
 | `daytrade daemon` | 포그라운드 실행 (디버그·테스트용; systemd ExecStart 가 호출) |
 | `daytrade legacy-clean [--yes]` | 옛 `kis-daytrade-*-*` 서비스 일괄 제거 (단일 데몬 마이그레이션용) |
 | `daytrade history` | SQLite 체결 기록 조회 (`--session`/`--symbol`/`--today`/`--days`/`--json`) |
@@ -293,10 +295,41 @@ kis daytrade status
 ```bash
 # 데몬 켜둔 채로
 kis daytrade add paper macd 005930 --qty 1 --budget 1000000
-# → journalctl 에 즉시 "strategy 추가: 01kqsk0r... paper macd 005930 (삼성전자)"
+# → 로그에 즉시 "strategy 추가: 01kqsk0r... paper macd 005930 (삼성전자)"
+kis daytrade logs -f
 ```
 
 파라미터 변경(예: budget 수정)은 안전상 **다음 진입부터 적용**. 즉시 교체하려면 `rm` + `add`.
+
+### 로그
+
+`tracing` + 일별 롤링 파일 appender (non-blocking). `daytrade start`(sudo) 가 디렉터리를 만들고 데몬 유저로 chown.
+
+| OS | 위치 |
+|---|---|
+| Linux (`/var/log/` 쓰기 가능) | `/var/log/kis-cli/daytrade.log` |
+| macOS / 권한 없음 폴백 | `~/.local/state/kis-cli/logs/daytrade.log` (또는 `~/Library/Application Support/kis-cli/logs/`) |
+
+```bash
+kis daytrade logs            # 마지막 200줄
+kis daytrade logs -f         # follow (롤오버 추적)
+kis daytrade logs -n 1000    # 마지막 1000줄
+kis daytrade logs --path     # 활성 로그파일 경로만 출력
+RUST_LOG=debug kis daytrade daemon   # 포그라운드 디버깅 시 레벨 조절
+```
+
+파일 로깅은 `signal-watch` / `stop-loss` 데몬에도 적용 (`signal-watch.log` / `stop-loss.log`). 두 데몬은 전용 `logs` 서브커맨드는 아직 없고 — 경로는 `kis daytrade logs --path` 와 같은 자리.
+
+### 업데이트 시 재시작
+
+`kis update`는 바이너리만 교체하고 systemd 서비스는 안 건드린다. 새 바이너리를 반영하려면:
+
+```bash
+kis update                               # 바이너리 교체
+sudo $(which kis) daytrade restart       # 데몬 재시작 (unit 유지)
+```
+
+`stop` + `start` 는 unit 파일까지 지웠다 재설치하므로 일반적인 업데이트엔 과하다.
 
 ### 복합 전략 (composite)
 
@@ -443,6 +476,7 @@ src/
 ├── ws.rs                   # WebSocket 스트리밍 (domestic/overseas/night-futures)
 ├── symbols/                # 마스터 파일 다운로드·파싱·SQLite FTS5
 ├── analysis/               # 기술적 지표 순수함수 (MA/EMA/RSI/MACD/BB/Ichimoku/OBV)
+├── logging.rs              # tracing subscriber (일별 롤링 파일 + stderr) — daemon/foreground 모드
 ├── commands/               # CLI 서브커맨드 핸들러
 │   ├── stock/{dome,usa}.rs
 │   ├── fo/{dome,usa}.rs
