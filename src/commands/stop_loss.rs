@@ -15,6 +15,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
+use tracing::{error, info};
 
 use crate::api::domestic_stock::order_account::{inquire_balance as dome_bal, order_cash};
 use crate::api::overseas_stock::order_account::{inquire_balance as usa_bal, order as usa_order};
@@ -33,6 +34,7 @@ pub struct Config {
 }
 
 pub async fn run(client: &KisClient, cfg: Config) -> Result<()> {
+    let _log_guard = crate::logging::init_daemon("stop-loss")?;
     print_banner(&cfg);
     if cfg.use_ws {
         run_ws(client, &cfg).await
@@ -51,16 +53,14 @@ async fn run_polling(client: &KisClient, cfg: Config) -> Result<()> {
         let now = chrono::Local::now().format("%H:%M:%S").to_string();
         let mut aggregated: Vec<(String, SnapshotRow)> = Vec::new();
 
-        // 국내
         match check_domestic(client, &cfg, &mut sold, &now).await {
             Ok(snap) => {
                 print_snapshot(&now, "국내", &snap, cfg.threshold_pct);
                 for r in snap.holdings { aggregated.push(("국내".into(), r)); }
             }
-            Err(e) => eprintln!("[{now}] 국내 조회 실패: {e}"),
+            Err(e) => error!("국내 조회 실패: {e}"),
         }
 
-        // 해외 (NASD/NYSE/AMEX 순회)
         for excg in ["NASD", "NYSE", "AMEX"] {
             match check_overseas(client, &cfg, &mut sold, &now, excg).await {
                 Ok(snap) => {
@@ -69,7 +69,7 @@ async fn run_polling(client: &KisClient, cfg: Config) -> Result<()> {
                     }
                     for r in snap.holdings { aggregated.push((excg.into(), r)); }
                 }
-                Err(e) => eprintln!("[{now}] {} 조회 실패: {e}", excg),
+                Err(e) => error!("{} 조회 실패: {e}", excg),
             }
         }
 
@@ -147,7 +147,7 @@ async fn check_domestic(
     client: &KisClient,
     cfg: &Config,
     sold: &mut HashSet<String>,
-    now: &str,
+    _now: &str,
 ) -> Result<Snapshot> {
     let req = dome_bal::Request {
         cano: client.cano().into(),
@@ -185,16 +185,16 @@ async fn check_domestic(
                     Ok(odno) => {
                         row.sold = true;
                         sold.insert(h.pdno.clone());
-                        eprintln!(
-                            "[{now}] \x1b[31m▶ 매도\x1b[0m 국내 {} ({}) {}주 시장가 / 손익률 {:+.2}% / 주문번호 {}",
+                        info!(
+                            "▶ 매도 국내 {} ({}) {}주 시장가 / 손익률 {:+.2}% / 주문번호 {}",
                             h.pdno, h.prdt_name, qty, rate, odno
                         );
                     }
                     Err(e) => row.error = Some(e.to_string()),
                 }
             } else {
-                eprintln!(
-                    "[{now}] \x1b[33m◇ DRY-RUN\x1b[0m 국내 {} ({}) {}주 시장가 매도 예정 (손익률 {:+.2}%)",
+                info!(
+                    "◇ DRY-RUN 국내 {} ({}) {}주 시장가 매도 예정 (손익률 {:+.2}%)",
                     h.pdno, h.prdt_name, qty, rate
                 );
             }
@@ -208,7 +208,7 @@ async fn check_overseas(
     client: &KisClient,
     cfg: &Config,
     sold: &mut HashSet<String>,
-    now: &str,
+    _now: &str,
     excg: &str,
 ) -> Result<Snapshot> {
     let req = usa_bal::Request {
@@ -247,16 +247,16 @@ async fn check_overseas(
                         Ok(odno) => {
                             row.sold = true;
                             sold.insert(h.ovrs_pdno.clone());
-                            eprintln!(
-                                "[{now}] \x1b[31m▶ 매도\x1b[0m {} {} ({}) {}주 지정가 ${:.4} / 손익률 {:+.2}% / 주문번호 {}",
+                            info!(
+                                "▶ 매도 {} {} ({}) {}주 지정가 ${:.4} / 손익률 {:+.2}% / 주문번호 {}",
                                 excg, h.ovrs_pdno, h.ovrs_item_name, qty, limit, rate, odno
                             );
                         }
                         Err(e) => row.error = Some(e.to_string()),
                     }
                 } else {
-                    eprintln!(
-                        "[{now}] \x1b[33m◇ DRY-RUN\x1b[0m {} {} ({}) {}주 지정가 ${:.4} 매도 예정 (손익률 {:+.2}%)",
+                    info!(
+                        "◇ DRY-RUN {} {} ({}) {}주 지정가 ${:.4} 매도 예정 (손익률 {:+.2}%)",
                         excg, h.ovrs_pdno, h.ovrs_item_name, qty, limit, rate
                     );
                 }
@@ -395,23 +395,21 @@ async fn run_ws(client: &KisClient, cfg: &Config) -> Result<()> {
     loop {
         match run_ws_session(client, cfg, state.clone()).await {
             Ok(()) => {
-                eprintln!("[WS] 정상 종료");
+                info!("[WS] 정상 종료");
                 break;
             }
             Err(e) => {
                 attempt = attempt.saturating_add(1);
                 let delay = (RECONNECT_BASE_SECS << (attempt.min(5) - 1)).min(60);
-                eprintln!(
+                error!(
                     "[WS] 연결 끊김 (시도 {}회): {e} — {delay}초 후 재연결",
                     attempt
                 );
-                // 재연결 전 구독 상태 초기화 (새 연결에는 다시 subscribe 필요)
                 state.lock().unwrap().subscribed.clear();
                 tokio::time::sleep(Duration::from_secs(delay)).await;
 
-                // 재연결 전에 잔고 한 번 refresh (다운타임 중 변동 반영)
                 if let Err(re) = refresh_positions_in_state(client, &cfg.symbols, &state).await {
-                    eprintln!("  잔고 갱신 실패 (이전 상태로 계속): {re}");
+                    error!("  잔고 갱신 실패 (이전 상태로 계속): {re}");
                 }
             }
         }
@@ -463,13 +461,11 @@ async fn run_ws_session(
                 ).await?;
             }
             _ = refresh_ticker.tick() => {
-                // 주기적 잔고 refresh → 신규 포지션 구독 + 제거된 포지션 정리
                 if let Err(e) = refresh_positions_in_state(client, &cfg.symbols, &state).await {
-                    eprintln!("[{}] 잔고 갱신 실패: {e}",
-                        chrono::Local::now().format("%H:%M:%S"));
+                    error!("잔고 갱신 실패: {e}");
                 } else {
                     if let Err(e) = subscribe_pending(&mut write, &approval_key, &state).await {
-                        eprintln!("  신규 구독 실패: {e}");
+                        error!("  신규 구독 실패: {e}");
                     }
                     maybe_write_status(&state, cfg, true);
                 }
@@ -564,16 +560,14 @@ async fn handle_frame(
                         maybe_write_status(state, cfg, true);
                     }
                     Err(e) => {
-                        // 트리거 해제 → 다음 tick에서 재시도
                         let mut st = state.lock().unwrap();
                         if let Some(p) = st.positions.get_mut(idx) { p.triggered = false; }
-                        eprintln!("  ✗ 매도 실패: {e} — 다음 tick에서 재시도");
+                        error!("  ✗ 매도 실패: {e} — 다음 tick에서 재시도");
                     }
                 }
             } else {
-                println!(
-                    "[{}] \x1b[33m◇ DRY-RUN\x1b[0m {} ({}) {}주 @ {:.4} 손익률 {:+.2}% (매도 조건 충족)",
-                    chrono::Local::now().format("%H:%M:%S"),
+                info!(
+                    "◇ DRY-RUN {} ({}) {}주 @ {:.4} 손익률 {:+.2}% (매도 조건 충족)",
                     pos.code, pos.name, pos.qty, price, pnl_rate
                 );
             }
@@ -597,9 +591,9 @@ async fn handle_frame(
             let rt_cd = val["body"]["rt_cd"].as_str().unwrap_or("");
             let msg1 = val["body"]["msg1"].as_str().unwrap_or("");
             if rt_cd == "0" {
-                eprintln!("  ✓ 구독 성공 {tr_id}: {msg1}");
+                info!("  ✓ 구독 성공 {tr_id}: {msg1}");
             } else if !rt_cd.is_empty() {
-                eprintln!("  ✗ 구독 실패 {tr_id}: {msg1}");
+                error!("  ✗ 구독 실패 {tr_id}: {msg1}");
             }
         }
     }
@@ -663,7 +657,7 @@ async fn subscribe_pending(
             to_subscribe.len(), limited, total
         );
         if total > SUB_LIMIT {
-            eprintln!(
+            tracing::warn!(
                 "  ⚠ 구독 한도 {SUB_LIMIT} 초과 — {}개 종목은 감시 대상에서 제외됨",
                 total - SUB_LIMIT
             );
@@ -922,7 +916,7 @@ fn write_polling_status(cfg: &Config, started_at: &str, rows: &[(String, Snapsho
         triggered_count,
     };
     if let Err(e) = write_status_atomic(&snap) {
-        eprintln!("status 파일 쓰기 실패: {e}");
+        error!("status 파일 쓰기 실패: {e}");
     }
 }
 
@@ -943,7 +937,7 @@ fn maybe_write_status(
     };
     if let Some(snap) = snapshot_result {
         if let Err(e) = write_status_atomic(&snap) {
-            eprintln!("status 파일 쓰기 실패: {e}");
+            error!("status 파일 쓰기 실패: {e}");
         }
     }
 }

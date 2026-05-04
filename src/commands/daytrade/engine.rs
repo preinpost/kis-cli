@@ -9,9 +9,10 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
-use chrono::{DateTime, Local};
+use chrono::DateTime;
 use chrono_tz::Tz;
 use tokio_util::sync::CancellationToken;
+use tracing::{error, info, warn};
 
 use crate::analysis::indicators;
 use crate::client::KisClient;
@@ -149,14 +150,14 @@ pub async fn run<E: Executor>(
 
     let sl_label = format_sl_tp_label(cfg.stop_loss_pct, cfg.stop_loss_atr, cfg.atr_period);
     let tp_label = format_sl_tp_label(cfg.take_profit_pct, cfg.take_profit_atr, cfg.atr_period);
-    log_info(&format!(
+    info!(
         "{}: [{}] {} ({}) · {} · qty={} · budget={} · fee={:.1}bps{} · SL={} · TP={} · session={}",
         executor.start_prefix(),
         sym.code, name, market.label(), cfg.period.label(),
         cfg.qty, format_price(cfg.budget, cfg.usa),
         cfg.fee_bps, executor.extra_start_info(),
         sl_label, tp_label, session_id
-    ));
+    );
 
     let cfg = Arc::new(cfg);
     let code = sym.code.clone();
@@ -165,10 +166,10 @@ pub async fn run<E: Executor>(
     // 세션 시작 — live는 실제 계좌 잔고에서 기존 보유를 로드, paper는 None.
     let mut position: Option<Position> = executor.sync_position(&code, market).await?;
     if let Some(p) = position.as_ref() {
-        log_info(&format!(
+        info!(
             "  초기 보유 로드: {}주 @ {} (계좌 기준)",
             p.qty, format_price(p.avg_price, cfg.usa)
-        ));
+        );
     }
     // EOD 청산 + 리포트가 이미 한 번 출력됐는지. true면 Ctrl+C 경로에서 중복 출력을 피하고,
     // 다음 tick에서 장이 다시 열렸을 때 session_id 롤오버 트리거로도 사용한다.
@@ -178,10 +179,10 @@ pub async fn run<E: Executor>(
         tokio::select! {
             _ = cancel.cancelled() => {
                 if !session_reported {
-                    log_info("종료 신호 수신 — 일일 리포트 출력");
+                    info!("종료 신호 수신 — 일일 리포트 출력");
                     print_report(&storage, &session_id, &cfg, market);
                 } else {
-                    log_info("종료 신호 수신");
+                    info!("종료 신호 수신");
                 }
                 return Ok(());
             }
@@ -192,7 +193,7 @@ pub async fn run<E: Executor>(
             &client, &cfg, &executor, &code, &name, market, sym_market,
             &storage, &mut session_id, &mut session_reported, &mut position,
         ).await {
-            log_error(&format!("tick 실패: {e}"));
+            error!("tick 실패: {e}");
         }
     }
 }
@@ -202,7 +203,7 @@ async fn sleep_until_next_tick(market: Market, period: Period, code: &str) {
     if !session::is_in_session(market, now) {
         let wait = session::time_until_open(market, now);
         let mins = wait.num_minutes().max(1);
-        log_info(&format!("세션 밖 — 다음 개장까지 약 {}분 대기", mins));
+        info!("세션 밖 — 다음 개장까지 약 {}분 대기", mins);
         let chunk = if mins > 30 { 30 } else { mins };
         tokio::time::sleep(std::time::Duration::from_secs((chunk * 60) as u64)).await;
         tokio::time::sleep(std::time::Duration::from_millis(code_jitter_ms(code))).await;
@@ -240,11 +241,11 @@ async fn tick<E: Executor>(
     if *session_reported && session::is_in_session(market, now) {
         *session_id = new_session_id(code, market);
         *session_reported = false;
-        *position = None; // EOD로 이미 청산됐어야 하지만 안전상 리셋
-        log_info(&format!("── 새 세션 시작 session={} ──", session_id));
+        *position = None;
+        info!("── 새 세션 시작 session={} ──", session_id);
     }
 
-    log_info(&format!("── tick [{}] {} ──", code, name));
+    info!("── tick [{}] {} ──", code, name);
 
     let series = if cfg.usa {
         fetch::fetch_overseas(client, code, sym_market, cfg.period).await?
@@ -257,25 +258,25 @@ async fn tick<E: Executor>(
     let signal = compute_signal(cfg, &series);
     let last_price = series.closes.last().copied().unwrap_or(f64::NAN);
     let last_ts = series.dates.last().cloned().unwrap_or_default();
-    log_info(&format!(
+    info!(
         "  최신봉 {} / 종가 {} / 신호 {}",
         format_ts(&last_ts),
         format_price(last_price, cfg.usa),
         signal_label(signal)
-    ));
+    );
 
     if let Some(pos) = position {
         let used = pos.qty as f64 * pos.avg_price;
-        log_info(&format!(
+        info!(
             "  보유: {}주 @ {} (진입 {}) · used {} / budget {}",
             pos.qty,
             format_price(pos.avg_price, cfg.usa),
             pos.entry_time.format("%m-%d %H:%M"),
             format_price(used, cfg.usa),
             format_price(cfg.budget, cfg.usa),
-        ));
+        );
     } else {
-        log_info("  보유 없음");
+        info!("  보유 없음");
     }
 
     let force_exit = session::should_force_exit(market, now, 10);
@@ -288,7 +289,7 @@ async fn tick<E: Executor>(
                 last_price, now, "EOD 강제 청산",
             ).await?;
         } else {
-            log_info("  ⚠ 장 마감 10분 전 — 신규 진입 차단 (EOD)");
+            warn!("  ⚠ 장 마감 10분 전 — 신규 진입 차단 (EOD)");
         }
         if !*session_reported {
             print_report(storage, session_id, cfg, market);
@@ -367,7 +368,7 @@ async fn tick<E: Executor>(
                 last_price, now, "신호 청산",
             ).await?;
         }
-        _ => log_info("  → 변화 없음"),
+        _ => info!("  → 변화 없음"),
     }
     Ok(())
 }
@@ -389,11 +390,11 @@ async fn execute_entry<E: Executor>(
     let estimated_cost = cfg.qty as f64 * base_price;
     if current_cost + estimated_cost > cfg.budget {
         let remain = (cfg.budget - current_cost).max(0.0);
-        log_info(&format!(
+        info!(
             "  → 진입 보류: 예산 초과 (필요 ~{}, 남은 예산 {})",
             format_price(estimated_cost, cfg.usa),
             format_price(remain, cfg.usa),
-        ));
+        );
         return Ok(None);
     }
 
@@ -431,15 +432,15 @@ async fn execute_entry<E: Executor>(
     // live 전용: 실제 계좌 잔고로 덮어쓰기 (수수료·부분체결·환율 반영)
     if let Some(synced) = executor.sync_position(code, market).await? {
         if synced.qty != computed_qty {
-            log_info(&format!(
+            warn!(
                 "  ⚠ 포지션 불일치: 엔진 기대 {}주, 계좌 실제 {}주 — 계좌 기준으로 동기화",
                 computed_qty, synced.qty
-            ));
+            );
         }
         new_pos = Position { qty: synced.qty, avg_price: synced.avg_price, entry_time };
     }
 
-    log_info(&format!(
+    info!(
         "  → ▲ {}: {}주 @ {} · 보유 {}주 @ avg {} · used {} / budget {}",
         label,
         fill.qty,
@@ -448,7 +449,7 @@ async fn execute_entry<E: Executor>(
         format_price(new_pos.avg_price, cfg.usa),
         format_price(new_pos.qty as f64 * new_pos.avg_price, cfg.usa),
         format_price(cfg.budget, cfg.usa),
-    ));
+    );
 
     Ok(Some(new_pos))
 }
@@ -490,7 +491,7 @@ async fn execute_exit<E: Executor>(
         reason,
     })?;
     let arrow = if pnl >= 0.0 { "▲" } else { "▼" };
-    log_info(&format!(
+    info!(
         "  → ▼ 청산: {}주 @ {} [{}] · PnL {} {} ({:+.2}%)",
         fill.qty,
         format_price(fill.price, cfg.usa),
@@ -498,14 +499,13 @@ async fn execute_exit<E: Executor>(
         arrow,
         format_price(pnl.abs(), cfg.usa),
         pnl_pct,
-    ));
+    );
 
-    // live: 전량 청산 검증. 잔량이 남아있으면 경고.
     if let Some(remaining) = executor.sync_position(code, market).await? {
-        log_info(&format!(
+        warn!(
             "  ⚠ 청산 후 잔량 {}주 감지 — 부분체결/미체결 가능성, 수동 확인 필요",
             remaining.qty
-        ));
+        );
     }
     Ok(())
 }
@@ -516,16 +516,16 @@ fn print_report(storage: &Storage, session_id: &str, cfg: &EngineConfig, market:
             let win_rate = if s.sells > 0 {
                 s.wins as f64 / s.sells as f64 * 100.0
             } else { 0.0 };
-            eprintln!();
-            eprintln!("═══ 일일 리포트 ({}, session={}) ═══", market.label(), session_id);
-            eprintln!("  체결 건수     : {} (매수 {}, 매도 {})", s.trades, s.trades.saturating_sub(s.sells), s.sells);
-            eprintln!("  승률          : {}/{} = {:.1}%", s.wins, s.sells, win_rate);
-            eprintln!("  총 PnL        : {}", format_price(s.total_pnl, cfg.usa));
-            eprintln!("  평균 PnL %    : {:+.2}%", s.avg_pnl_pct);
-            eprintln!("  DB            : {}", config::daytrade_db_path().map(|p| p.display().to_string()).unwrap_or_default());
+            let db = config::daytrade_db_path().map(|p| p.display().to_string()).unwrap_or_default();
+            info!("═══ 일일 리포트 ({}, session={}) ═══", market.label(), session_id);
+            info!("  체결 건수     : {} (매수 {}, 매도 {})", s.trades, s.trades.saturating_sub(s.sells), s.sells);
+            info!("  승률          : {}/{} = {:.1}%", s.wins, s.sells, win_rate);
+            info!("  총 PnL        : {}", format_price(s.total_pnl, cfg.usa));
+            info!("  평균 PnL %    : {:+.2}%", s.avg_pnl_pct);
+            info!("  DB            : {}", db);
         }
         Err(e) => {
-            log_error(&format!("리포트 집계 실패: {e}"));
+            error!("리포트 집계 실패: {e}");
         }
     }
 }
@@ -709,10 +709,3 @@ fn child_label(c: &CompositeChild) -> String {
     }
 }
 
-pub(crate) fn log_info(msg: &str) {
-    eprintln!("[{}] {}", Local::now().format("%Y-%m-%d %H:%M:%S"), msg);
-}
-
-pub(crate) fn log_error(msg: &str) {
-    eprintln!("[{}] ERROR: {}", Local::now().format("%Y-%m-%d %H:%M:%S"), msg);
-}

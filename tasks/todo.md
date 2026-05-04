@@ -198,3 +198,40 @@ kis daytrade backtest     <strategy> <symbol> [--usa] [--period ...] [--from] [-
 - [ ] `cargo check` 통과
 - [ ] `add` → `list` → 로컬에서 `daemon` 포그라운드 실행 → toml 편집 시 hot-reload 확인
 - [ ] paper 한 건 + run --yes 1건으로 실제 분봉 받아 동작 확인
+
+---
+
+# 데몬 로그 통합 (tracing 도입)
+
+## 배경
+- `daytrade daemon` / `signal-watch` (top-level) / `stop-loss` 모두 systemd 데몬으로 실행되는데
+  현재 `eprintln!` + 자체 `log_info`/`log_error` 헬퍼로 stderr에만 출력 → journalctl 의존.
+- macOS에선 systemd 없어 일관된 로그 위치가 없음.
+- 사용자 요구: `/var/log/kis-cli/<name>.log` 에 파일로 쌓기 + `kis daytrade logs` 로 조회.
+
+## 스코프
+**대상 (런타임 데몬 로그)**:
+- `daytrade/daemon.rs` (log_info/log_error 헬퍼)
+- `daytrade/engine.rs` (log_info/log_error pub(crate) — 외부 호출자 없음)
+- `daytrade/signal_watch.rs` (log_info/log_error 헬퍼)
+- `commands/signal_watch.rs` (log_info/log_error 헬퍼)
+- `commands/stop_loss.rs` 의 **이벤트성** eprintln (예: `[time] 매도 ...`) — banner println은 제외
+
+**제외 (CLI 표층 출력 유지)**:
+- `daytrade/lifecycle.rs`, `daytrade/history.rs` (커맨드 출력)
+- `daytrade/run.rs` 의 `confirm_live_trading` (인터랙티브 프롬프트)
+- `stop_loss.rs::print_banner`, `print_snapshot` (사용자 터미널 표)
+- signal_watch / stop_loss 의 install/status/path 함수
+
+## 단계
+- [x] Cargo.toml: tracing, tracing-subscriber (env-filter, fmt), tracing-appender 추가
+- [x] `src/logging.rs` 신설 — `init_daemon(name)` (file+stderr) / `init_foreground()` (stderr-only)
+  - Linux: `/var/log/kis-cli/<name>.log` 시도 → 실패 시 `~/.local/state/kis-cli/logs/<name>.log` 폴백
+  - 일별 롤링 + non-blocking + stderr 동시 출력 + RUST_LOG (기본 info)
+- [x] 각 데몬 진입점에서 `init_daemon` 호출 (daytrade/daemon, signal_watch::run/run_all, stop_loss::run)
+- [x] foreground 진입점에 `init_foreground` (paper, run, daytrade signal-watch — engine.rs 공유)
+- [x] log_info/log_error → tracing 매크로로 치환 (daytrade/daemon, engine, signal_watch / commands/signal_watch는 helper 본체만 라우팅)
+- [x] commands/stop_loss.rs 의 이벤트성 eprintln → `info!`/`error!` (banner/snapshot println은 유지)
+- [x] `daytrade/lifecycle.rs::start`: `/var/log/kis-cli/` mkdir + chown $run_user
+- [x] `DaytradeAction::Logs` 서브커맨드 — `-f`, `-n N`, `--path` (`tail -F` 래핑)
+- [x] `cargo check` 통과 (1758 pre-existing warning, error 0)

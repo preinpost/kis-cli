@@ -46,6 +46,8 @@ pub struct Config {
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
+    let _log_guard = crate::logging::init_daemon("signal-watch")?;
+
     let mode = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
     let sym = resolve_symbol(&cfg.symbol, mode, cfg.pick)?;
     let display_name = if !sym.name_kr.is_empty() { sym.name_kr.clone() }
@@ -339,15 +341,11 @@ fn strategy_label(cfg: &Config) -> String {
 }
 
 fn log_info(msg: &str) {
-    eprintln!("[{}] {}", Local::now().format("%Y-%m-%d %H:%M:%S"), msg);
+    tracing::info!("{}", msg);
 }
 
 fn log_error(msg: &str) {
-    eprintln!(
-        "[{}] ERROR: {}",
-        Local::now().format("%Y-%m-%d %H:%M:%S"),
-        msg
-    );
+    tracing::error!("{}", msg);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -373,6 +371,8 @@ pub async fn run_all(client: Arc<KisClient>, cfg: AllConfig) -> Result<()> {
     if cfg.background {
         return install_systemd_unit(&sym.code, cfg.usa, &cron, &display_name);
     }
+
+    let _log_guard = crate::logging::init_daemon("signal-watch")?;
 
     let telegram = load_config()
         .ok()

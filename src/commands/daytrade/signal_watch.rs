@@ -8,7 +8,7 @@
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
-use chrono::Local;
+use tracing::{error, info, warn};
 
 use crate::api::domestic_stock::order_account::inquire_balance as inquire_balance_domestic;
 use crate::api::overseas_stock::order_account::inquire_balance as inquire_balance_overseas;
@@ -38,6 +38,8 @@ pub struct Config {
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
+    crate::logging::init_foreground();
+
     let market = if cfg.usa { Market::Usa } else { Market::Krx };
     let resolve = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
     let sym = resolve_symbol(&cfg.symbol, resolve, cfg.pick)?;
@@ -45,33 +47,28 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
         else if !sym.name_en.is_empty() { sym.name_en.clone() }
         else { sym.code.clone() };
 
-    log_info(&format!(
+    info!(
         "daytrade signal-watch 시작: [{}] {} ({}) · {} · 전략 {} (감시 전용)",
         sym.code, name, market.label(), cfg.period.label(), strategy_label(&cfg)
-    ));
+    );
 
     let cfg = Arc::new(cfg);
     let code = sym.code.clone();
     let sym_market = sym.market;
 
-    // 최초 1회 tick (세션 중일 때만)
     loop {
         let now = session::now_kst();
         if !session::is_in_session(market, now) {
             let wait = session::time_until_open(market, now);
             let mins = wait.num_minutes().max(1);
-            log_info(&format!(
-                "세션 밖 — 다음 개장까지 약 {}분 대기",
-                mins
-            ));
-            // 10분 이상 대기면 30분 단위로 깨어나서 재판정 (중간에 로그), 그 외는 전부 대기
+            info!("세션 밖 — 다음 개장까지 약 {}분 대기", mins);
             let chunk = if mins > 30 { 30 } else { mins };
             tokio::time::sleep(std::time::Duration::from_secs((chunk * 60) as u64)).await;
             continue;
         }
 
         if let Err(e) = tick(&client, &cfg, &code, &name, market, sym_market).await {
-            log_error(&format!("tick 실패: {e}"));
+            error!("tick 실패: {e}");
         }
 
         // 다음 봉 경계 + 10초 슬랙까지 대기
@@ -90,7 +87,7 @@ async fn tick(
     market: Market,
     sym_market: SymMarket,
 ) -> Result<()> {
-    log_info(&format!("── tick [{}] {} ──", code, name));
+    info!("── tick [{}] {} ──", code, name);
 
     let series = if cfg.usa {
         fetch::fetch_overseas(client, code, sym_market, cfg.period).await?
@@ -109,31 +106,30 @@ async fn tick(
     } else {
         (format_number(&format!("{:.0}", last_price)), "원")
     };
-    log_info(&format!(
+    info!(
         "  최신봉 {} / 종가 {}{} / 신호 {}",
         format_ts(&last_ts),
         price_str,
         unit,
         signal_label(signal)
-    ));
+    );
 
     let held = if cfg.usa {
         holding_overseas(client, code, sym_market).await?
     } else {
         holding_domestic(client, code).await?
     };
-    log_info(&format!("  현재 보유: {}주", held));
+    info!("  현재 보유: {}주", held);
 
     match classify(signal, held) {
-        Alert::None => log_info("  → 변화 없음"),
-        Alert::Entry => log_info("  → ▲ 진입 신호 (미보유 → long 전략)"),
-        Alert::Exit => log_info(&format!("  → ▼ 청산 신호 (보유 {}주 → flat 전략)", held)),
+        Alert::None => info!("  → 변화 없음"),
+        Alert::Entry => info!("  → ▲ 진입 신호 (미보유 → long 전략)"),
+        Alert::Exit => info!("  → ▼ 청산 신호 (보유 {}주 → flat 전략)", held),
     }
 
-    // 마감 임박 힌트 (Phase 2에서 강제청산으로 승격)
     let now = session::now_kst();
     if session::should_force_exit(market, now, 10) {
-        log_info("  ⚠ 장 마감 10분 전 — 데이트레이드 EOD 구간");
+        warn!("  ⚠ 장 마감 10분 전 — 데이트레이드 EOD 구간");
     }
     Ok(())
 }
@@ -258,14 +254,3 @@ fn strategy_label(cfg: &Config) -> String {
     }
 }
 
-fn log_info(msg: &str) {
-    eprintln!("[{}] {}", Local::now().format("%Y-%m-%d %H:%M:%S"), msg);
-}
-
-fn log_error(msg: &str) {
-    eprintln!(
-        "[{}] ERROR: {}",
-        Local::now().format("%Y-%m-%d %H:%M:%S"),
-        msg
-    );
-}

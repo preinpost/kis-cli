@@ -71,6 +71,7 @@ impl Executor for PaperExecutor {
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
+    crate::logging::init_foreground();
     let executor = PaperExecutor { slippage_bps: cfg.slippage_bps };
     let engine_cfg = EngineConfig {
         symbol: cfg.symbol,

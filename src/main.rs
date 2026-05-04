@@ -4,6 +4,7 @@ mod client;
 mod commands;
 mod config;
 mod error;
+mod logging;
 mod models;
 mod rate_limit;
 mod symbols;
@@ -381,6 +382,18 @@ enum DaytradeAction {
     Stop,
     /// daytrade 데몬 상태 표시
     Status,
+    /// daytrade 데몬 로그 조회 (`/var/log/kis-cli/daytrade.log` 또는 사용자 폴백 경로)
+    Logs {
+        /// follow (tail -f). 새 라인 실시간 출력
+        #[arg(short = 'f', long)]
+        follow: bool,
+        /// 마지막 N 줄 (기본 200)
+        #[arg(short = 'n', long, default_value_t = 200)]
+        lines: usize,
+        /// 로그파일 경로만 출력하고 종료
+        #[arg(long)]
+        path: bool,
+    },
     /// 데몬 포그라운드 실행 (systemd ExecStart 가 호출. 디버그·테스트용으로 직접 호출 가능)
     Daemon,
     /// 기존 per-strategy `kis-daytrade-*-*` 서비스 일괄 제거 (단일 데몬 마이그레이션용)
@@ -1822,6 +1835,9 @@ async fn async_main(cli: Cli) -> Result<()> {
             DaytradeAction::Start => commands::daytrade::lifecycle::start(),
             DaytradeAction::Stop => commands::daytrade::lifecycle::stop(),
             DaytradeAction::Status => commands::daytrade::lifecycle::status(),
+            DaytradeAction::Logs { follow, lines, path } => {
+                commands::daytrade::lifecycle::logs(follow, lines, path)
+            }
             DaytradeAction::Daemon => {
                 let client = std::sync::Arc::new(build_client()?);
                 commands::daytrade::daemon::run(client).await

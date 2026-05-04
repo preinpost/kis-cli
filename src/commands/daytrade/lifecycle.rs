@@ -309,11 +309,14 @@ pub fn start() -> Result<()> {
     let unit = render_unit(&exe.to_string_lossy(), &run_user);
     write_unit(DAEMON_UNIT_PATH, &unit)?;
     eprintln!("[start] systemd unit 작성: {}", DAEMON_UNIT_PATH);
+    if let Err(e) = ensure_log_dir(&run_user) {
+        eprintln!("[start] ⚠ /var/log/kis-cli 준비 실패 ({e}) — 데몬은 사용자 폴백 경로로 전환합니다");
+    }
     run_systemctl(&["daemon-reload"])?;
     run_systemctl(&["enable", "--now", DAEMON_UNIT_NAME])?;
     eprintln!("[start] ✓ {}.service 활성화 (실행 유저: {})", DAEMON_UNIT_NAME, run_user);
     eprintln!();
-    eprintln!("로그:   sudo journalctl -u {} -f", DAEMON_UNIT_NAME);
+    eprintln!("로그:   kis daytrade logs -f");
     eprintln!("상태:   kis daytrade status");
     eprintln!("중지:   sudo $(which kis) daytrade stop");
 
@@ -390,6 +393,66 @@ pub fn status() -> Result<()> {
                 fmt_money(s.budget),
             );
         }
+    }
+    Ok(())
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// logs — 데몬 로그파일 출력 (`tail -n N` / `tail -F`)
+// ─────────────────────────────────────────────────────────────────────
+
+pub fn logs(follow: bool, lines: usize, path_only: bool) -> Result<()> {
+    let log_path = crate::logging::current_log_path("daytrade")?;
+
+    if path_only {
+        println!("{}", log_path.display());
+        return Ok(());
+    }
+
+    if !log_path.exists() {
+        eprintln!("(로그 파일 없음: {})", log_path.display());
+        eprintln!("  데몬을 먼저 시작하세요: sudo $(which kis) daytrade start");
+        eprintln!("  포그라운드 디버그:       kis daytrade daemon");
+        return Ok(());
+    }
+
+    // tail이 일별 롤링도 잘 따라가도록 -F (대문자: file rename 추적). macOS/Linux 둘 다 지원.
+    let mut cmd = std::process::Command::new("tail");
+    if follow {
+        cmd.arg("-F").arg("-n").arg(lines.to_string());
+    } else {
+        cmd.arg("-n").arg(lines.to_string());
+    }
+    cmd.arg(&log_path);
+
+    let status = cmd
+        .status()
+        .map_err(|e| anyhow!("tail 실행 실패: {e} (경로: {})", log_path.display()))?;
+    if !status.success() && !follow {
+        return Err(anyhow!("tail 비정상 종료 (exit {:?})", status.code()));
+    }
+    Ok(())
+}
+
+/// `daytrade start` (sudo) 가 호출 — `/var/log/kis-cli/` 디렉터리 생성 + 데몬유저 chown.
+/// 권한 부족이나 이미 존재하면 silent 통과.
+fn ensure_log_dir(run_user: &str) -> Result<()> {
+    if !cfg!(target_os = "linux") {
+        return Ok(());
+    }
+    let dir = Path::new("/var/log/kis-cli");
+    if !dir.exists() {
+        std::fs::create_dir_all(dir)
+            .with_context(|| format!("{} 생성 실패", dir.display()))?;
+    }
+    // chown — `chown <user>:<user> /var/log/kis-cli`. 실패해도 fatal은 아니지만 보고는 한다.
+    let status = std::process::Command::new("chown")
+        .arg(format!("{user}:{user}", user = run_user))
+        .arg(dir)
+        .status()
+        .map_err(|e| anyhow!("chown 실행 실패: {e}"))?;
+    if !status.success() {
+        return Err(anyhow!("chown {} 실패 (exit {:?})", dir.display(), status.code()));
     }
     Ok(())
 }

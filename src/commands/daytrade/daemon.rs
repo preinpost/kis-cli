@@ -15,11 +15,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
-use chrono::Local;
 use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode, DebouncedEvent};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
+use tracing::{error, info};
 
 use super::dconfig::{self, DaytradeConfig, ExecMode, StrategyEntry};
 use super::engine::{self, Combinator, CompositeChild, CompositeConfig, EngineConfig};
@@ -36,8 +36,11 @@ struct RunningTask {
 }
 
 pub async fn run(client: Arc<KisClient>) -> Result<()> {
+    let _log_guard = crate::logging::init_daemon("daytrade")?;
+
     let cfg_path = dconfig::config_path()?;
-    log_info(&format!("daemon 시작 — 설정 파일: {}", cfg_path.display()));
+    info!("daemon 시작 — 설정 파일: {}", cfg_path.display());
+    info!("로그 파일: {}", _log_guard.log_dir.join(&_log_guard.file_name).display());
 
     let global_cancel = CancellationToken::new();
     spawn_signal_listener(global_cancel.clone());
@@ -45,7 +48,7 @@ pub async fn run(client: Arc<KisClient>) -> Result<()> {
     let mut tasks: HashMap<String, RunningTask> = HashMap::new();
 
     let initial = DaytradeConfig::load().unwrap_or_else(|e| {
-        log_error(&format!("초기 toml 로드 실패: {e}"));
+        error!("초기 toml 로드 실패: {e}");
         DaytradeConfig::default()
     });
     apply_diff(&client, &mut tasks, &[], &initial.strategies, &global_cancel);
@@ -58,12 +61,12 @@ pub async fn run(client: Arc<KisClient>) -> Result<()> {
     loop {
         tokio::select! {
             _ = global_cancel.cancelled() => {
-                log_info("종료 신호 — 모든 strategy 정리");
+                info!("종료 신호 — 모든 strategy 정리");
                 break;
             }
             evt = rx.recv() => {
                 if evt.is_none() {
-                    log_info("watcher 종료됨");
+                    info!("watcher 종료됨");
                     break;
                 }
                 match DaytradeConfig::load() {
@@ -72,7 +75,7 @@ pub async fn run(client: Arc<KisClient>) -> Result<()> {
                         apply_diff(&client, &mut tasks, &current, &next, &global_cancel);
                         current = next;
                     }
-                    Err(e) => log_error(&format!("toml 재로드 실패 (변경 무시): {e}")),
+                    Err(e) => error!("toml 재로드 실패 (변경 무시): {e}"),
                 }
             }
         }
@@ -81,10 +84,10 @@ pub async fn run(client: Arc<KisClient>) -> Result<()> {
     for (id, task) in tasks.drain() {
         task.cancel.cancel();
         if let Err(e) = task.handle.await {
-            log_error(&format!("task {} join 실패: {e}", short(&id)));
+            error!("task {} join 실패: {e}", short(&id));
         }
     }
-    log_info("daemon 정상 종료");
+    info!("daemon 정상 종료");
     Ok(())
 }
 
@@ -96,19 +99,19 @@ fn spawn_signal_listener(cancel: CancellationToken) {
             let mut sigterm = match signal(SignalKind::terminate()) {
                 Ok(s) => s,
                 Err(e) => {
-                    log_error(&format!("SIGTERM 핸들러 등록 실패: {e}"));
+                    error!("SIGTERM 핸들러 등록 실패: {e}");
                     return;
                 }
             };
             tokio::select! {
-                _ = sigterm.recv() => log_info("SIGTERM 수신"),
-                _ = tokio::signal::ctrl_c() => log_info("SIGINT 수신"),
+                _ = sigterm.recv() => info!("SIGTERM 수신"),
+                _ = tokio::signal::ctrl_c() => info!("SIGINT 수신"),
             }
         }
         #[cfg(not(unix))]
         {
             let _ = tokio::signal::ctrl_c().await;
-            log_info("Ctrl-C 수신");
+            info!("Ctrl-C 수신");
         }
         cancel.cancel();
     });
@@ -137,7 +140,7 @@ fn spawn_watcher(
                     let _ = tx.send(());
                 }
             }
-            Err(e) => log_error(&format!("watcher 에러: {e}")),
+            Err(e) => error!("watcher 에러: {e}"),
         },
     )
     .context("file watcher 초기화 실패")?;
@@ -145,7 +148,7 @@ fn spawn_watcher(
         .watcher()
         .watch(&parent, RecursiveMode::NonRecursive)
         .with_context(|| format!("디렉토리 watch 실패: {}", parent.display()))?;
-    log_info(&format!("watcher 등록 — {}", parent.display()));
+    info!("watcher 등록 — {}", parent.display());
     Ok(debouncer)
 }
 
@@ -166,39 +169,34 @@ fn apply_diff(
         .cloned()
         .collect();
     for id in to_remove {
-        log_info(&format!("strategy 제거: {}", short(&id)));
+        info!("strategy 제거: {}", short(&id));
         if let Some(task) = tasks.remove(&id) {
             task.cancel.cancel();
-            // join 은 background — 즉시 차단되지 않게.
             tokio::spawn(async move {
                 let _ = task.handle.await;
             });
         }
     }
 
-    // 신규 id → spawn (변경된 id 는 sliently 무시 — 사용자가 rm+add 로 명시)
     for entry in new {
         if tasks.contains_key(&entry.id) {
             continue;
         }
         if !old_ids.contains(entry.id.as_str()) {
-            log_info(&format!(
+            info!(
                 "strategy 추가: {} {} {} {} ({})",
                 short(&entry.id),
                 entry.mode.as_str(),
                 entry.kind.as_str(),
                 entry.code,
                 entry.display_name,
-            ));
+            );
         }
         match spawn_strategy(client.clone(), entry, global_cancel) {
             Ok(task) => {
                 tasks.insert(entry.id.clone(), task);
             }
-            Err(e) => log_error(&format!(
-                "strategy spawn 실패 ({}): {e}",
-                short(&entry.id)
-            )),
+            Err(e) => error!("strategy spawn 실패 ({}): {e}", short(&entry.id)),
         }
     }
 }
@@ -249,8 +247,8 @@ fn spawn_strategy(
             }
         };
         match result {
-            Ok(()) => log_info(&format!("{} 정상 종료", label)),
-            Err(e) => log_error(&format!("{} 종료: {e}", label)),
+            Ok(()) => info!("{} 정상 종료", label),
+            Err(e) => error!("{} 종료: {e}", label),
         }
     });
 
@@ -369,18 +367,3 @@ fn _strategy_kind_keep_alive() -> StrategyKind {
     StrategyKind::Rsi
 }
 
-fn log_info(msg: &str) {
-    eprintln!(
-        "[{}] daemon: {}",
-        Local::now().format("%Y-%m-%d %H:%M:%S"),
-        msg
-    );
-}
-
-fn log_error(msg: &str) {
-    eprintln!(
-        "[{}] daemon ERROR: {}",
-        Local::now().format("%Y-%m-%d %H:%M:%S"),
-        msg
-    );
-}

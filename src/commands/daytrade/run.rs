@@ -50,6 +50,7 @@ pub struct Config {
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
+    crate::logging::init_foreground();
     let resolve_mode = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
     let sym = resolve_symbol(&cfg.symbol, resolve_mode, cfg.pick)?;
     let name = if !sym.name_kr.is_empty() { sym.name_kr.clone() }
