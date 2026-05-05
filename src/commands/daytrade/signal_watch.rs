@@ -19,7 +19,7 @@ use crate::symbols::{Market as SymMarket, ResolveMode};
 
 use super::fetch;
 use super::period::Period;
-use super::session::{self, Market};
+use super::session::{self, HolidayCache, Market};
 
 pub struct Config {
     pub symbol: String,
@@ -55,11 +55,12 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
     let cfg = Arc::new(cfg);
     let code = sym.code.clone();
     let sym_market = sym.market;
+    let holiday_cache = HolidayCache::new();
 
     loop {
         let now = session::now_kst();
-        if !session::is_in_session(market, now) {
-            let wait = session::time_until_open(market, now);
+        if !session::is_in_session_async(market, now, &client, &holiday_cache).await {
+            let wait = session::time_until_open_async(market, now, &client, &holiday_cache).await;
             let mins = wait.num_minutes().max(1);
             info!("세션 밖 — 다음 개장까지 약 {}분 대기", mins);
             let chunk = if mins > 30 { 30 } else { mins };

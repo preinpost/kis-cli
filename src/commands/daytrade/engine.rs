@@ -23,7 +23,7 @@ use crate::symbols::{Market as SymMarket, ResolveMode, ResolvedSymbol};
 
 use super::fetch;
 use super::period::Period;
-use super::session::{self, Market};
+use super::session::{self, HolidayCache, Market};
 use super::storage::{Mode, Side, Storage, TradeInsert};
 
 /// 복합 전략 결합 방식.
@@ -162,6 +162,7 @@ pub async fn run<E: Executor>(
     let cfg = Arc::new(cfg);
     let code = sym.code.clone();
     let sym_market = sym.market;
+    let holiday_cache = Arc::new(HolidayCache::new());
 
     // 세션 시작 — live는 실제 계좌 잔고에서 기존 보유를 로드, paper는 None.
     let mut position: Option<Position> = executor.sync_position(&code, market).await?;
@@ -186,7 +187,14 @@ pub async fn run<E: Executor>(
                 }
                 return Ok(());
             }
-            _ = sleep_until_next_tick(market, cfg.period, &code) => {}
+            _ = sleep_until_next_tick(&client, &holiday_cache, market, cfg.period, &code) => {}
+        }
+
+        // 장외 시간(주말·평일 야간)이나 한국 공휴일에는 sleep_until_next_tick 청크 깨움 직후
+        // tick 진입을 차단 — stale 분봉으로 가상 체결이 누적되지 않도록.
+        let now = session::now_kst();
+        if !session::is_in_session_async(market, now, &client, &holiday_cache).await {
+            continue;
         }
 
         if let Err(e) = tick(
@@ -198,10 +206,16 @@ pub async fn run<E: Executor>(
     }
 }
 
-async fn sleep_until_next_tick(market: Market, period: Period, code: &str) {
+async fn sleep_until_next_tick(
+    client: &KisClient,
+    holiday_cache: &HolidayCache,
+    market: Market,
+    period: Period,
+    code: &str,
+) {
     let now = session::now_kst();
-    if !session::is_in_session(market, now) {
-        let wait = session::time_until_open(market, now);
+    if !session::is_in_session_async(market, now, client, holiday_cache).await {
+        let wait = session::time_until_open_async(market, now, client, holiday_cache).await;
         let mins = wait.num_minutes().max(1);
         info!("세션 밖 — 다음 개장까지 약 {}분 대기", mins);
         let chunk = if mins > 30 { 30 } else { mins };
