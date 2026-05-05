@@ -1,6 +1,13 @@
 //! 국내휴장일조회 — GET /uapi/domestic-stock/v1/quotations/chk-holiday
 //!
 //! 스펙: .agent/specs/domestic_stock__sector__chk_holiday.md
+//!
+//! KIS 가이드: 동일 일자에 대해 1일 1회만 호출 권장.
+//!
+//! 응답 형태가 스펙과 실제 사이에서 자주 어긋나는 API라 방어적으로 파싱:
+//! - `output` / `output1` 모두 시도
+//! - Array(여러 일자) 면 BASS_DT 일치하는 행 선택, 없으면 첫 행
+//! - 파싱 실패 시 원본 JSON을 에러 메시지에 포함
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
@@ -48,7 +55,27 @@ pub async fn call(client: &KisClient, req: &Request) -> Result<Response> {
         ("CTX_AREA_FK", req.ctx_area_fk.as_str()),
     ];
     let resp = client.get(ENDPOINT, TR_ID, &params).await?;
-    let output = resp.output.ok_or_else(|| anyhow!("응답에 output 없음"))?;
-    let parsed: Response = serde_json::from_value(output)?;
-    Ok(parsed)
+
+    let value = resp
+        .output
+        .or(resp.output1)
+        .ok_or_else(|| anyhow!("응답에 output/output1 없음"))?;
+
+    let rows: Vec<serde_json::Value> = match value {
+        serde_json::Value::Array(arr) => arr,
+        v => vec![v],
+    };
+    if rows.is_empty() {
+        return Err(anyhow!("응답 배열 비어있음"));
+    }
+
+    // BASS_DT 일치하는 행 우선, 없으면 첫 행
+    let chosen = rows
+        .iter()
+        .find(|r| r.get("bass_dt").and_then(|v| v.as_str()) == Some(req.bass_dt.as_str()))
+        .cloned()
+        .unwrap_or_else(|| rows[0].clone());
+
+    serde_json::from_value::<Response>(chosen.clone())
+        .map_err(|e| anyhow!("파싱 실패: {} (raw: {})", e, chosen))
 }
