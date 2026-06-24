@@ -7,6 +7,13 @@ edition = "2024"
 name = "kis"
 path = "src/main.rs"
 
+[features]
+# 기본(데스크톱) 빌드는 wry/tao 기반 네이티브 차트 뷰어 포함.
+# 헤드리스/컨테이너 빌드는 `--no-default-features` 로 차트 뷰어(및 WebKitGTK 시스템
+# 라이브러리 의존)를 제외한다. `--chart` 는 런타임에 친절한 에러로 거부된다.
+default = ["chart"]
+chart = ["dep:wry", "dep:tao"]
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
@@ -25,8 +32,8 @@ anyhow = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 zip = "2"
 encoding_rs = "0.8"
-wry = "0.46"
-tao = "0.30"
+wry = { version = "0.46", optional = true }
+tao = { version = "0.30", optional = true }
 tokio-cron-scheduler = "0.13"
 chrono-tz = "0.10"
 fs2 = "0.4"

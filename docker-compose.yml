@@ -1,0 +1,48 @@
+name: kis-cli
+
+# 모든 서비스가 같은 이미지·볼륨·시크릿을 공유한다.
+# 일회성 CLI 는 아무 서비스로나: `docker compose run --rm telegram <args>`
+x-kis: &kis
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: kis-cli:latest
+  env_file:                      # 둘 다 선택 — 있는 파일에서 로드, .env.local 이 .env 를 덮어씀
+    - path: .env                 #   (KIS_APP_KEY/SECRET, 계좌, 텔레그램 토큰 등 — .env.example 참고)
+      required: false
+    - path: .env.local
+      required: false
+  environment:
+    TZ: Asia/Seoul               # 한국 장시간 기준
+    RUST_LOG: ${RUST_LOG:-info}
+  volumes:
+    - kis-data:/data             # 토큰캐시·symbols.db·daytrade.db·*.toml 영속
+  init: true                     # tini → SIGTERM 전달 (그레이스풀 종료)
+  stop_grace_period: 30s         # run 모드 포지션 평탄화 여유
+  restart: unless-stopped
+
+services:
+  # 관심종목 실시간 시세 → 텔레그램 메시지 1건 in-place 갱신.
+  # 관심종목은 볼륨의 telegram-stream.toml 에서 로드 (텔레그램 /add 로도 추가 가능).
+  # 최초 1회: docker compose run --rm telegram telegram stream 005930 000660 ...
+  telegram:
+    <<: *kis
+    command: ["telegram", "stream"]
+
+  # 자동매매 데몬 (단일 프로세스 오케스트레이터).
+  # 전략 추가: docker compose run --rm daytrade daytrade add paper ma-cross 005930 --qty 1 --budget 1000000
+  # → 볼륨의 daytrade.toml 변경을 떠 있는 데몬이 inotify 로 hot-reload.
+  daytrade:
+    <<: *kis
+    command: ["daytrade", "daemon"]
+
+  # 자동 손절 데몬.
+  # ⚠ 실주문이 나가는 기능. 기본 command 는 dry-run(관찰만) — 실매도는 `--execute` 추가 필요.
+  # 기본 비활성(profile). 활성화: docker compose --profile stop-loss up -d stop-loss
+  stop-loss:
+    <<: *kis
+    command: ["stop-loss", "run", "--threshold", "-5"]   # 실매도하려면 끝에 "--execute"
+    profiles: ["stop-loss"]
+
+volumes:
+  kis-data:

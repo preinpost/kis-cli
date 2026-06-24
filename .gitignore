@@ -2,6 +2,11 @@
 .kis_token.json
 .kis_ws_token.json
 
+# 컨테이너 시크릿 (.env.example 만 커밋)
+.env
+.env.*
+!.env.example
+
 # Ralph Loop 부산물
 .agent/specs/*.FAILED.md
 /.claude/scheduled_tasks.lock

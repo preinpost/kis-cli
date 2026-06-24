@@ -9,6 +9,7 @@ mod models;
 mod rate_limit;
 mod symbols;
 mod token;
+#[cfg(feature = "chart")]
 mod viewer;
 mod ws;
 
@@ -1654,6 +1655,16 @@ fn unpack_daytrade_run(
     Ok(cfg)
 }
 
+/// 차트 미포함(헤드리스/컨테이너) 빌드용 스텁 — CLI 표면은 유지하되 런타임에 거부.
+#[cfg(not(feature = "chart"))]
+fn run_backtest_chart(_cli: Cli) -> Result<()> {
+    anyhow::bail!(
+        "이 빌드에는 차트 뷰어가 포함되지 않았습니다 (헤드리스 빌드). \
+         차트는 데스크톱 빌드(`cargo build`, 기본 feature)에서 사용하세요."
+    )
+}
+
+#[cfg(feature = "chart")]
 fn run_backtest_chart(cli: Cli) -> Result<()> {
     let Commands::Backtest { strategy: BacktestStrategy::Chart { symbol, seed } } = cli.command
     else {
@@ -1712,6 +1723,16 @@ fn run_backtest_chart(cli: Cli) -> Result<()> {
     viewer::launch_backtest(&prep.title, &prep.html, ctx)
 }
 
+/// 차트 미포함(헤드리스/컨테이너) 빌드용 스텁 — CLI 표면은 유지하되 런타임에 거부.
+#[cfg(not(feature = "chart"))]
+fn run_chart_viewer(_symbol: &str, _usa: bool, _json: bool, _pick: Option<usize>) -> Result<()> {
+    anyhow::bail!(
+        "이 빌드에는 차트 뷰어가 포함되지 않았습니다 (헤드리스 빌드). \
+         차트는 데스크톱 빌드(`cargo build`, 기본 feature)에서 사용하세요."
+    )
+}
+
+#[cfg(feature = "chart")]
 fn run_chart_viewer(symbol: &str, usa: bool, json: bool, pick: Option<usize>) -> Result<()> {
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

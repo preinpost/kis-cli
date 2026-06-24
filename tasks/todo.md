@@ -235,3 +235,51 @@ kis daytrade backtest     <strategy> <symbol> [--usa] [--period ...] [--from] [-
 - [x] `daytrade/lifecycle.rs::start`: `/var/log/kis-cli/` mkdir + chown $run_user
 - [x] `DaytradeAction::Logs` 서브커맨드 — `-f`, `-n N`, `--path` (`tail -F` 래핑)
 - [x] `cargo check` 통과 (1758 pre-existing warning, error 0)
+
+---
+
+# 컨테이너화 / docker-compose 배포
+
+계획 전문: `~/.claude/plans/rippling-percolating-duckling.md`
+
+## 배경
+바이너리 직접 설치 전제로 시작했으나, 실제 운영 핵심은 상주 데몬(telegram stream / daytrade daemon / stop-loss / signal-watch). `docker compose up` 한 번으로 KST 상주 + 일회성 `docker compose run`, 시크릿은 `.env`, 상태는 볼륨 1개.
+
+## 할 일
+### 코드 (Rust)
+- [x] `Cargo.toml`: `[features] default=["chart"]`, `wry`/`tao` optional
+- [x] `src/main.rs`: 차트 진입점 `#[cfg(feature="chart")]` 게이트 + no-chart 스텁 2개
+- [x] `src/config.rs`: `load_config()` 에 env(`KIS_*`) 오버레이 + `apply_env_overrides`/`parse_bool`
+
+### 빌드 검증
+- [x] `cargo check --no-default-features` (헤드리스) / `cargo check` (데스크톱) 둘 다 Finished
+- [x] `cargo tree`: no-default 에서 wry/tao/webkit/gtk/soup **제외** 확인, default 엔 포함
+- [x] no-default 빌드에서 `--chart` / `backtest chart` → 스텁 친절 에러
+- [x] env 오버레이: 더미 env 가 파일 자격증명 덮어씀(모의 토큰 요청 더미로 진행) 확인
+
+### 배포 산출물 (신규)
+- [x] `Dockerfile` (멀티스테이지, BuildKit 캐시마운트, `--no-default-features`)
+- [x] `.dockerignore`
+- [x] `docker-compose.yml` (telegram/daytrade/stop-loss[profile 비활성] + named volume `kis-data`)
+- [x] `.env.example` + `.gitignore` 에 `.env` 추가
+- [x] `README.md` "컨테이너 배포" 섹션 + 플랫폼 메모 갱신
+
+### Docker 검증
+- [x] `docker compose build` 성공 (debian-slim, GTK/WebKit 없음)
+- [x] env-only config: config.toml 없이 `KIS_*` 만으로 config 통과(Linux XDG=/data) / 누락 시 친절 에러
+- [x] `date` = KST, `TZ=Asia/Seoul`
+- [x] `daytrade daemon` PID1 상주 + `docker stop` → SIGTERM 0초·exit0 정상 종료
+
+## Review
+
+### 한 일
+- **차트 뷰어 feature 분리**: `Cargo.toml` `[features] default=["chart"]`, `wry`/`tao` optional. `src/main.rs` 진입점 cfg-gate + 헤드리스 스텁. → `--no-default-features` 빌드에서 GTK/WebKit 의존 완전 제거(`cargo tree` 검증), 데스크톱 빌드 불변.
+- **시크릿 env 주입**: `src/config.rs::load_config()` 에 `KIS_*` env 오버레이(`apply_env_overrides`). 파일 없어도 env 만으로 구성, 파일 있으면 하위호환.
+- **배포 산출물**: `Dockerfile`(멀티스테이지·BuildKit 캐시마운트·헤드리스), `.dockerignore`, `docker-compose.yml`(telegram/daytrade 상주 + stop-loss profile 비활성), `.env.example`, `.gitignore`(.env), README 섹션.
+
+### 함정/수정
+- `.dockerignore` 가 `skill/` 제외 + Dockerfile 이 `skill/` 미복사 → `skill.rs` 의 `include_str!("../../skill/SKILL.md")` 컴파일 실패(Linux 빌드에서만 발견, macOS 는 로컬 파일 존재로 통과). → `.dockerignore` 에서 `skill/` 해제 + `COPY skill ./skill` 추가로 해결.
+
+### 후속(범위 밖)
+- tracing 로그 타임스탬프 UTC → KST (로깅 설정 변경, 거래 로직과 무관).
+- GitHub Actions 이미지 빌드/푸시. K8s 매니페스트.

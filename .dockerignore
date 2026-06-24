@@ -1,0 +1,28 @@
+# 빌드 산출물
+target/
+
+# VCS / CI 메타
+.git/
+.github/
+.gitignore
+
+# 에이전트·문서·스크립트 — 빌드에 불필요
+# (skill/SKILL.md 는 skill.rs 가 include_str! 로 컴파일타임 임베드하므로 제외 금지)
+.agent/
+.claude/
+tasks/
+scripts/
+*.md
+
+# 배포 산출물 자신
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 시크릿 / 로컬 설정 — 이미지에 절대 포함 금지
+.env
+.env.*
+!.env.example
+config.toml
+.kis_token.json
+.kis_ws_token.json
