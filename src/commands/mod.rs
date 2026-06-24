@@ -11,3 +11,4 @@ pub mod skill;
 pub mod stock;
 pub mod stop_loss;
 pub mod symbols;
+pub mod telegram;

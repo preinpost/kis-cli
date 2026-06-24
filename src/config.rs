@@ -118,6 +118,11 @@ pub fn daytrade_config_path() -> Result<PathBuf> {
     Ok(config_dir()?.join("daytrade.toml"))
 }
 
+/// 텔레그램 스트림 관심종목 파일 경로 (`telegram-stream.toml`)
+pub fn telegram_stream_path() -> Result<PathBuf> {
+    Ok(config_dir()?.join("telegram-stream.toml"))
+}
+
 /// 설정 파일 로딩
 pub fn load_config() -> Result<AppConfig> {
     let path = config_path()?;

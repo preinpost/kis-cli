@@ -106,6 +106,12 @@ enum Commands {
         action: DaytradeAction,
     },
 
+    /// 텔레그램 — 관심 종목 시세를 메시지 1건에 in-place 로 실시간 갱신
+    Telegram {
+        #[command(subcommand)]
+        action: TelegramAction,
+    },
+
     /// 백테스트 — 전략별 서브커맨드. 공통 옵션은 모든 전략이 공유
     Backtest {
         #[command(subcommand)]
@@ -339,6 +345,35 @@ struct SignalWatchCommonArgs {
     /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
     #[arg(long)]
     pick: Option<usize>,
+}
+
+#[derive(Subcommand)]
+enum TelegramAction {
+    /// 관심 종목 시세를 텔레그램 메시지 1건에 실시간 갱신 (장 시작 시 발행 → in-place 수정, 다음날 새 메시지)
+    Stream {
+        /// 관심 종목 (이름 또는 코드). 공백으로 구분. 생략 시 저장된 목록(telegram-stream.toml) 사용.
+        /// 인자를 주면 저장된 목록을 그 목록으로 덮어씀.
+        symbols: Vec<String>,
+        /// 갱신 주기 (초). 기본 1
+        #[arg(long, default_value_t = 1)]
+        interval: u64,
+        /// 세션 무시하고 즉시 1회만 전송 후 종료 (포맷 확인용)
+        #[arg(long)]
+        once: bool,
+        /// /etc/systemd/system 에 unit 생성 + enable --now (루트 필요). macOS 는 unit 파일만 출력
+        #[arg(long)]
+        background: bool,
+        /// 텔레그램 명령(/add /rm /list) 수신 끄기 (기본: 켜짐)
+        #[arg(long)]
+        no_listen: bool,
+        /// 복수 매칭 시 N번째 후보 선택 (1-indexed). 비-TTY(systemd/파이프) 필수. 예: --pick 1
+        #[arg(long)]
+        pick: Option<usize>,
+    },
+    /// `--background` 로 등록된 서비스 상태 출력
+    List,
+    /// `--background` 로 등록된 서비스 중지 + 제거 (루트 필요)
+    Remove,
 }
 
 #[derive(Subcommand)]
@@ -1854,6 +1889,23 @@ async fn async_main(cli: Cli) -> Result<()> {
                 };
                 commands::daytrade::history::run(opts)
             }
+        },
+
+        Commands::Telegram { action } => match action {
+            TelegramAction::Stream { symbols, interval, once, background, no_listen, pick } => {
+                let client = std::sync::Arc::new(build_client()?);
+                let cfg = commands::telegram::StreamConfig {
+                    symbols,
+                    interval_secs: interval,
+                    once,
+                    background,
+                    listen: !no_listen,
+                    pick,
+                };
+                commands::telegram::run(client, cfg).await
+            }
+            TelegramAction::List => commands::telegram::list_service(),
+            TelegramAction::Remove => commands::telegram::remove_service(),
         },
 
         Commands::Backtest { strategy } => {
