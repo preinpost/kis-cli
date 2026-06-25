@@ -835,7 +835,8 @@ enum StopLossAction {
     /// 데몬 시작 — 잔고 감시 + 임계치 도달 시 매도
     Run {
         /// 손절 임계치 (%). 이 값보다 손실이 크면 매도. 기본 -5.0
-        #[arg(long, default_value_t = -5.0)]
+        // allow_hyphen_values: `--threshold -5` 처럼 음수값을 플래그로 오인하지 않도록.
+        #[arg(long, default_value_t = -5.0, allow_hyphen_values = true)]
         threshold: f64,
         /// 확인 주기 (초). 기본 30
         #[arg(long, default_value_t = 30)]
