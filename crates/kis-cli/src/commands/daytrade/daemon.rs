@@ -9,13 +9,10 @@
 //! KisClient·토큰·TPS 레이트리밋은 데몬 1개만 보유하여 중앙 관리.
 
 use std::collections::HashMap;
-use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
-use notify_debouncer_mini::{new_debouncer, notify::RecursiveMode, DebouncedEvent};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -43,7 +40,7 @@ pub async fn run(client: Arc<KisClient>) -> Result<()> {
     info!("로그 파일: {}", _log_guard.log_dir.join(&_log_guard.file_name).display());
 
     let global_cancel = CancellationToken::new();
-    spawn_signal_listener(global_cancel.clone());
+    kis_daemon::shutdown::spawn_signal_listener(global_cancel.clone());
 
     let mut tasks: HashMap<String, RunningTask> = HashMap::new();
 
@@ -54,7 +51,7 @@ pub async fn run(client: Arc<KisClient>) -> Result<()> {
     apply_diff(&client, &mut tasks, &[], &initial.strategies, &global_cancel);
 
     let (tx, mut rx) = mpsc::unbounded_channel::<()>();
-    let _watcher_guard = spawn_watcher(&cfg_path, tx)?;
+    let _watcher_guard = kis_daemon::config_watch::spawn_watcher(&cfg_path, tx)?;
 
     let mut current = initial.strategies.clone();
 
@@ -89,67 +86,6 @@ pub async fn run(client: Arc<KisClient>) -> Result<()> {
     }
     info!("daemon 정상 종료");
     Ok(())
-}
-
-fn spawn_signal_listener(cancel: CancellationToken) {
-    tokio::spawn(async move {
-        #[cfg(unix)]
-        {
-            use tokio::signal::unix::{signal, SignalKind};
-            let mut sigterm = match signal(SignalKind::terminate()) {
-                Ok(s) => s,
-                Err(e) => {
-                    error!("SIGTERM 핸들러 등록 실패: {e}");
-                    return;
-                }
-            };
-            tokio::select! {
-                _ = sigterm.recv() => info!("SIGTERM 수신"),
-                _ = tokio::signal::ctrl_c() => info!("SIGINT 수신"),
-            }
-        }
-        #[cfg(not(unix))]
-        {
-            let _ = tokio::signal::ctrl_c().await;
-            info!("Ctrl-C 수신");
-        }
-        cancel.cancel();
-    });
-}
-
-fn spawn_watcher(
-    path: &Path,
-    tx: mpsc::UnboundedSender<()>,
-) -> Result<notify_debouncer_mini::Debouncer<notify_debouncer_mini::notify::RecommendedWatcher>>
-{
-    let parent = path
-        .parent()
-        .ok_or_else(|| anyhow!("daytrade.toml 의 부모 디렉토리 없음: {}", path.display()))?
-        .to_path_buf();
-    if !parent.exists() {
-        std::fs::create_dir_all(&parent)
-            .with_context(|| format!("config dir 생성 실패: {}", parent.display()))?;
-    }
-    // 부모 디렉토리를 watch (파일 자체가 다시 생성될 수도 있음 — 에디터의 atomic write 패턴 대응).
-    let path_filter = path.to_path_buf();
-    let mut debouncer = new_debouncer(
-        Duration::from_millis(500),
-        move |res: Result<Vec<DebouncedEvent>, notify_debouncer_mini::notify::Error>| match res {
-            Ok(events) => {
-                if events.iter().any(|e| e.path == path_filter) {
-                    let _ = tx.send(());
-                }
-            }
-            Err(e) => error!("watcher 에러: {e}"),
-        },
-    )
-    .context("file watcher 초기화 실패")?;
-    debouncer
-        .watcher()
-        .watch(&parent, RecursiveMode::NonRecursive)
-        .with_context(|| format!("디렉토리 watch 실패: {}", parent.display()))?;
-    info!("watcher 등록 — {}", parent.display());
-    Ok(debouncer)
 }
 
 fn apply_diff(

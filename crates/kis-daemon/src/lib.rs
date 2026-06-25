@@ -9,4 +9,6 @@
 //! - `config_watch` : notify 기반 설정 파일 핫리로드 감시
 //!
 //! KisClient/SDK 에 의존하지 않는 generic 인프라다(다른 leaf 크레이트와 동일).
+pub mod config_watch;
 pub mod logging;
+pub mod shutdown;
