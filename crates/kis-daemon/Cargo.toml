@@ -1,0 +1,16 @@
+[package]
+name = "kis-daemon"
+version.workspace = true
+edition.workspace = true
+
+# 데몬 공통 인프라 (로깅·종료처리·설정감시). KisClient 비의존 generic leaf.
+[dependencies]
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+notify = { workspace = true }
+notify-debouncer-mini = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+dirs = { workspace = true }
+anyhow = { workspace = true }

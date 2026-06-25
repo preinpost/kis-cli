@@ -18,6 +18,7 @@ chart = ["dep:wry", "dep:tao"]
 kis-core = { path = "../kis-core" }
 kis-data = { path = "../kis-data" }
 kis-analysis = { path = "../kis-analysis" }
+kis-daemon = { path = "../kis-daemon" }
 
 clap = { workspace = true }
 tokio = { workspace = true }

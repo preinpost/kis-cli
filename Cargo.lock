@@ -1812,6 +1812,7 @@ dependencies = [
  "futures-util",
  "kis-analysis",
  "kis-core",
+ "kis-daemon",
  "kis-data",
  "notify",
  "notify-debouncer-mini",
@@ -1852,6 +1853,21 @@ dependencies = [
  "tokio-tungstenite",
  "toml",
  "tracing",
+]
+
+[[package]]
+name = "kis-daemon"
+version = "1.0.22"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "notify",
+ "notify-debouncer-mini",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
 ]
 
 [[package]]

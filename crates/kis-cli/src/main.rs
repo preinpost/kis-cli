@@ -1,11 +1,10 @@
 mod commands;
 mod error;
-mod logging;
 #[cfg(feature = "chart")]
 mod viewer;
 
-// 워크스페이스 분리: api/client/config/... 는 별도 크레이트로 이전됐다.
-// 기존 `crate::api`, `crate::symbols`, `crate::analysis` 등의 경로를 그대로
+// 워크스페이스 분리: api/client/config/logging/... 는 별도 크레이트로 이전됐다.
+// 기존 `crate::api`, `crate::symbols`, `crate::logging` 등의 경로를 그대로
 // 쓰도록 크레이트 루트에 재수출 → commands/viewer 내부 참조 무수정 유지.
 #[allow(unused_imports)]
 pub use kis_core::{api, client, config, models, rate_limit, token, ws};
@@ -13,6 +12,8 @@ pub use kis_core::{api, client, config, models, rate_limit, token, ws};
 pub use kis_data::symbols;
 #[allow(unused_imports)]
 pub use kis_analysis::analysis;
+#[allow(unused_imports)]
+pub use kis_daemon::logging;
 
 use std::io::{self, Write};
 

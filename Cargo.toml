@@ -4,6 +4,7 @@ members = [
     "crates/kis-core",
     "crates/kis-data",
     "crates/kis-analysis",
+    "crates/kis-daemon",
     "crates/kis-cli",
 ]
 
