@@ -346,6 +346,24 @@ sudo journalctl -u kis-daytrade -f
 kis daytrade status
 ```
 
+### 컨테이너(docker compose)로 실행
+
+systemd(`daytrade start`) 대신 컨테이너로 띄우는 방법. 전략 등록만 `kis` → `docker compose run` 으로 바꾸면 된다 (이미지 빌드·env 셋업은 위 **컨테이너 배포 (Docker / docker-compose)** 섹션 참조).
+
+```bash
+# 전략 등록 (볼륨의 daytrade.toml 갱신)
+docker compose run --rm daytrade daytrade add paper rsi 000660 --qty 1 --budget 1000000
+
+# 데몬 상주 — daytrade.toml 변경을 inotify 로 hot-reload
+docker compose up -d daytrade
+
+docker compose logs -f daytrade        # KST 타임스탬프 로그
+docker compose ps                       # 상태
+docker compose stop daytrade            # SIGTERM → 그레이스풀 종료 (EOD/포지션 정리 여유 stop_grace_period 30s)
+```
+
+다른 서버 배포(GHCR pull)는 [`deploy/`](deploy/README.md) 참조.
+
 ### 라이프사이클 명령
 
 | 명령 | 설명 |
@@ -510,6 +528,22 @@ kis stop-loss path
 - 미지정 시 전체 잔고 감시, 코드/종목명 일부로 필터링 가능.
 - `--execute` 없으면 드라이런 — 실제 주문 없이 로그만 남는다.
 - 상태 파일: `~/Library/Application Support/kis-cli/stoploss.status.json` (진행 상황·최근 가격 기록). `kis stop-loss path`로 경로 확인 가능.
+
+### 컨테이너(docker compose)로 실행
+
+`stop-loss` 는 **실주문 위험** 때문에 compose 에서 profile 로 기본 비활성이며 기본 command 는 dry-run(`stop-loss run --threshold -5`)이다.
+
+```bash
+# dry-run 으로 상주 (관찰만 — 매도 안 함)
+docker compose --profile stop-loss up -d stop-loss
+docker compose logs -f stop-loss
+docker compose stop stop-loss          # SIGTERM → 현재 iteration 마무리 + 상태 flush 후 종료
+
+# 실매도하려면: docker-compose.yml(또는 deploy/compose.yaml) 의 stop-loss command 끝에 "--execute" 추가
+#   command: ["stop-loss", "run", "--threshold", "-5", "--execute"]
+```
+
+이미지 빌드·env 셋업은 위 **컨테이너 배포** 섹션, 다른 서버 배포(GHCR)는 [`deploy/`](deploy/README.md) 참조.
 
 ## Claude와 같이 쓰기
 
