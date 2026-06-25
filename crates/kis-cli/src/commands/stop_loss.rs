@@ -15,6 +15,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
 use crate::api::domestic_stock::order_account::{inquire_balance as dome_bal, order_cash};
@@ -36,14 +37,18 @@ pub struct Config {
 pub async fn run(client: &KisClient, cfg: Config) -> Result<()> {
     let _log_guard = crate::logging::init_daemon("stop-loss")?;
     print_banner(&cfg);
+    // SIGTERM/Ctrl-C → 진행 중인 iteration 을 마무리한 뒤 그레이스풀 종료
+    // (컨테이너 `docker compose stop` 시 강제 SIGKILL 방지).
+    let cancel = CancellationToken::new();
+    kis_daemon::shutdown::spawn_signal_listener(cancel.clone());
     if cfg.use_ws {
-        run_ws(client, &cfg).await
+        run_ws(client, &cfg, &cancel).await
     } else {
-        run_polling(client, cfg).await
+        run_polling(client, cfg, &cancel).await
     }
 }
 
-async fn run_polling(client: &KisClient, cfg: Config) -> Result<()> {
+async fn run_polling(client: &KisClient, cfg: Config, cancel: &CancellationToken) -> Result<()> {
     let mut sold: HashSet<String> = HashSet::new();
     let mut iter = 0u64;
     let started_at = chrono::Local::now().to_rfc3339();
@@ -81,8 +86,15 @@ async fn run_polling(client: &KisClient, cfg: Config) -> Result<()> {
             println!("감시 중... (Ctrl+C 로 중단)");
         }
 
-        tokio::time::sleep(Duration::from_secs(cfg.interval_secs)).await;
+        tokio::select! {
+            _ = cancel.cancelled() => {
+                info!("종료 신호 수신 — 손절 데몬 정리");
+                break;
+            }
+            _ = tokio::time::sleep(Duration::from_secs(cfg.interval_secs)) => {}
+        }
     }
+    Ok(())
 }
 
 fn print_banner(cfg: &Config) {
@@ -364,7 +376,7 @@ struct SharedState {
     last_status_write: Instant,
 }
 
-async fn run_ws(client: &KisClient, cfg: &Config) -> Result<()> {
+async fn run_ws(client: &KisClient, cfg: &Config, cancel: &CancellationToken) -> Result<()> {
     // 1. 초기 잔고 → 포지션 리스트
     let positions = fetch_initial_positions(client, &cfg.symbols).await?;
     if positions.is_empty() {
@@ -393,7 +405,7 @@ async fn run_ws(client: &KisClient, cfg: &Config) -> Result<()> {
     // 3. reconnect 루프 (exp backoff 2,4,8,16,32 최대)
     let mut attempt: u32 = 0;
     loop {
-        match run_ws_session(client, cfg, state.clone()).await {
+        match run_ws_session(client, cfg, state.clone(), cancel).await {
             Ok(()) => {
                 info!("[WS] 정상 종료");
                 break;
@@ -406,7 +418,13 @@ async fn run_ws(client: &KisClient, cfg: &Config) -> Result<()> {
                     attempt
                 );
                 state.lock().unwrap().subscribed.clear();
-                tokio::time::sleep(Duration::from_secs(delay)).await;
+                tokio::select! {
+                    _ = cancel.cancelled() => {
+                        info!("[WS] 종료 신호 수신 — 재연결 중단");
+                        break;
+                    }
+                    _ = tokio::time::sleep(Duration::from_secs(delay)) => {}
+                }
 
                 if let Err(re) = refresh_positions_in_state(client, &cfg.symbols, &state).await {
                     error!("  잔고 갱신 실패 (이전 상태로 계속): {re}");
@@ -422,6 +440,7 @@ async fn run_ws_session(
     client: &KisClient,
     cfg: &Config,
     state: std::sync::Arc<std::sync::Mutex<SharedState>>,
+    cancel: &CancellationToken,
 ) -> Result<()> {
     let approval_key = client
         .token_manager
@@ -444,6 +463,10 @@ async fn run_ws_session(
 
     loop {
         tokio::select! {
+            _ = cancel.cancelled() => {
+                info!("[WS] 종료 신호 수신");
+                return Ok(());
+            }
             msg = read.next() => {
                 let Some(msg) = msg else {
                     return Err(anyhow::anyhow!("WS 스트림 종료"));

@@ -1,17 +1,19 @@
-mod analysis;
-mod api;
-mod client;
 mod commands;
-mod config;
 mod error;
-mod logging;
-mod models;
-mod rate_limit;
-mod symbols;
-mod token;
 #[cfg(feature = "chart")]
 mod viewer;
-mod ws;
+
+// 워크스페이스 분리: api/client/config/logging/... 는 별도 크레이트로 이전됐다.
+// 기존 `crate::api`, `crate::symbols`, `crate::logging` 등의 경로를 그대로
+// 쓰도록 크레이트 루트에 재수출 → commands/viewer 내부 참조 무수정 유지.
+#[allow(unused_imports)]
+pub use kis_core::{api, client, config, models, rate_limit, token, ws};
+#[allow(unused_imports)]
+pub use kis_data::symbols;
+#[allow(unused_imports)]
+pub use kis_analysis::analysis;
+#[allow(unused_imports)]
+pub use kis_daemon::logging;
 
 use std::io::{self, Write};
 
@@ -833,7 +835,8 @@ enum StopLossAction {
     /// 데몬 시작 — 잔고 감시 + 임계치 도달 시 매도
     Run {
         /// 손절 임계치 (%). 이 값보다 손실이 크면 매도. 기본 -5.0
-        #[arg(long, default_value_t = -5.0)]
+        // allow_hyphen_values: `--threshold -5` 처럼 음수값을 플래그로 오인하지 않도록.
+        #[arg(long, default_value_t = -5.0, allow_hyphen_values = true)]
         threshold: f64,
         /// 확인 주기 (초). 기본 30
         #[arg(long, default_value_t = 30)]

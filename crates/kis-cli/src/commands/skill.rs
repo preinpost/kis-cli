@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
 
-const SKILL_BODY: &str = include_str!("../../skill/SKILL.md");
+const SKILL_BODY: &str = include_str!("../../../../skill/SKILL.md");
 const SKILL_NAME: &str = "kis";
 
 fn skills_root() -> Result<PathBuf> {

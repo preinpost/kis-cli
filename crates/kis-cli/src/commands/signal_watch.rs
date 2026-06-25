@@ -92,9 +92,9 @@ pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
     sched.add(job).await?;
     sched.start().await?;
 
-    log_info("스케줄러 시작됨. 종료: Ctrl+C");
+    log_info("스케줄러 시작됨. 종료: Ctrl+C / SIGTERM");
 
-    tokio::signal::ctrl_c().await?;
+    kis_daemon::shutdown::wait_for_shutdown().await;
     log_info("종료 신호 수신, 스케줄러 정리…");
     sched.shutdown().await.ok();
     Ok(())
@@ -432,7 +432,7 @@ pub async fn run_all(client: Arc<KisClient>, cfg: AllConfig) -> Result<()> {
         }
     }
 
-    wait_for_shutdown_signal().await;
+    kis_daemon::shutdown::wait_for_shutdown().await;
     log_info("종료 신호 수신, 스케줄러 정리…");
 
     if let Some(tg) = telegram.as_deref() {
@@ -447,29 +447,6 @@ pub async fn run_all(client: Arc<KisClient>, cfg: AllConfig) -> Result<()> {
 
     sched.shutdown().await.ok();
     Ok(())
-}
-
-async fn wait_for_shutdown_signal() {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-        let mut sigterm = match signal(SignalKind::terminate()) {
-            Ok(s) => s,
-            Err(e) => {
-                log_error(&format!("SIGTERM 핸들러 등록 실패: {e} — Ctrl+C 만 대기"));
-                let _ = tokio::signal::ctrl_c().await;
-                return;
-            }
-        };
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = sigterm.recv() => {}
-        }
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = tokio::signal::ctrl_c().await;
-    }
 }
 
 fn get_hostname() -> String {

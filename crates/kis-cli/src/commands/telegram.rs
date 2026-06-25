@@ -91,7 +91,7 @@ pub async fn run(client: Arc<KisClient>, cfg: StreamConfig) -> Result<()> {
     // 5) 공유 상태 + 종료 시그널.
     let shared: Shared = Arc::new(Mutex::new(watches));
     let cancel = CancellationToken::new();
-    spawn_signal_listener(cancel.clone());
+    kis_daemon::shutdown::spawn_signal_listener(cancel.clone());
 
     // 6) 명령 폴러 (getUpdates) 기동.
     if cfg.listen {
@@ -679,36 +679,6 @@ async fn edit_message_text(tg: &TelegramConfig, message_id: i64, text: &str) -> 
         return Ok(EditOutcome::RateLimited(retry));
     }
     Err(anyhow!("editMessageText HTTP {}: {}", status, body))
-}
-
-// ─────────────────────────────────────────────────────────────
-// 종료 시그널
-// ─────────────────────────────────────────────────────────────
-
-fn spawn_signal_listener(cancel: CancellationToken) {
-    tokio::spawn(async move {
-        #[cfg(unix)]
-        {
-            use tokio::signal::unix::{signal, SignalKind};
-            let mut sigterm = match signal(SignalKind::terminate()) {
-                Ok(s) => s,
-                Err(e) => {
-                    error!("SIGTERM 핸들러 등록 실패: {e}");
-                    return;
-                }
-            };
-            tokio::select! {
-                _ = sigterm.recv() => info!("SIGTERM 수신"),
-                _ = tokio::signal::ctrl_c() => info!("SIGINT 수신"),
-            }
-        }
-        #[cfg(not(unix))]
-        {
-            let _ = tokio::signal::ctrl_c().await;
-            info!("Ctrl-C 수신");
-        }
-        cancel.cancel();
-    });
 }
 
 // ─────────────────────────────────────────────────────────────
