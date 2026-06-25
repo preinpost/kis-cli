@@ -42,12 +42,31 @@ kis-cli `main.rs` 에서 `pub use kis_core::{api,client,...}` 등으로 **기존
 - [ ] `cargo test` 통과
 - [ ] 커밋
 
-## Phase B (별도 — 사용자 복귀 후 같이)
-**kis-daemon 슈퍼바이저**: stop-loss/signal-watch/daytrade/telegram 4개 데몬을
-단일 프로세스(config 1·로그 파이프 1·라이프사이클 1)로 통합.
-`daytrade/daemon.rs` 의 `notify` config 핫리로드 패턴을 표준으로 승격.
-→ **실주문/돈 만지는 데몬의 런타임·CLI 표면을 바꾸는 설계 변경 + 라이브 검증 필요**,
-   사용자 확인 후 진행. (CLI subcommand 유지 vs `kisd` 분리 = 제품 결정)
+## Phase B (완료) — kis-daemon = lib (단일 슈퍼바이저 아님)
+
+**결정:** 데몬 배포가 Docker per-container(compose 가 데몬별 컨테이너로 이미 슈퍼바이징)라
+단일 `kisd` 프로세스는 만들지 않음. `kis-daemon` 은 **bin 이 아니라 lib** — 4개 데몬이
+복붙해둔 스캐폴딩(logging/shutdown/config_watch)만 공유. 각 데몬 subcommand·컨테이너 유지.
+
+커밋:
+- `fbc1eab` kis-daemon 크레이트 신설 + logging 이전 (재수출로 호출부 무수정)
+- `9111ba7` shutdown(spawn_signal_listener·wait_for_shutdown) + config_watch(spawn_watcher)
+  추출, daytrade/telegram dedup (바이트 동일 복붙 제거)
+- `c6244f4` signal-watch 종료 통일
+- `3527046` **stop-loss 그레이스풀 종료 추가** (유일한 동작 변경) — 라이브 스모크로
+  검증: DRY-RUN 띄우고 SIGTERM → exit 0 + "종료 신호 수신" 로그 (이전엔 SIGKILL 당함)
+
+검증: cargo build(default+headless) · cargo test 16/16 · stop-loss SIGTERM 라이브 스모크.
+
+### Phase B 중 발견한 기존 버그 (Phase B 무관, 미수정)
+`docker-compose.yml:44` 의 `command: [stop-loss, run, --threshold, -5]` 는 clap 이 `-5` 를
+플래그로 오인 → "unexpected argument '-5'" 로 **컨테이너 크래시루프**. profile-gated 라
+기본 비활성이지만 stop-loss 프로필 켜면 자동손절이 안 뜸. 수정 옵션: compose `--threshold=-5`
+(threshold 기본값이 이미 -5라 플래그 생략도 가능) 또는 clap arg 에 `allow_hyphen_values`.
+
+### Phase B2 (선택, 보류)
+daytrade `RunningTask`/`apply_diff` drain-join 을 generic `TaskSupervisor` 로 일반화
+(+telegram spawn task explicit join). 더 침습적이라 별도 진행.
 
 ## Review (완료 — Phase A)
 - 4크레이트 분리 완료. `git mv` 415 rename (히스토리 보존).
