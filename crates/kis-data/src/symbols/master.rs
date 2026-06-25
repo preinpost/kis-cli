@@ -182,7 +182,8 @@ fn is_ticker_like(t: &str) -> bool {
     if t.is_empty() || t.len() > 10 {
         return false;
     }
-    t.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+    // 티커는 대문자/숫자(+`.`/`-`)로 구성 — 소문자가 섞인 회사명("Tesla")은 티커가 아니다.
+    t.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '.' || c == '-')
         && t.chars().any(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
 }
 
