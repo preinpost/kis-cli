@@ -1,20 +1,19 @@
-[package]
-name = "kis-cli"
+[workspace]
+resolver = "2"
+members = [
+    "crates/kis-core",
+    "crates/kis-data",
+    "crates/kis-analysis",
+    "crates/kis-cli",
+]
+
+[workspace.package]
 version = "1.0.22"
 edition = "2024"
 
-[[bin]]
-name = "kis"
-path = "src/main.rs"
-
-[features]
-# 기본(데스크톱) 빌드는 wry/tao 기반 네이티브 차트 뷰어 포함.
-# 헤드리스/컨테이너 빌드는 `--no-default-features` 로 차트 뷰어(및 WebKitGTK 시스템
-# 라이브러리 의존)를 제외한다. `--chart` 는 런타임에 친절한 에러로 거부된다.
-default = ["chart"]
-chart = ["dep:wry", "dep:tao"]
-
-[dependencies]
+# 모든 멤버 크레이트가 공유하는 의존성 버전(중복 제거 + 일괄 업그레이드).
+# 멤버 Cargo.toml 에서는 `dep = { workspace = true }` 로 참조한다.
+[workspace.dependencies]
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["json"] }
@@ -32,8 +31,8 @@ anyhow = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 zip = "2"
 encoding_rs = "0.8"
-wry = { version = "0.46", optional = true }
-tao = { version = "0.30", optional = true }
+wry = "0.46"
+tao = "0.30"
 tokio-cron-scheduler = "0.13"
 chrono-tz = "0.10"
 fs2 = "0.4"

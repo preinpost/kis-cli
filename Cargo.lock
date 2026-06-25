@@ -1790,20 +1790,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "kis-analysis"
+version = "1.0.22"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kis-cli"
 version = "1.0.22"
 dependencies = [
- "aes",
  "anyhow",
- "base64",
- "cbc",
  "chrono",
  "chrono-tz",
  "clap",
  "dirs",
- "encoding_rs",
  "fs2",
  "futures-util",
+ "kis-analysis",
+ "kis-core",
+ "kis-data",
  "notify",
  "notify-debouncer-mini",
  "reqwest",
@@ -1821,6 +1830,43 @@ dependencies = [
  "tracing-subscriber",
  "ulid",
  "wry",
+]
+
+[[package]]
+name = "kis-core"
+version = "1.0.22"
+dependencies = [
+ "aes",
+ "anyhow",
+ "base64",
+ "cbc",
+ "chrono",
+ "chrono-tz",
+ "dirs",
+ "fs2",
+ "futures-util",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "toml",
+ "tracing",
+]
+
+[[package]]
+name = "kis-data"
+version = "1.0.22"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "dirs",
+ "encoding_rs",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tokio",
  "zip",
 ]
 

@@ -90,7 +90,8 @@ def main() -> int:
             slug = base_slug
 
         module_path = f"api::{mod_prefix}::{leaf}"
-        file_path = "src/" + module_path.replace("::", "/") + ".rs"
+        # api 모듈은 워크스페이스 분리 후 kis-core 크레이트로 이동.
+        file_path = "crates/kis-core/src/" + module_path.replace("::", "/") + ".rs"
         spec_path = f".agent/specs/{slug}.md"
 
         out.append({

@@ -1,0 +1,45 @@
+[package]
+name = "kis-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "kis"
+path = "src/main.rs"
+
+[features]
+# 기본(데스크톱) 빌드는 wry/tao 기반 네이티브 차트 뷰어 포함.
+# 헤드리스/컨테이너 빌드는 `--no-default-features` 로 차트 뷰어(및 WebKitGTK 시스템
+# 라이브러리 의존)를 제외한다. `--chart` 는 런타임에 친절한 에러로 거부된다.
+default = ["chart"]
+chart = ["dep:wry", "dep:tao"]
+
+[dependencies]
+kis-core = { path = "../kis-core" }
+kis-data = { path = "../kis-data" }
+kis-analysis = { path = "../kis-analysis" }
+
+clap = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+dirs = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+anyhow = { workspace = true }
+rusqlite = { workspace = true }
+tokio-cron-scheduler = { workspace = true }
+fs2 = { workspace = true }
+notify = { workspace = true }
+notify-debouncer-mini = { workspace = true }
+ulid = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+wry = { workspace = true, optional = true }
+tao = { workspace = true, optional = true }

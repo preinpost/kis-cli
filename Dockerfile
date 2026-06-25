@@ -15,15 +15,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-# skill.rs 가 include_str!("../../skill/SKILL.md") 로 컴파일타임 임베드.
+COPY crates ./crates
+# skill.rs 가 include_str!("../../../../skill/SKILL.md") 로 컴파일타임 임베드.
 COPY skill ./skill
 
 # BuildKit 캐시 마운트로 registry/target 캐시 → 반복 빌드 가속.
 # target 은 캐시(레이어 비영속)이므로 바이너리를 레이어 경로로 복사해 둔다.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
-    cargo build --release --no-default-features --locked \
+    cargo build -p kis-cli --release --no-default-features --locked \
     && cp target/release/kis /usr/local/bin/kis
 
 # ─────────────────────────── runtime ───────────────────────────
