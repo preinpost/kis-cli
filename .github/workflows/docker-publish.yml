@@ -1,0 +1,68 @@
+name: Publish container image (GHCR)
+
+# 컨테이너 이미지를 GitHub Container Registry(ghcr.io)에 발행한다.
+# - 버전 태그 푸시(v*)  → ghcr.io/<owner>/kis-cli:<X.Y.Z>, :<X.Y>, :latest
+# - main 브랜치 푸시      → :main, :sha-<short>   (최신 개발본)
+# - 수동 실행(dispatch)   → 현재 ref 기준 재빌드
+#
+# 다른 서버 배포: `docker compose pull` 로 이 이미지를 받아 띄운다(README "다른 서버 배포" 참조).
+# 멀티아키(amd64+arm64) — arm64 는 QEMU 에뮬이라 첫 빌드가 느리지만 GHA 캐시로 이후 가속.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}   # 예: preinpost/kis-cli
+
+# 같은 ref 의 중복 빌드는 취소 (멀티아키 빌드가 길어서 비용 절약)
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write          # GHCR push
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata (tags/labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=sha,format=short
+          # latest=auto(기본): 버전 태그(v*) 에서만 :latest 부여
+
+      - uses: docker/setup-qemu-action@v3      # arm64 크로스 빌드용 에뮬레이터
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false       # 멀티아키 매니페스트를 깔끔하게(불필요한 unknown/unknown 제외)

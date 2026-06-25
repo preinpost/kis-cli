@@ -139,6 +139,26 @@ docker compose --profile stop-loss up -d stop-loss
 
 > `--chart` 등 차트 뷰어 기능은 헤드리스 이미지에 미포함 — 데스크톱 바이너리(설치 A/B/C)를 쓰자.
 
+### 다른 서버 배포 (GHCR 이미지)
+
+소스 없이 발행된 이미지를 pull 해서 띄우려면 `deploy/` 샘플을 쓴다.
+이미지는 GitHub Actions(`.github/workflows/docker-publish.yml`)가 **버전 태그(`v*`) 푸시** 시
+`ghcr.io/<owner>/kis-cli` 로 자동 발행한다 (amd64 + arm64).
+
+```bash
+# 서버에서: deploy/ 만 복사 → 로그인(private면) → env 채우기 → pull → 데몬 기동
+cd deploy
+echo $GHCR_PAT | docker login ghcr.io -u <github-username> --password-stdin   # private 패키지만
+cp .env.example .env && $EDITOR .env          # 플레이스홀더 → 실제 값
+docker compose pull
+docker compose run --rm telegram symbols sync # 최초 1회
+docker compose up -d telegram                 # 또는 daytrade / --profile stop-loss up -d stop-loss
+```
+
+데몬별 필요 환경변수·기동 명령은 [`deploy/README.md`](deploy/README.md) 참조. 공통 필수 env:
+`KIS_APP_KEY` · `KIS_APP_SECRET` · `KIS_ACCOUNT_NUMBER` · `KIS_IS_MOCK`
+(텔레그램 데몬은 `KIS_TELEGRAM_BOT_TOKEN` · `KIS_TELEGRAM_CHAT_ID` 추가).
+
 ## 종목 마스터 동기화
 
 이름 검색을 쓰려면 먼저 한 번 동기화.
