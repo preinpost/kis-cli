@@ -49,5 +49,20 @@ kis-cli `main.rs` 에서 `pub use kis_core::{api,client,...}` 등으로 **기존
 → **실주문/돈 만지는 데몬의 런타임·CLI 표면을 바꾸는 설계 변경 + 라이브 검증 필요**,
    사용자 확인 후 진행. (CLI subcommand 유지 vs `kisd` 분리 = 제품 결정)
 
-## Review
-(작업 후 기록)
+## Review (완료 — Phase A)
+- 4크레이트 분리 완료. `git mv` 415 rename (히스토리 보존).
+- 재수출 전략 적중: commands/viewer cross-ref **0줄 수정**.
+- 검증: leaf 독립 컴파일 ✓ · kis-cli(chart) ✓ · headless(`--no-default-features`) ✓ ·
+  `cargo test --workspace` 16/16 ✓ · `kis --help` ✓.
+- 경로 의존 보정: Dockerfile / skill.rs include_str! / build-registry.py.
+- CI(release/bump)·docker-compose 무영향 확인 (bump 의 `^version` sed 는 workspace.package 명중).
+- 커밋: `7b48bc5` refactor(분리) + `90bc784` fix(is_ticker_like 선행버그).
+
+### 발견한 선행 버그 (분리와 무관, 별도 커밋)
+`is_ticker_like("Tesla")==true` → 소문자 회사명을 티커로 오인. main 에도 동일 존재.
+CI 가 `cargo test` 미실행이라 미발견. all() 조건 대문자로 좁혀 수정, 테스트 통과.
+
+### 남은 것
+- **Phase B (kis-daemon 슈퍼바이저)** — 사용자 복귀 후 설계 확정 필요 (아래 참조).
+- (선택) `tasks/api-registry.json` 의 file_path 가 옛 `src/api/...` (pending=0 이라 무해, 재생성 시 자동 보정).
+- (선택) 선행 dead_code 경고들(`KisError`, `launch_static`, `split_kr_en`, `time_until_open` 등) 정리.
