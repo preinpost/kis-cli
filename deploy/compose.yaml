@@ -12,6 +12,8 @@ name: kis-cli
 #
 # 모든 service 가 같은 이미지·볼륨·.env 를 공유한다.
 x-kis: &kis
+  # :latest = 최신 main 빌드 (CI 가 main 푸시마다 :latest 갱신). 롤링 :main 과 동일 본.
+  # 특정 버전 고정: KIS_IMAGE=ghcr.io/preinpost/kis-cli:1.0.24  (또는 :sha-xxxxxxx)
   image: ${KIS_IMAGE:-ghcr.io/preinpost/kis-cli:latest}
   pull_policy: always
   env_file: [.env]              # KIS_* 자격증명 — .env.example 참조
