@@ -66,6 +66,17 @@ impl Market {
     pub fn is_futureoption(&self) -> bool {
         matches!(self, Market::FoIdx | Market::FoStk)
     }
+
+    /// 해외 시세 API 거래소코드(EXCD): NAS/NYS/AMS. 비-미국 시장은 기본 NAS.
+    /// 주문용 거래소코드(OVRS_EXCG_CD: NASD/NYSE/AMEX)와는 다르다.
+    pub fn excd(&self) -> &'static str {
+        match self {
+            Market::Nasdaq => "NAS",
+            Market::Nyse => "NYS",
+            Market::Amex => "AMS",
+            _ => "NAS",
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -226,4 +237,24 @@ fn fts_sanitize(input: &str) -> String {
         })
         .collect();
     tokens.join(" ")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn excd_maps_us_exchanges() {
+        // 해외 시세 API 거래소코드 — 주문용 OVRS_EXCG_CD(NASD/NYSE/AMEX)와 다름에 주의.
+        assert_eq!(Market::Nasdaq.excd(), "NAS");
+        assert_eq!(Market::Nyse.excd(), "NYS");
+        assert_eq!(Market::Amex.excd(), "AMS");
+    }
+
+    #[test]
+    fn market_classification() {
+        assert!(Market::Kospi.is_domestic() && !Market::Kospi.is_overseas());
+        assert!(Market::Nasdaq.is_overseas() && !Market::Nasdaq.is_domestic());
+        assert!(Market::FoStk.is_futureoption());
+    }
 }

@@ -11,16 +11,6 @@ use crate::commands::helpers::{format_number, resolve_symbol};
 use crate::symbols::{Market, ResolveMode, ResolvedSymbol};
 use crate::ws;
 
-/// KIS 해외시장 코드 변환
-fn excd(market: Market) -> &'static str {
-    match market {
-        Market::Nasdaq => "NAS",
-        Market::Nyse => "NYS",
-        Market::Amex => "AMS",
-        _ => "NAS",
-    }
-}
-
 /// 잔고/주문용 거래소 코드 (OVRS_EXCG_CD). 해외주식 거래 API에서 사용.
 fn ovrs_excg(market: Market) -> &'static str {
     match market {
@@ -39,7 +29,7 @@ pub async fn run_price(client: &KisClient, symbol: &str, pick: Option<usize>) ->
     let sym = resolve_symbol(symbol, ResolveMode::Overseas, pick)?;
     let req = price::Request {
         auth: "".into(),
-        excd: excd(sym.market).into(),
+        excd: sym.market.excd().into(),
         symb: sym.code.clone(),
     };
     let r = price::call(client, &req).await?;
@@ -185,7 +175,7 @@ pub async fn run_order(
 
 pub async fn run_watch(client: &KisClient, symbol: &str, pick: Option<usize>) -> Result<()> {
     let sym = resolve_symbol(symbol, ResolveMode::Overseas, pick)?;
-    ws::run_overseas(client.token_manager.clone(), excd(sym.market), &sym.code).await
+    ws::run_overseas(client.token_manager.clone(), sym.market.excd(), &sym.code).await
 }
 
 pub async fn run_history(client: &KisClient, exchange: &str) -> Result<()> {

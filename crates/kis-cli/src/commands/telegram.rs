@@ -17,11 +17,12 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
 use crate::api::domestic_stock::quotations::inquire_price;
+use crate::api::overseas_stock::quotations::price as overseas_price;
 use crate::client::KisClient;
 use crate::commands::daytrade::session::{self, HolidayCache, Market};
 use crate::commands::helpers::{format_number, resolve_symbol};
 use crate::config::{load_config, TelegramConfig};
-use crate::symbols::ResolveMode;
+use crate::symbols::{self, ResolveMode};
 
 pub struct StreamConfig {
     /// 관심 종목 (이름 또는 코드). 비어 있으면 영속 파일(telegram-stream.toml)에서 로드.
@@ -43,6 +44,8 @@ pub struct StreamConfig {
 struct Watch {
     code: String,
     name: String,
+    /// 국내(Kospi/Kosdaq) vs 해외(Nasdaq/Nyse/Amex) — 시세 API·통화·세션 분기에 사용.
+    market: symbols::Market,
 }
 
 /// 렌더 루프와 명령 폴러가 공유하는 관심종목 리스트.
@@ -114,11 +117,18 @@ pub async fn run(client: Arc<KisClient>, cfg: StreamConfig) -> Result<()> {
             break;
         }
         let now = session::now_kst();
-        let in_session = session::is_in_session_async(Market::Krx, now, &client, &cache).await;
+        let snapshot = shared.lock().await.clone();
+        let markets = session_markets(&snapshot);
+        let mut in_session = false;
+        for m in &markets {
+            if session::is_in_session_async(*m, now, &client, &cache).await {
+                in_session = true;
+                break;
+            }
+        }
 
         if in_session {
             let today = now.date_naive();
-            let snapshot = shared.lock().await.clone();
             let text = render(&client, &snapshot, cfg.interval_secs).await;
 
             match &current {
@@ -160,9 +170,15 @@ pub async fn run(client: Arc<KisClient>, cfg: StreamConfig) -> Result<()> {
                     current = Some((d, id, closed));
                 }
             }
-            // 다음 개장까지 대기.
-            let dur = session::time_until_open_async(Market::Krx, now, &client, &cache).await;
-            let secs = dur.num_seconds().max(1) as u64;
+            // 모든 관심 시장이 닫힘 → 가장 가까운 개장까지 대기.
+            let mut dur: Option<chrono::Duration> = None;
+            for m in &markets {
+                let d = session::time_until_open_async(*m, now, &client, &cache).await;
+                if dur.is_none_or(|cur| d < cur) {
+                    dur = Some(d);
+                }
+            }
+            let secs = dur.map(|d| d.num_seconds().max(1) as u64).unwrap_or(60);
             info!("세션 밖 — 다음 개장까지 약 {}분 대기", secs / 60);
             sleep_or_cancel(&cancel, secs).await;
         }
@@ -202,7 +218,10 @@ fn resolve_watches(symbols: &[String], pick: Option<usize>) -> Result<Vec<Watch>
 }
 
 fn resolve_one(symbol: &str, pick: Option<usize>) -> Result<Watch> {
-    let sym = resolve_symbol(symbol, ResolveMode::Domestic, pick)?;
+    let sym = resolve_symbol(symbol, ResolveMode::Any, pick)?;
+    if sym.market.is_futureoption() {
+        return Err(anyhow!("주식만 지원 (선물/옵션 미지원)"));
+    }
     let name = if !sym.name_kr.is_empty() {
         sym.name_kr.clone()
     } else if !sym.name_en.is_empty() {
@@ -210,11 +229,28 @@ fn resolve_one(symbol: &str, pick: Option<usize>) -> Result<Watch> {
     } else {
         sym.code.clone()
     };
-    Ok(Watch { code: sym.code, name })
+    Ok(Watch { code: sym.code, name, market: sym.market })
 }
 
 fn codes_of(watches: &[Watch]) -> Vec<String> {
     watches.iter().map(|w| w.code.clone()).collect()
+}
+
+/// 관심종목이 속한 세션 시장의 합집합(국내 있으면 KRX, 해외 있으면 USA).
+/// 둘 중 하나라도 열려 있으면 갱신, 모두 닫히면 가장 가까운 개장까지 대기한다.
+/// 비어 있으면 KRX 기본(기존 동작 유지).
+fn session_markets(watches: &[Watch]) -> Vec<Market> {
+    let mut out = Vec::new();
+    if watches.iter().any(|w| w.market.is_domestic()) {
+        out.push(Market::Krx);
+    }
+    if watches.iter().any(|w| w.market.is_overseas()) {
+        out.push(Market::Usa);
+    }
+    if out.is_empty() {
+        out.push(Market::Krx);
+    }
+    out
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -317,7 +353,7 @@ fn apply_rm(list: &mut Vec<Watch>, queries: &[String]) -> Vec<String> {
 }
 
 const HELP_TEXT: &str = "🤖 관심종목 명령\n\
-    /add 삼성전자 000660 — 종목 추가 (이름 또는 코드, 여러 개 가능)\n\
+    /add 삼성전자 TSLA — 종목 추가 (국내·미국 주식, 이름 또는 코드, 여러 개)\n\
     /rm 삼성전자 — 종목 삭제\n\
     /list — 현재 관심종목\n\
     /clear — 전체 비우기\n\
@@ -497,7 +533,7 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64) -> St
 
     if watches.is_empty() {
         return format!(
-            "{header}\n\n관심종목이 비어 있습니다.\n텔레그램에서 <code>/add 005930</code> (또는 종목명) 으로 등록하세요."
+            "{header}\n\n관심종목이 비어 있습니다.\n텔레그램에서 <code>/add 005930 TSLA</code> (국내·미국, 이름 또는 코드) 로 등록하세요."
         );
     }
 
@@ -509,13 +545,12 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64) -> St
     }
     let mut rows: Vec<Row> = Vec::with_capacity(watches.len());
     for w in watches {
-        match fetch_quote(client, &w.code).await {
+        match fetch_quote(client, w).await {
             Ok(q) => {
-                let change = fmt_change(&q.prdy_vrss_sign, &q.prdy_vrss, &q.prdy_ctrt);
                 rows.push(Row {
                     name: w.name.clone(),
-                    price: format!("{}원", format_number(&q.stck_prpr)),
-                    change,
+                    price: q.price,
+                    change: q.change,
                 });
             }
             Err(e) => {
@@ -551,24 +586,74 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64) -> St
     )
 }
 
-async fn fetch_quote(client: &KisClient, code: &str) -> Result<inquire_price::Response> {
-    let req = inquire_price::Request {
-        fid_cond_mrkt_div_code: "J".into(),
-        fid_input_iscd: code.into(),
-    };
-    inquire_price::call(client, &req).await
+/// 시장에 맞는 현재가를 조회해 통화·부호까지 포맷한 표시용 값으로 정규화.
+struct QuoteView {
+    price: String,
+    change: String,
+}
+
+async fn fetch_quote(client: &KisClient, w: &Watch) -> Result<QuoteView> {
+    if w.market.is_overseas() {
+        let req = overseas_price::Request {
+            auth: String::new(),
+            excd: w.market.excd().into(),
+            symb: w.code.clone(),
+        };
+        let q = overseas_price::call(client, &req).await?;
+        Ok(QuoteView {
+            price: fmt_usd(&q.last),
+            change: fmt_change_usd(&q.sign, &q.diff, &q.rate),
+        })
+    } else {
+        let req = inquire_price::Request {
+            fid_cond_mrkt_div_code: "J".into(),
+            fid_input_iscd: w.code.clone(),
+        };
+        let q = inquire_price::call(client, &req).await?;
+        Ok(QuoteView {
+            price: format!("{}원", format_number(&q.stck_prpr)),
+            change: fmt_change(&q.prdy_vrss_sign, &q.prdy_vrss, &q.prdy_ctrt),
+        })
+    }
+}
+
+/// "242.8400" → "$242.84". 파싱 실패 시 원문에 $ 만.
+fn fmt_usd(last: &str) -> String {
+    match last.trim().parse::<f64>() {
+        Ok(v) => format!("${v:.2}"),
+        Err(_) => format!("${}", last.trim()),
+    }
 }
 
 /// 전일대비 부호/등락 포맷. KIS sign: 1 상한, 2 상승, 3 보합, 4 하한, 5 하락.
-fn fmt_change(sign: &str, vrss: &str, ctrt: &str) -> String {
-    let (arrow, pol) = match sign {
+/// KIS 대비기호(1상한·2상승·3보합·4하한·5하락) → (화살표, 부호). 국내·해외 공통.
+fn sign_arrow(sign: &str) -> (&'static str, &'static str) {
+    match sign {
         "1" | "2" => ("▲", "+"),
         "4" | "5" => ("▼", "-"),
         _ => ("─", ""),
-    };
+    }
+}
+
+fn fmt_change(sign: &str, vrss: &str, ctrt: &str) -> String {
+    let (arrow, pol) = sign_arrow(sign);
     let vrss_abs = vrss.trim().trim_start_matches('-');
     let ctrt_abs = ctrt.trim().trim_start_matches('-');
     format!("{arrow} {pol}{}  {pol}{ctrt_abs}%", format_number(vrss_abs))
+}
+
+/// 해외 시세용 — diff/rate 가 소수(달러·%)라 2자리로 포맷. 부호는 sign 으로.
+fn fmt_change_usd(sign: &str, diff: &str, rate: &str) -> String {
+    let (arrow, pol) = sign_arrow(sign);
+    format!("{arrow} {pol}{}  {pol}{}%", fmt_dec2(diff), fmt_dec2(rate))
+}
+
+/// "2.3400"/"-2.3400" → "2.34"(절댓값, 부호는 호출부 pol 담당). 파싱 실패 시 원문 절댓값.
+fn fmt_dec2(s: &str) -> String {
+    match s.trim().parse::<f64>() {
+        Ok(v) => format!("{:.2}", v.abs()),
+        Err(_) => s.trim().trim_start_matches('-').to_string(),
+    }
 }
 
 fn kor_weekday(w: chrono::Weekday) -> &'static str {
@@ -879,7 +964,47 @@ mod tests {
     }
 
     fn w(code: &str, name: &str) -> Watch {
-        Watch { code: code.into(), name: name.into() }
+        Watch { code: code.into(), name: name.into(), market: symbols::Market::Kospi }
+    }
+
+    fn w_mkt(code: &str, name: &str, market: symbols::Market) -> Watch {
+        Watch { code: code.into(), name: name.into(), market }
+    }
+
+    #[test]
+    fn fmt_usd_two_decimals() {
+        assert_eq!(fmt_usd("242.8400"), "$242.84");
+        assert_eq!(fmt_usd(" 13 "), "$13.00");
+        assert_eq!(fmt_usd("n/a"), "$n/a"); // 파싱 실패 → 원문에 $ 만
+    }
+
+    #[test]
+    fn fmt_change_usd_uses_sign_and_two_decimals() {
+        // 2 상승 → ▲ +, diff/rate 2자리
+        assert_eq!(fmt_change_usd("2", "2.3400", "0.9700"), "▲ +2.34  +0.97%");
+        // 5 하락 → ▼ -, diff 가 음수로 와도 절댓값
+        assert_eq!(fmt_change_usd("5", "-1.2000", "-0.50"), "▼ -1.20  -0.50%");
+        // 3 보합
+        assert_eq!(fmt_change_usd("3", "0", "0"), "─ 0.00  0.00%");
+    }
+
+    #[test]
+    fn session_markets_is_union() {
+        use symbols::Market as M;
+        // 국내만 → KRX
+        assert_eq!(session_markets(&[w("005930", "삼성전자")]), vec![Market::Krx]);
+        // 해외만 → USA
+        assert_eq!(
+            session_markets(&[w_mkt("TSLA", "TESLA", M::Nasdaq)]),
+            vec![Market::Usa]
+        );
+        // 혼합 → 둘 다
+        assert_eq!(
+            session_markets(&[w("005930", "삼성전자"), w_mkt("TSLA", "TESLA", M::Nasdaq)]),
+            vec![Market::Krx, Market::Usa]
+        );
+        // 빈 목록 → KRX 기본
+        assert_eq!(session_markets(&[]), vec![Market::Krx]);
     }
 
     #[test]
