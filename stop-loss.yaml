@@ -1,0 +1,33 @@
+name: kis-stop-loss
+
+# 로컬 빌드 + 자동 손절 데몬 (단독 실행).
+# ⚠ command 끝에 "--execute" 를 붙이면 실주문. 기본은 dry-run(관찰만) — 검증 후 붙일 것.
+# 별도 파일이라 실수로 같이 뜨지 않는다(기존 compose 의 profile 가드 불필요).
+# GHCR 발행 이미지로 띄우려면 deploy/ 참조. 상태는 external 볼륨 kis-data 공유 — telegram.yaml 헤더 참조.
+#
+#   기동(dry-run): docker compose -f stop-loss.yaml up -d
+
+services:
+  stop-loss:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kis-cli:latest
+    command: ["stop-loss", "run", "--threshold", "-5"]   # 실매도하려면 끝에 "--execute" 추가
+    env_file:                      # 둘 다 선택 — .env.local 이 .env 를 덮어씀
+      - path: .env
+        required: false
+      - path: .env.local
+        required: false
+    environment:
+      TZ: Asia/Seoul               # 한국 장시간 기준
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - kis-data:/data             # 토큰캐시·symbols.db·*.toml 영속 (세 데몬 공유)
+    init: true                     # tini → SIGTERM 전달 (그레이스풀 종료)
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+volumes:
+  kis-data:
+    external: true                 # 데몬 간 공유 — `docker volume create kis-data` 로 최초 1회 생성

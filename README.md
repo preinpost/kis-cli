@@ -87,24 +87,29 @@ account_number = "12345678-01"   # 뒤 2자리는 상품코드 (ACNT_PRDT_CD)
 
 ## 컨테이너 배포 (Docker / docker-compose)
 
-상주 데몬(텔레그램 스트림 / 데이트레이드 / 자동손절)을 VPS 등에서 한 번에 띄우는 용도. 차트 뷰어를 뺀 헤드리스 이미지라 GTK/WebKit 의존 없이 가볍다.
+상주 데몬(텔레그램 스트림 / 데이트레이드 / 자동손절)을 VPS 등에서 띄우는 용도. 차트 뷰어를 뺀 헤드리스 이미지라 GTK/WebKit 의존 없이 가볍다.
 
-**시크릿은 파일 대신 환경변수로 주입**한다. `config.toml` 이 없어도 `KIS_*` 환경변수만으로 동작하며, 모든 상태(토큰 캐시·`symbols.db`·`daytrade.db`·`daytrade.toml`·`telegram-stream.toml`)는 named volume `kis-data`(`/data`)에 영속된다. 타임존은 이미지에 `TZ=Asia/Seoul` 고정(한국 장시간 판정).
+데몬은 **파일 하나당 하나**다 — 같이 띄울 일이 없어 `telegram.yaml` / `daytrade.yaml` / `stop-loss.yaml` 로 분리했다. 셋은 같은 이미지(`kis-cli:latest`)를 빌드해 쓰고, 모든 상태(토큰 캐시·`symbols.db`·`daytrade.db`·`daytrade.toml`·`telegram-stream.toml`)는 **external 볼륨 `kis-data`(`/data`)** 로 공유한다. → 토큰 1회 발급(KIS 발급 1분 1회 제한 회피)·`symbols sync` 1회면 충분.
+
+**시크릿은 파일 대신 환경변수로 주입**한다. `config.toml` 이 없어도 `KIS_*` 환경변수만으로 동작한다. 타임존은 이미지에 `TZ=Asia/Seoul` 고정(한국 장시간 판정).
 
 ```bash
 # 1) 시크릿 준비
 cp .env.example .env        # KIS_APP_KEY / KIS_APP_SECRET / KIS_ACCOUNT_NUMBER / KIS_IS_MOCK 채우기
                             # (텔레그램 쓰면 KIS_TELEGRAM_BOT_TOKEN / KIS_TELEGRAM_CHAT_ID 도)
 
-# 2) 이미지 빌드
-docker compose build
+# 2) 공유 볼륨 생성 (세 데몬이 토큰캐시·symbols.db 공유 — 최초 1회)
+docker volume create kis-data
 
-# 3) 종목 마스터 1회 동기화 (볼륨에 symbols.db 생성)
-docker compose run --rm telegram symbols sync
+# 3) 이미지 빌드 (아무 데몬 파일로나 — 같은 kis-cli:latest 를 만든다)
+docker compose -f telegram.yaml build
 
-# 4) 일회성 CLI — 아무 서비스로나 run (조회/주문 등)
-docker compose run --rm telegram stock dome price 005930
-docker compose run --rm telegram auth          # 자격증명 확인
+# 4) 종목 마스터 1회 동기화 (볼륨에 symbols.db 생성)
+docker compose -f telegram.yaml run --rm telegram symbols sync
+
+# 5) 일회성 CLI — 아무 데몬 파일로나 run (조회/주문 등)
+docker compose -f telegram.yaml run --rm telegram stock dome price 005930
+docker compose -f telegram.yaml run --rm telegram auth          # 자격증명 확인
 ```
 
 **환경변수 (`.env`)** — `config.toml` 의 각 필드를 덮어쓴다:
@@ -116,25 +121,25 @@ docker compose run --rm telegram auth          # 자격증명 확인
 | `KIS_IS_MOCK` | `true`=모의 / `false`=실전 |
 | `KIS_TELEGRAM_BOT_TOKEN` / `KIS_TELEGRAM_CHAT_ID` | 텔레그램 (둘 다 있을 때 활성) |
 
-**데몬 상주:**
+**데몬 상주:** (데몬마다 자기 파일에 `-f` 로 건다)
 
 ```bash
-# 텔레그램 스트림 관심종목 1회 시드 → 이후 데몬으로 상주
-docker compose run --rm telegram telegram stream 005930 000660
-docker compose up -d telegram
+# 텔레그램 스트림 관심종목 1회 시드 → 이후 데몬으로 상주 (국내·미국 주식 모두 지원)
+docker compose -f telegram.yaml run --rm telegram telegram stream 005930 000660 TSLA
+docker compose -f telegram.yaml up -d
 
 # 데이트레이드: 전략 등록(볼륨의 daytrade.toml 갱신) → 데몬이 hot-reload
-docker compose run --rm daytrade daytrade add paper ma-cross 005930 --qty 1 --budget 1000000
-docker compose up -d daytrade
+docker compose -f daytrade.yaml run --rm daytrade daytrade add paper ma-cross 005930 --qty 1 --budget 1000000
+docker compose -f daytrade.yaml up -d
 
-docker compose logs -f daytrade     # KST 타임스탬프 로그
-docker compose stop daytrade        # SIGTERM → 그레이스풀 종료
+docker compose -f daytrade.yaml logs -f     # KST 타임스탬프 로그
+docker compose -f daytrade.yaml stop        # SIGTERM → 그레이스풀 종료
 ```
 
-자동 손절(`stop-loss`)은 **실주문**이 나갈 수 있어 기본 비활성(profile)이며 기본 명령은 dry-run 이다. 활성화하려면 `docker-compose.yml` 의 command 끝에 `--execute` 를 추가하고:
+자동 손절(`stop-loss`)은 **실주문**이 나갈 수 있어 기본 명령이 dry-run(관찰만)이다. 실매도하려면 `stop-loss.yaml` 의 command 끝에 `--execute` 를 추가한다. 별도 파일이라 명시적으로 띄울 때만 동작한다:
 
 ```bash
-docker compose --profile stop-loss up -d stop-loss
+docker compose -f stop-loss.yaml up -d
 ```
 
 > `--chart` 등 차트 뷰어 기능은 헤드리스 이미지에 미포함 — 데스크톱 바이너리(설치 A/B/C)를 쓰자.
@@ -142,17 +147,17 @@ docker compose --profile stop-loss up -d stop-loss
 ### 다른 서버 배포 (GHCR 이미지)
 
 소스 없이 발행된 이미지를 pull 해서 띄우려면 `deploy/` 샘플을 쓴다.
-이미지는 GitHub Actions(`.github/workflows/docker-publish.yml`)가 **버전 태그(`v*`) 푸시** 시
-`ghcr.io/<owner>/kis-cli` 로 자동 발행한다 (amd64 + arm64).
+이미지는 GitHub Actions(`.github/workflows/docker-publish.yml`)가 **main 푸시마다**
+`ghcr.io/<owner>/kis-cli` 로 자동 발행한다 (amd64 + arm64, `:latest`·`:main`).
 
 ```bash
-# 서버에서: deploy/ 만 복사 → 로그인(private면) → env 채우기 → pull → 데몬 기동
+# 서버에서: deploy/ 만 복사 → 로그인(private면) → 볼륨/env 준비 → 데몬 기동
 cd deploy
 echo $GHCR_PAT | docker login ghcr.io -u <github-username> --password-stdin   # private 패키지만
-cp .env.example .env && $EDITOR .env          # 플레이스홀더 → 실제 값
-docker compose pull
-docker compose run --rm telegram symbols sync # 최초 1회
-docker compose up -d telegram                 # 또는 daytrade / --profile stop-loss up -d stop-loss
+docker volume create kis-data                            # 공유 볼륨 (최초 1회)
+cp .env.example .env && $EDITOR .env                     # 플레이스홀더 → 실제 값
+docker compose -f telegram.yaml run --rm telegram symbols sync   # 최초 1회 (이미지도 자동 pull)
+docker compose -f telegram.yaml up -d                    # 또는 -f daytrade.yaml / -f stop-loss.yaml
 ```
 
 데몬별 필요 환경변수·기동 명령은 [`deploy/README.md`](deploy/README.md) 참조. 공통 필수 env:
@@ -348,18 +353,18 @@ kis daytrade status
 
 ### 컨테이너(docker compose)로 실행
 
-systemd(`daytrade start`) 대신 컨테이너로 띄우는 방법. 전략 등록만 `kis` → `docker compose run` 으로 바꾸면 된다 (이미지 빌드·env 셋업은 위 **컨테이너 배포 (Docker / docker-compose)** 섹션 참조).
+systemd(`daytrade start`) 대신 컨테이너로 띄우는 방법. 전략 등록만 `kis` → `docker compose -f daytrade.yaml run` 으로 바꾸면 된다 (이미지 빌드·볼륨·env 셋업은 위 **컨테이너 배포 (Docker / docker-compose)** 섹션 참조).
 
 ```bash
 # 전략 등록 (볼륨의 daytrade.toml 갱신)
-docker compose run --rm daytrade daytrade add paper rsi 000660 --qty 1 --budget 1000000
+docker compose -f daytrade.yaml run --rm daytrade daytrade add paper rsi 000660 --qty 1 --budget 1000000
 
 # 데몬 상주 — daytrade.toml 변경을 inotify 로 hot-reload
-docker compose up -d daytrade
+docker compose -f daytrade.yaml up -d
 
-docker compose logs -f daytrade        # KST 타임스탬프 로그
-docker compose ps                       # 상태
-docker compose stop daytrade            # SIGTERM → 그레이스풀 종료 (EOD/포지션 정리 여유 stop_grace_period 30s)
+docker compose -f daytrade.yaml logs -f        # KST 타임스탬프 로그
+docker compose -f daytrade.yaml ps             # 상태
+docker compose -f daytrade.yaml stop           # SIGTERM → 그레이스풀 종료 (EOD/포지션 정리 여유 stop_grace_period 30s)
 ```
 
 다른 서버 배포(GHCR pull)는 [`deploy/`](deploy/README.md) 참조.
@@ -531,15 +536,15 @@ kis stop-loss path
 
 ### 컨테이너(docker compose)로 실행
 
-`stop-loss` 는 **실주문 위험** 때문에 compose 에서 profile 로 기본 비활성이며 기본 command 는 dry-run(`stop-loss run --threshold -5`)이다.
+`stop-loss` 는 **실주문 위험** 때문에 전용 파일(`stop-loss.yaml`)로 분리돼 명시적으로 띄울 때만 동작하며, 기본 command 는 dry-run(`stop-loss run --threshold -5`)이다.
 
 ```bash
 # dry-run 으로 상주 (관찰만 — 매도 안 함)
-docker compose --profile stop-loss up -d stop-loss
-docker compose logs -f stop-loss
-docker compose stop stop-loss          # SIGTERM → 현재 iteration 마무리 + 상태 flush 후 종료
+docker compose -f stop-loss.yaml up -d
+docker compose -f stop-loss.yaml logs -f
+docker compose -f stop-loss.yaml stop          # SIGTERM → 현재 iteration 마무리 + 상태 flush 후 종료
 
-# 실매도하려면: docker-compose.yml(또는 deploy/compose.yaml) 의 stop-loss command 끝에 "--execute" 추가
+# 실매도하려면: stop-loss.yaml 의 command 끝에 "--execute" 추가
 #   command: ["stop-loss", "run", "--threshold", "-5", "--execute"]
 ```
 

@@ -1,0 +1,34 @@
+name: kis-telegram
+
+# 텔레그램 실시간 관심종목 스트림 데몬 (단독 실행).
+# 데이트레이드 / 자동손절은 각각 daytrade.yaml / stop-loss.yaml 참조.
+# 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 로 세 데몬이 공유한다.
+#
+#   준비 (최초 1회):
+#     docker volume create kis-data                                   # 공유 볼륨 생성
+#     cp .env.example .env && $EDITOR .env                            # 자격증명 채우기
+#     docker compose -f telegram.yaml run --rm telegram symbols sync  # 종목 마스터 동기화
+#   기동:
+#     docker compose -f telegram.yaml up -d
+#
+# env: 공통(KIS_APP_KEY/SECRET/ACCOUNT_NUMBER/IS_MOCK) + KIS_TELEGRAM_BOT_TOKEN/CHAT_ID
+# 관심종목 1회 시드 (국내·미국 주식): docker compose -f telegram.yaml run --rm telegram telegram stream 005930 000660 TSLA
+
+services:
+  telegram:
+    image: ${KIS_IMAGE:-ghcr.io/preinpost/kis-cli:latest}
+    pull_policy: always
+    command: ["telegram", "stream"]
+    env_file: [.env]              # KIS_* 자격증명 — .env.example 참조
+    environment:
+      TZ: Asia/Seoul              # 한국 장시간 기준
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - kis-data:/data            # 토큰캐시·symbols.db·*.toml 영속 (세 데몬 공유)
+    init: true                    # tini → SIGTERM 전달 (그레이스풀 종료)
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+volumes:
+  kis-data:
+    external: true                # 데몬 간 공유 — `docker volume create kis-data` 로 최초 1회 생성
