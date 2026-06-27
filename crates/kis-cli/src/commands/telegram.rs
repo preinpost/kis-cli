@@ -51,6 +51,9 @@ struct Watch {
 /// 렌더 루프와 명령 폴러가 공유하는 관심종목 리스트.
 type Shared = Arc<Mutex<Vec<Watch>>>;
 
+/// 세션 밖(장 마감·주말·공휴일) 갱신 주기. 시세가 거의 안 변하므로 느리게.
+const OFF_HOURS_REFRESH_SECS: u64 = 60;
+
 pub async fn run(client: Arc<KisClient>, cfg: StreamConfig) -> Result<()> {
     // 1) 관심종목 확정: CLI 인자가 있으면 그 목록으로 영속 파일을 덮어쓰고(seed),
     //    없으면 영속 파일(telegram-stream.toml)에서 로드.
@@ -78,7 +81,10 @@ pub async fn run(client: Arc<KisClient>, cfg: StreamConfig) -> Result<()> {
 
     // 4) --once: 세션 무시, 즉시 1회 전송 후 종료.
     if cfg.once {
-        let text = render(&client, &watches, cfg.interval_secs).await;
+        let cache = HolidayCache::new();
+        let now = session::now_kst();
+        let in_session = any_in_session(&session_markets(&watches), now, &client, &cache).await;
+        let text = render(&client, &watches, cfg.interval_secs, in_session).await;
         let id = send_message(&tg, &text).await?;
         info!("--once 전송 완료 (message_id={id}, {}종목)", watches.len());
         return Ok(());
@@ -113,79 +119,68 @@ pub async fn run(client: Arc<KisClient>, cfg: StreamConfig) -> Result<()> {
     }
 
     let cache = HolidayCache::new();
-    // (메시지 날짜, message_id, 마지막 렌더 텍스트)
+    // (메시지 생성 날짜, message_id, 마지막 렌더 텍스트)
     let mut current: Option<(NaiveDate, i64, String)> = None;
+    let mut prev_in_session: Option<bool> = None;
 
     loop {
         if cancel.is_cancelled() {
             break;
         }
         let now = session::now_kst();
+        let today = now.date_naive();
         let snapshot = shared.lock().await.clone();
         let markets = session_markets(&snapshot);
-        let mut in_session = false;
-        for m in &markets {
-            if session::is_in_session_async(*m, now, &client, &cache).await {
-                in_session = true;
-                break;
-            }
+        let in_session = any_in_session(&markets, now, &client, &cache).await;
+
+        // 세션 전환 시에만 로그 (세션 밖엔 60초 폴링이라 매번 찍으면 시끄러움).
+        if prev_in_session != Some(in_session) {
+            info!("{}", if in_session {
+                "장중 — 갱신 시작"
+            } else {
+                "세션 밖 — 마지막 체결가 표시 (느린 갱신)"
+            });
+            prev_in_session = Some(in_session);
         }
 
-        if in_session {
-            let today = now.date_naive();
-            let text = render(&client, &snapshot, cfg.interval_secs).await;
+        let text = render(&client, &snapshot, cfg.interval_secs, in_session).await;
 
-            match &current {
-                // 같은 날 → 기존 메시지 갱신
-                Some((d, id, last)) if *d == today => {
-                    let id = *id;
-                    if *last != text {
-                        match edit_message_text(&tg, id, &text).await {
-                            Ok(EditOutcome::Ok) | Ok(EditOutcome::NotModified) => {
-                                current = Some((today, id, text));
-                            }
-                            Ok(EditOutcome::RateLimited(secs)) => {
-                                warn!("텔레그램 rate-limit, {secs}초 백오프");
-                                sleep_or_cancel(&cancel, secs).await;
-                            }
-                            Ok(EditOutcome::NotFound) => {
-                                warn!("메시지를 찾을 수 없음 (삭제됨?) — 새 메시지 발행");
-                                current = send_fresh(&tg, today, &text).await;
-                            }
-                            Err(e) => error!("editMessageText 실패: {e}"),
+        // 새 메시지는 "첫 실행" 또는 "장중에 트레이딩일이 바뀐 경우"에만 발행.
+        // 세션 밖에는 기존 메시지를 계속 갱신(자정 넘어도 새 메시지 안 띄움 → 마감/주말 도배 방지).
+        let need_fresh = match &current {
+            None => true,
+            Some((d, _, _)) => in_session && *d != today,
+        };
+
+        match current.clone() {
+            // 기존 메시지 유지 → 텍스트가 바뀐 경우만 in-place 갱신.
+            Some((d, id, last)) if !need_fresh => {
+                if last != text {
+                    match edit_message_text(&tg, id, &text).await {
+                        Ok(EditOutcome::Ok) | Ok(EditOutcome::NotModified) => {
+                            current = Some((d, id, text));
                         }
+                        Ok(EditOutcome::RateLimited(secs)) => {
+                            warn!("텔레그램 rate-limit, {secs}초 백오프");
+                            sleep_or_cancel(&cancel, secs).await;
+                        }
+                        Ok(EditOutcome::NotFound) => {
+                            warn!("메시지를 찾을 수 없음 (삭제됨?) — 새 메시지 발행");
+                            current = send_fresh(&tg, today, &text).await;
+                        }
+                        Err(e) => error!("editMessageText 실패: {e}"),
                     }
                 }
-                // 첫 실행 또는 날짜 변경 → 새 메시지 발행 (다음날 새 채팅)
-                _ => {
-                    current = send_fresh(&tg, today, &text).await;
-                }
             }
-
-            sleep_or_cancel(&cancel, cfg.interval_secs).await;
-        } else {
-            // 장 마감/주말/공휴일: 직전 세션 메시지를 1회 "장 마감" 표시로 마무리.
-            if let Some((d, id, last)) = current.clone() {
-                let closed = format!("{last}\n\n■ 장 마감 — 다음 개장 시 새 메시지로 갱신");
-                if last != closed {
-                    if let Err(e) = edit_message_text(&tg, id, &closed).await {
-                        error!("장 마감 표시 실패: {e}");
-                    }
-                    current = Some((d, id, closed));
-                }
+            // 첫 실행 또는 새 트레이딩일 → 새 메시지 발행.
+            _ => {
+                current = send_fresh(&tg, today, &text).await;
             }
-            // 모든 관심 시장이 닫힘 → 가장 가까운 개장까지 대기.
-            let mut dur: Option<chrono::Duration> = None;
-            for m in &markets {
-                let d = session::time_until_open_async(*m, now, &client, &cache).await;
-                if dur.is_none_or(|cur| d < cur) {
-                    dur = Some(d);
-                }
-            }
-            let secs = dur.map(|d| d.num_seconds().max(1) as u64).unwrap_or(60);
-            info!("세션 밖 — 다음 개장까지 약 {}분 대기", secs / 60);
-            sleep_or_cancel(&cancel, secs).await;
         }
+
+        // 장중: 빠른 주기. 세션 밖: 느린 주기(시세 정적). 개장은 다음 폴링에서 자동 감지.
+        let wait = if in_session { cfg.interval_secs } else { OFF_HOURS_REFRESH_SECS };
+        sleep_or_cancel(&cancel, wait).await;
     }
 
     info!("종료 신호 수신 — telegram stream 정리");
@@ -255,6 +250,21 @@ fn session_markets(watches: &[Watch]) -> Vec<Market> {
         out.push(Market::Krx);
     }
     out
+}
+
+/// 관심 시장 중 하나라도 세션이 열려 있으면 true (공휴일 반영).
+async fn any_in_session(
+    markets: &[Market],
+    now: chrono::DateTime<chrono_tz::Tz>,
+    client: &KisClient,
+    cache: &HolidayCache,
+) -> bool {
+    for m in markets {
+        if session::is_in_session_async(*m, now, client, cache).await {
+            return true;
+        }
+    }
+    false
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -526,7 +536,7 @@ fn persist(list: &[Watch]) {
 // 시세 렌더
 // ─────────────────────────────────────────────────────────────
 
-async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64) -> String {
+async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_session: bool) -> String {
     let now = session::now_kst();
     let header = format!(
         "📊 관심종목  {}({}) {}",
@@ -585,9 +595,12 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64) -> St
         body.push('\n');
     }
 
-    format!(
-        "{header}\n<pre>{body}</pre>🔄 {interval_secs}초마다 갱신"
-    )
+    let footer = if in_session {
+        format!("🔄 {interval_secs}초마다 갱신")
+    } else {
+        "🔴 세션 밖 · 마지막 체결가".to_string()
+    };
+    format!("{header}\n<pre>{body}</pre>{footer}")
 }
 
 /// 시장에 맞는 현재가를 조회해 통화·부호까지 포맷한 표시용 값으로 정규화.
