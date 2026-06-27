@@ -57,7 +57,10 @@ jobs:
           # latest=auto(기본)는 버전 태그(v*)에 :latest 부여, 위 raw 규칙은 main 빌드에 :latest 부여.
           # → bump 가 만든 v* 태그는 CI 가 발화 안 하므로(GITHUB_TOKEN), main 경로로 :latest 보장.
 
-      - uses: docker/setup-qemu-action@v3      # arm64 크로스 빌드용 에뮬레이터
+      # QEMU 는 arm64 "런타임 스테이지"(apt/useradd, 가벼움) 실행에만 쓰임.
+      # 무거운 Rust 컴파일은 Dockerfile 이 cargo-zigbuild 로 BUILDPLATFORM(amd64)에서
+      # 네이티브 크로스컴파일하므로 에뮬레이션을 타지 않는다.
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
       - name: Build and push
