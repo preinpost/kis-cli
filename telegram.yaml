@@ -1,27 +1,33 @@
 name: kis-telegram
 
-# 로컬 빌드 + 텔레그램 실시간 관심종목 스트림 데몬 (단독 실행).
-# 이미지를 소스에서 빌드한다. GHCR 발행 이미지로 띄우려면 deploy/ 참조.
+# 로컬 빌드 + 텔레그램 실시간 관심종목 스트림 데몬 (전용 바이너리 kisd-telegram).
+# 소스에서 데몬 바이너리만 빌드한다. GHCR 발행 이미지로 띄우려면 deploy/ 참조.
 # 데이트레이드 / 자동손절은 각각 daytrade.yaml / stop-loss.yaml 참조.
 # 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 로 세 데몬이 공유한다.
 #
-#   준비 (최초 1회):
+#   준비 (최초 1회): 데몬 이미지엔 CLI 가 없으므로 sync/시드는 kis-cli 이미지로.
 #     docker volume create kis-data                                   # 공유 볼륨 생성
-#     docker compose -f telegram.yaml build                           # 이미지 빌드
-#     docker compose -f telegram.yaml run --rm telegram symbols sync  # 종목 마스터 동기화
+#     docker build --build-arg PKG=kis-cli --build-arg BIN=kis -t kis-cli:local .   # CLI 이미지 1회 빌드
+#     docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
+#       kis-cli:local symbols sync                                    # 종목 마스터 동기화
+#     docker compose -f telegram.yaml build                           # 데몬 이미지 빌드
 #   기동:
 #     docker compose -f telegram.yaml up -d
 #
-# 일회성 CLI 는 아무 데몬 파일로나: docker compose -f telegram.yaml run --rm telegram <args>
-# 관심종목 1회 시드 (국내·미국 주식): docker compose -f telegram.yaml run --rm telegram telegram stream 005930 000660 TSLA
+# 관심종목 1회 시드 (kis-cli:local 이미지로):
+#   docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
+#     kis-cli:local telegram stream 005930 000660 TSLA --once
 
 services:
   telegram:
     build:
       context: .
       dockerfile: Dockerfile
-    image: kis-cli:latest
-    command: ["telegram", "stream"]
+      args:
+        PKG: kisd-telegram
+        BIN: kisd-telegram
+    image: kisd-telegram:local
+    # command 불필요 — 데몬 바이너리 기본 동작.
     env_file:                      # 둘 다 선택 — 있는 파일에서 로드, .env.local 이 .env 를 덮어씀
       - path: .env                 #   (KIS_APP_KEY/SECRET, 계좌, 텔레그램 토큰 등 — .env.example 참고)
         required: false

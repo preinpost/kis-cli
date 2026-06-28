@@ -1,24 +1,27 @@
 name: kis-telegram
 
-# 텔레그램 실시간 관심종목 스트림 데몬 (단독 실행).
+# 텔레그램 실시간 관심종목 스트림 데몬 (전용 이미지 kisd-telegram).
 # 데이트레이드 / 자동손절은 각각 daytrade.yaml / stop-loss.yaml 참조.
 # 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 로 세 데몬이 공유한다.
 #
-#   준비 (최초 1회):
+#   준비 (최초 1회): 데몬 이미지엔 CLI 가 없으므로 종목 마스터 sync 는 kis-cli 이미지로.
 #     docker volume create kis-data                                   # 공유 볼륨 생성
 #     cp .env.example .env && $EDITOR .env                            # 자격증명 채우기
-#     docker compose -f telegram.yaml run --rm telegram symbols sync  # 종목 마스터 동기화
+#     docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
+#       ghcr.io/preinpost/kis-cli:latest symbols sync                 # 종목 마스터 동기화
 #   기동:
 #     docker compose -f telegram.yaml up -d
 #
 # env: 공통(KIS_APP_KEY/SECRET/ACCOUNT_NUMBER/IS_MOCK) + KIS_TELEGRAM_BOT_TOKEN/CHAT_ID
-# 관심종목 1회 시드 (국내·미국 주식): docker compose -f telegram.yaml run --rm telegram telegram stream 005930 000660 TSLA
+# 관심종목 1회 시드 (국내·미국 주식, kis-cli 이미지로):
+#   docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
+#     ghcr.io/preinpost/kis-cli:latest telegram stream 005930 000660 TSLA --once
 
 services:
   telegram:
-    image: ${KIS_IMAGE:-ghcr.io/preinpost/kis-cli:latest}
+    image: ${KIS_IMAGE:-ghcr.io/preinpost/kisd-telegram:latest}
     pull_policy: always
-    command: ["telegram", "stream"]
+    # command 불필요 — 바이너리 자체가 스트림 데몬(기본 동작). watchlist 는 볼륨의 toml 에서 로드.
     env_file: [.env]              # KIS_* 자격증명 — .env.example 참조
     environment:
       TZ: Asia/Seoul              # 한국 장시간 기준

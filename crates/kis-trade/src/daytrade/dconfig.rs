@@ -10,8 +10,8 @@ use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-use crate::commands::backtest::StrategyKind;
-use crate::config;
+use kis_analysis::signals::StrategyKind;
+use kis_core::config;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DaytradeConfig {

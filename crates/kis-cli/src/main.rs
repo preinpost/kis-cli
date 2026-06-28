@@ -23,7 +23,12 @@ use clap::{Args, Parser, Subcommand};
 use crate::client::KisClient;
 
 #[derive(Parser)]
-#[command(name = "kis", about = "한국투자증권 API CLI", disable_version_flag = true)]
+#[command(
+    name = "kis",
+    about = "한국투자증권 API CLI",
+    disable_version_flag = true,
+    arg_required_else_help = true
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -1137,8 +1142,15 @@ enum UsaFoOrderAction {
 }
 
 fn build_client() -> Result<KisClient> {
-    let cfg = config::load_config()?;
-    Ok(KisClient::with_mock(cfg.credentials, cfg.is_mock))
+    kis_trade::common::client::build_client()
+}
+
+/// 데몬형 subcommand 공통 배선: SIGTERM/Ctrl-C → CancellationToken (그레이스풀 종료).
+/// 엔진(kis-trade)에 주입한다. 로깅 init guard 는 호출처가 별도로 잡아 drop 시점을 제어한다.
+fn daemon_cancel() -> tokio_util::sync::CancellationToken {
+    let cancel = tokio_util::sync::CancellationToken::new();
+    kis_daemon::shutdown::spawn_signal_listener(cancel.clone());
+    cancel
 }
 
 fn main() -> Result<()> {
@@ -1819,6 +1831,7 @@ async fn async_main(cli: Cli) -> Result<()> {
 
         Commands::StopLoss { action } => match action {
             StopLossAction::Run { threshold, interval, symbols, execute, usa_spread, ws } => {
+                let _log_guard = kis_daemon::logging::init_daemon("stop-loss")?;
                 let client = build_client()?;
                 let syms = symbols.map(|s| {
                     s.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect::<Vec<_>>()
@@ -1831,7 +1844,7 @@ async fn async_main(cli: Cli) -> Result<()> {
                     usa_spread_pct: usa_spread,
                     use_ws: ws,
                 };
-                commands::stop_loss::run(&client, cfg).await
+                commands::stop_loss::run(&client, cfg, daemon_cancel()).await
             }
             StopLossAction::Status => commands::stop_loss::run_status(),
             StopLossAction::Path => commands::stop_loss::run_path(),
@@ -1901,8 +1914,9 @@ async fn async_main(cli: Cli) -> Result<()> {
                 commands::daytrade::lifecycle::logs(follow, lines, path)
             }
             DaytradeAction::Daemon => {
+                let _log_guard = kis_daemon::logging::init_daemon("daytrade")?;
                 let client = std::sync::Arc::new(build_client()?);
-                commands::daytrade::daemon::run(client).await
+                commands::daytrade::daemon::run(client, daemon_cancel()).await
             }
             DaytradeAction::LegacyClean { yes } => {
                 commands::daytrade::lifecycle::legacy_clean(yes)
@@ -1926,7 +1940,13 @@ async fn async_main(cli: Cli) -> Result<()> {
                     listen: !no_listen,
                     pick,
                 };
-                commands::telegram::run(client, cfg).await
+                if background {
+                    // systemd unit 설치만 — 로깅/시그널 배선 불필요(즉시 반환).
+                    commands::telegram::run(client, cfg, tokio_util::sync::CancellationToken::new()).await
+                } else {
+                    let _log_guard = kis_daemon::logging::init_daemon("telegram-stream")?;
+                    commands::telegram::run(client, cfg, daemon_cancel()).await
+                }
             }
             TelegramAction::List => commands::telegram::list_service(),
             TelegramAction::Remove => commands::telegram::remove_service(),

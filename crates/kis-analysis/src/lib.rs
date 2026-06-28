@@ -2,3 +2,4 @@
 //!
 //! 외부 입력에 의존하지 않는 순수 계산 leaf crate (네트워크/IO 없음).
 pub mod analysis;
+pub mod signals;

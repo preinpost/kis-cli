@@ -11,14 +11,14 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use tokio_util::sync::CancellationToken;
 
-use crate::client::KisClient;
-use crate::commands::backtest::StrategyKind;
-use crate::commands::helpers::resolve_symbol;
-use crate::symbols::ResolveMode;
+use kis_core::client::KisClient;
+use kis_analysis::signals::StrategyKind;
+use crate::common::resolve::resolve_symbol;
+use kis_data::symbols::ResolveMode;
 
 use super::engine::{self, EngineConfig};
 use super::live::LiveExecutor;
-use super::period::Period;
+use crate::common::period::Period;
 
 pub struct Config {
     pub symbol: String,
@@ -50,7 +50,7 @@ pub struct Config {
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
-    crate::logging::init_foreground();
+    kis_daemon::logging::init_foreground();
     let resolve_mode = if cfg.usa { ResolveMode::Overseas } else { ResolveMode::Domestic };
     let sym = resolve_symbol(&cfg.symbol, resolve_mode, cfg.pick)?;
     let name = if !sym.name_kr.is_empty() { sym.name_kr.clone() }

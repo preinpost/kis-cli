@@ -1,0 +1,19 @@
+[package]
+name = "kisd-stop-loss"
+version.workspace = true
+edition.workspace = true
+
+# 자동 손절 데몬 (컨테이너 전용). 엔진은 kis-trade::stop_loss.
+# 일회성/설정(symbols sync·auth)은 kis-cli 이미지로 처리 — 이 바이너리는 데몬 실행만.
+
+[[bin]]
+name = "kisd-stop-loss"
+path = "src/main.rs"
+
+[dependencies]
+kis-trade = { path = "../kis-trade" }
+kis-daemon = { path = "../kis-daemon" }
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tokio-util = { workspace = true }

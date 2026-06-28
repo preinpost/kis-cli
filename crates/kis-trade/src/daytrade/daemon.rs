@@ -22,25 +22,21 @@ use super::dconfig::{self, DaytradeConfig, ExecMode, StrategyEntry};
 use super::engine::{self, Combinator, CompositeChild, CompositeConfig, EngineConfig};
 use super::live::LiveExecutor;
 use super::paper::PaperExecutor;
-use super::period::Period;
-use crate::client::KisClient;
-use crate::commands::backtest::StrategyKind;
-use crate::symbols::{self, ResolveMode, ResolvedSymbol};
+use crate::common::period::Period;
+use kis_core::client::KisClient;
+use kis_analysis::signals::StrategyKind;
+use kis_data::symbols::{self, ResolveMode, ResolvedSymbol};
 
 struct RunningTask {
     cancel: CancellationToken,
     handle: JoinHandle<()>,
 }
 
-pub async fn run(client: Arc<KisClient>) -> Result<()> {
-    let _log_guard = crate::logging::init_daemon("daytrade")?;
-
+/// 데이트레이드 toml 오케스트레이터 엔진. 로깅 init·시그널 리스너는 호출자가 소유하고
+/// `global_cancel` 로 그레이스풀 종료를 주입한다(전략별 task 는 child token 으로 파생).
+pub async fn run(client: Arc<KisClient>, global_cancel: CancellationToken) -> Result<()> {
     let cfg_path = dconfig::config_path()?;
     info!("daemon 시작 — 설정 파일: {}", cfg_path.display());
-    info!("로그 파일: {}", _log_guard.log_dir.join(&_log_guard.file_name).display());
-
-    let global_cancel = CancellationToken::new();
-    kis_daemon::shutdown::spawn_signal_listener(global_cancel.clone());
 
     let mut tasks: HashMap<String, RunningTask> = HashMap::new();
 

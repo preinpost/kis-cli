@@ -54,7 +54,9 @@ jobs:
           sed -i -E '0,/^version *= *"[^"]*"/ s//version = "${{ steps.next.outputs.new }}"/' Cargo.toml
 
       - name: Update Cargo.lock
-        run: cargo update -p kis-cli
+        # 워크스페이스 전체 — 신규 멤버(kis-trade, kisd-*)의 락 항목도 같은 버전으로 동기화
+        # (Docker 빌드의 --locked 보호). 모든 멤버가 version.workspace = true 라 한 번에 갱신.
+        run: cargo update --workspace
 
       - name: Commit & tag
         env:

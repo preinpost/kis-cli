@@ -1792,6 +1792,7 @@ dependencies = [
  "kis-core",
  "kis-daemon",
  "kis-data",
+ "kis-trade",
  "notify",
  "notify-debouncer-mini",
  "reqwest",
@@ -1862,6 +1863,66 @@ dependencies = [
  "serde_json",
  "tokio",
  "zip",
+]
+
+[[package]]
+name = "kis-trade"
+version = "1.0.23"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "chrono-tz",
+ "dirs",
+ "futures-util",
+ "kis-analysis",
+ "kis-core",
+ "kis-daemon",
+ "kis-data",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "tokio-util",
+ "toml",
+ "tracing",
+ "ulid",
+]
+
+[[package]]
+name = "kisd-daytrade"
+version = "1.0.23"
+dependencies = [
+ "anyhow",
+ "kis-daemon",
+ "kis-trade",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "kisd-stop-loss"
+version = "1.0.23"
+dependencies = [
+ "anyhow",
+ "clap",
+ "kis-daemon",
+ "kis-trade",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "kisd-telegram"
+version = "1.0.23"
+dependencies = [
+ "anyhow",
+ "clap",
+ "kis-daemon",
+ "kis-trade",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]

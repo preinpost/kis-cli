@@ -19,6 +19,7 @@ kis-core = { path = "../kis-core" }
 kis-data = { path = "../kis-data" }
 kis-analysis = { path = "../kis-analysis" }
 kis-daemon = { path = "../kis-daemon" }
+kis-trade = { path = "../kis-trade" }
 
 clap = { workspace = true }
 tokio = { workspace = true }

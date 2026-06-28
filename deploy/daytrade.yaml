@@ -1,18 +1,20 @@
 name: kis-daytrade
 
-# 데이트레이드 자동매매 데몬 (단독 실행).
+# 데이트레이드 자동매매 데몬 (전용 이미지 kisd-daytrade).
 # 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 공유 — 준비 절차는 telegram.yaml 헤더 참조.
 #
-#   전략 등록: docker compose -f daytrade.yaml run --rm daytrade daytrade add paper ma-cross 005930 --qty 1 --budget 1000000
-#   기동:     docker compose -f daytrade.yaml up -d      # daytrade.toml 변경 hot-reload
+#   전략 등록(kis-cli 이미지로 — 데몬 이미지엔 CLI 없음):
+#     docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
+#       ghcr.io/preinpost/kis-cli:latest daytrade add paper ma-cross 005930 --qty 1 --budget 1000000
+#   기동: docker compose -f daytrade.yaml up -d      # daytrade.toml 변경 hot-reload
 #
 # env: 공통(KIS_APP_KEY/SECRET/ACCOUNT_NUMBER), KIS_IS_MOCK(false=실주문)
 
 services:
   daytrade:
-    image: ${KIS_IMAGE:-ghcr.io/preinpost/kis-cli:latest}
+    image: ${KIS_IMAGE:-ghcr.io/preinpost/kisd-daytrade:latest}
     pull_policy: always
-    command: ["daytrade", "daemon"]
+    # command 불필요 — 바이너리 자체가 daytrade.toml 오케스트레이터(기본 동작).
     env_file: [.env]              # KIS_* 자격증명 — .env.example 참조
     environment:
       TZ: Asia/Seoul              # 한국 장시간 기준

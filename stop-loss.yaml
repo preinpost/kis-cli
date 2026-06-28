@@ -1,8 +1,7 @@
 name: kis-stop-loss
 
-# 로컬 빌드 + 자동 손절 데몬 (단독 실행).
+# 로컬 빌드 + 자동 손절 데몬 (전용 바이너리 kisd-stop-loss).
 # ⚠ command 끝에 "--execute" 를 붙이면 실주문. 기본은 dry-run(관찰만) — 검증 후 붙일 것.
-# 별도 파일이라 실수로 같이 뜨지 않는다(기존 compose 의 profile 가드 불필요).
 # GHCR 발행 이미지로 띄우려면 deploy/ 참조. 상태는 external 볼륨 kis-data 공유 — telegram.yaml 헤더 참조.
 #
 #   기동(dry-run): docker compose -f stop-loss.yaml up -d
@@ -12,8 +11,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: kis-cli:latest
-    command: ["stop-loss", "run", "--threshold", "-5"]   # 실매도하려면 끝에 "--execute" 추가
+      args:
+        PKG: kisd-stop-loss
+        BIN: kisd-stop-loss
+    image: kisd-stop-loss:local
+    # 데몬 바이너리라 플래그만. 실매도하려면 끝에 "--execute" 추가.
+    command: ["--threshold", "-5"]
     env_file:                      # 둘 다 선택 — .env.local 이 .env 를 덮어씀
       - path: .env
         required: false

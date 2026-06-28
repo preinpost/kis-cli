@@ -12,13 +12,13 @@
 use anyhow::{anyhow, bail, Result};
 use chrono::{Duration as ChronoDuration, FixedOffset, NaiveDateTime};
 
-use crate::api::domestic_stock::quotations::inquire_time_dailychartprice as dome_min;
-use crate::api::overseas_stock::quotations::inquire_time_itemchartprice as usa_min;
-use crate::client::KisClient;
-use crate::commands::analyze::Series;
-use crate::symbols::Market as SymMarket;
+use kis_core::api::domestic_stock::quotations::inquire_time_dailychartprice as dome_min;
+use kis_core::api::overseas_stock::quotations::inquire_time_itemchartprice as usa_min;
+use kis_core::client::KisClient;
+use kis_analysis::signals::Series;
+use kis_data::symbols::Market as SymMarket;
 
-use super::period::Period;
+use crate::common::period::Period;
 
 const TARGET_BARS: usize = 200;
 const DOME_PER_PAGE: usize = 120;

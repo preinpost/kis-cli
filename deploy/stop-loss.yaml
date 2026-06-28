@@ -1,8 +1,7 @@
 name: kis-stop-loss
 
-# 자동 손절 데몬 (단독 실행).
+# 자동 손절 데몬 (전용 이미지 kisd-stop-loss).
 # ⚠ command 끝에 "--execute" 를 붙이면 실주문. 기본은 dry-run(관찰만) — 검증 후 붙일 것.
-# 별도 파일이라 실수로 같이 뜨지 않는다(기존 compose 의 profile 가드 불필요).
 # 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 공유 — 준비 절차는 telegram.yaml 헤더 참조.
 #
 #   기동(dry-run): docker compose -f stop-loss.yaml up -d
@@ -11,9 +10,10 @@ name: kis-stop-loss
 
 services:
   stop-loss:
-    image: ${KIS_IMAGE:-ghcr.io/preinpost/kis-cli:latest}
+    image: ${KIS_IMAGE:-ghcr.io/preinpost/kisd-stop-loss:latest}
     pull_policy: always
-    command: ["stop-loss", "run", "--threshold", "-5"]   # 실매도하려면 끝에 "--execute" 추가
+    # 데몬 바이너리라 subcommand 없이 플래그만. 실매도하려면 끝에 "--execute" 추가.
+    command: ["--threshold", "-5"]
     env_file: [.env]              # KIS_* 자격증명 — .env.example 참조
     environment:
       TZ: Asia/Seoul              # 한국 장시간 기준

@@ -16,13 +16,13 @@ use std::sync::Arc;
 use anyhow::Result;
 use tokio_util::sync::CancellationToken;
 
-use crate::client::KisClient;
-use crate::commands::backtest::StrategyKind;
+use kis_core::client::KisClient;
+use kis_analysis::signals::StrategyKind;
 
 use super::engine::{self, EngineConfig, Executor, Fill};
-use super::period::Period;
-use super::session::Market;
-use super::storage::Mode;
+use crate::common::period::Period;
+use crate::common::session::Market;
+use super::store::Mode;
 
 pub struct Config {
     pub symbol: String,
@@ -71,7 +71,7 @@ impl Executor for PaperExecutor {
 }
 
 pub async fn run(client: Arc<KisClient>, cfg: Config) -> Result<()> {
-    crate::logging::init_foreground();
+    kis_daemon::logging::init_foreground();
     let executor = PaperExecutor { slippage_bps: cfg.slippage_bps };
     let engine_cfg = EngineConfig {
         symbol: cfg.symbol,

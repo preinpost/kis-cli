@@ -1,0 +1,20 @@
+[package]
+name = "kisd-telegram"
+version.workspace = true
+edition.workspace = true
+
+# 텔레그램 실시간 관심종목 스트림 데몬 (컨테이너 전용). 엔진은 kis-trade::telegram.
+# 관심종목 시드/종목 마스터 sync 는 kis-cli 이미지로 — 이 바이너리는 스트림 데몬 실행만.
+# (systemd `--background` 설치 경로는 kis-cli 에만 존재.)
+
+[[bin]]
+name = "kisd-telegram"
+path = "src/main.rs"
+
+[dependencies]
+kis-trade = { path = "../kis-trade" }
+kis-daemon = { path = "../kis-daemon" }
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tokio-util = { workspace = true }

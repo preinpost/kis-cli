@@ -5,12 +5,24 @@ members = [
     "crates/kis-data",
     "crates/kis-analysis",
     "crates/kis-daemon",
+    "crates/kis-trade",
+    "crates/kisd-telegram",
+    "crates/kisd-stop-loss",
+    "crates/kisd-daytrade",
     "crates/kis-cli",
 ]
 
 [workspace.package]
 version = "1.0.23"
 edition = "2024"
+
+# 릴리스 빌드 최적화 — 데몬 바이너리(kisd-*)는 자기 엔진만 링크되고 나머지(backtest/analyze/
+# 뷰어/타 데몬)는 링커 DCE 로 제거 → strip+thin-LTO 로 컨테이너 이미지를 더 줄인다.
+# panic=abort: 언와인딩 테이블 제거(데몬은 패닉 시 그냥 종료). catch_unwind 미사용이라 안전.
+[profile.release]
+lto = "thin"
+strip = true
+panic = "abort"
 
 # 모든 멤버 크레이트가 공유하는 의존성 버전(중복 제거 + 일괄 업그레이드).
 # 멤버 Cargo.toml 에서는 `dep = { workspace = true }` 로 참조한다.

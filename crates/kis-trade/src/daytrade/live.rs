@@ -11,18 +11,18 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 
-use crate::api::domestic_stock::order_account::{
+use kis_core::api::domestic_stock::order_account::{
     inquire_balance as dome_balance, inquire_daily_ccld as dome_ccld, order_cash,
 };
-use crate::api::overseas_stock::order_account::{
+use kis_core::api::overseas_stock::order_account::{
     inquire_balance as usa_balance, inquire_ccnl as usa_ccnl, order as usa_order,
 };
-use crate::client::KisClient;
-use crate::symbols::Market as SymMarket;
+use kis_core::client::KisClient;
+use kis_data::symbols::Market as SymMarket;
 
 use super::engine::{Executor, Fill, Position};
-use super::session::{self, Market};
-use super::storage::Mode;
+use crate::common::session::{self, Market};
+use super::store::Mode;
 
 /// 한 호가 단위 (대략값). 정확한 호가는 가격대별로 다르지만,
 /// 데이트레이드 5m봉 기준이라 단순화.

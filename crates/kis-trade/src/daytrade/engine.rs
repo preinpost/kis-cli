@@ -14,17 +14,17 @@ use chrono_tz::Tz;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
-use crate::analysis::indicators;
-use crate::client::KisClient;
-use crate::commands::backtest::{self, Params, StrategyKind};
-use crate::commands::helpers::{format_number, resolve_symbol};
-use crate::config;
-use crate::symbols::{Market as SymMarket, ResolveMode, ResolvedSymbol};
+use kis_analysis::analysis::indicators;
+use kis_core::client::KisClient;
+use kis_analysis::signals::{self as backtest, Params, StrategyKind};
+use crate::common::resolve::{format_number, resolve_symbol};
+use kis_core::config;
+use kis_data::symbols::{Market as SymMarket, ResolveMode, ResolvedSymbol};
 
 use super::fetch;
-use super::period::Period;
-use super::session::{self, HolidayCache, Market};
-use super::storage::{Mode, Side, Storage, TradeInsert};
+use crate::common::period::Period;
+use crate::common::session::{self, HolidayCache, Market};
+use super::store::{Mode, Side, Storage, TradeInsert};
 
 /// 복합 전략 결합 방식.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -550,7 +550,7 @@ fn new_session_id(code: &str, market: Market) -> String {
 }
 
 /// 단일 또는 복합 전략에 따라 분기. composite는 child별 신호를 backtest::latest_signal 로 받아 결합.
-fn compute_signal(cfg: &EngineConfig, series: &crate::commands::analyze::Series) -> i8 {
+fn compute_signal(cfg: &EngineConfig, series: &kis_analysis::signals::Series) -> i8 {
     if let (StrategyKind::Composite, Some(comp)) = (cfg.strategy, &cfg.composite) {
         if comp.children.is_empty() {
             return 0;

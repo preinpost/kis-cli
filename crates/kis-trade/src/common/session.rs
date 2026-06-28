@@ -3,9 +3,7 @@
 //! - **KRX**: 09:00–15:30 Asia/Seoul (평일, 한국 공휴일 제외 — `chk-holiday` API)
 //! - **미장**: 09:30–16:00 America/New_York → KST 변환 (DST 자동, 평일만)
 //!
-//! Phase 1은 `is_in_session` / `time_until_open` / `next_bar_boundary` 만 사용.
-//! 마감 10분 전 강제청산(`should_force_exit`)은 Phase 2(paper/run)에서 사용.
-//!
+//! 마감 10분 전 강제청산(`should_force_exit`)은 paper/run 데몬에서 사용.
 //! 공휴일 인식이 필요한 호출자는 `is_in_session_async` / `time_until_open_async` 를 사용.
 //! 이 두 함수는 `HolidayCache`를 통해 KIS `chk-holiday`를 1일 1회만 호출 (KIS 권고).
 
@@ -18,10 +16,10 @@ use chrono_tz::Tz;
 use tokio::sync::Mutex;
 use tracing::warn;
 
-use crate::api::domestic_stock::sector::chk_holiday;
-use crate::client::KisClient;
+use kis_core::api::domestic_stock::sector::chk_holiday;
+use kis_core::client::KisClient;
 
-use super::period::Period;
+use crate::common::period::Period;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Market {

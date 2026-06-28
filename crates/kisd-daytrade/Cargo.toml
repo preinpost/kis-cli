@@ -1,0 +1,19 @@
+[package]
+name = "kisd-daytrade"
+version.workspace = true
+edition.workspace = true
+
+# 데이트레이드 자동매매 데몬 (컨테이너 전용). 엔진은 kis-trade::daytrade::daemon.
+# 전략 등록(daytrade add)·종목 sync 는 kis-cli 이미지로 — 이 바이너리는 daytrade.toml
+# 오케스트레이터(hot-reload) 실행만. 인터랙티브 paper/run/history 는 kis-cli 에만 존재.
+
+[[bin]]
+name = "kisd-daytrade"
+path = "src/main.rs"
+
+[dependencies]
+kis-trade = { path = "../kis-trade" }
+kis-daemon = { path = "../kis-daemon" }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tokio-util = { workspace = true }

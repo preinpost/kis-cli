@@ -1,0 +1,30 @@
+[package]
+name = "kis-trade"
+version.workspace = true
+edition.workspace = true
+
+# kis-trade — 컨테이너 데몬(telegram / stop-loss / daytrade)의 엔진 라이브러리.
+# kis-cli(인터랙티브 CLI)와 데몬 바이너리(kisd-*)가 공유한다.
+# 로깅/시그널 배선은 호출자가 소유 — 엔진은 cancel: CancellationToken 을 주입받는다.
+
+[dependencies]
+kis-core = { path = "../kis-core" }
+kis-data = { path = "../kis-data" }
+kis-analysis = { path = "../kis-analysis" }
+kis-daemon = { path = "../kis-daemon" }
+
+tokio = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+dirs = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+anyhow = { workspace = true }
+rusqlite = { workspace = true }
+ulid = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }

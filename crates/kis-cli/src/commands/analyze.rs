@@ -72,14 +72,8 @@ impl DisplayName for crate::symbols::ResolvedSymbol {
     }
 }
 
-pub struct Series {
-    pub dates: Vec<String>,
-    pub open: Vec<f64>,
-    pub high: Vec<f64>,
-    pub low: Vec<f64>,
-    pub closes: Vec<f64>,
-    pub volume: Vec<f64>,
-}
+// OHLCV 시계열 컨테이너는 kis-analysis::signals 로 이동(전략·daytrade 공용). 재노출만 유지.
+pub use kis_analysis::signals::Series;
 
 pub async fn fetch_domestic(client: &KisClient, code: &str) -> Result<Series> {
     fetch_domestic_with_period(client, code, 'D').await
