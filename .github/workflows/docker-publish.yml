@@ -76,7 +76,9 @@ jobs:
           DT: ${{ steps.filter.outputs.daytrade }}
         run: |
           set -euo pipefail
-          # image == GHCR 패키지명 == cargo 패키지(-p) == 산출 바이너리(BIN)
+          # image == GHCR 패키지명 == cargo 패키지(-p). 산출 바이너리(BIN)는 패키지와 같지만
+          # kis-cli 만 [[bin]] name = "kis" 라 예외 매핑한다.
+          bin_for() { case "$1" in kis-cli) echo kis ;; *) echo "$1" ;; esac; }
           imgs=(kis-cli kisd-telegram kisd-stop-loss kisd-daytrade)
           want=()
           if [ "$FORCE_ALL" = "true" ] || [ "$SHARED" = "true" ]; then
@@ -90,7 +92,7 @@ jobs:
           items=()
           for img in "${want[@]:-}"; do
             [ -n "$img" ] || continue
-            items+=("{\"image\":\"$img\",\"pkg\":\"$img\",\"bin\":\"$img\"}")
+            items+=("{\"image\":\"$img\",\"pkg\":\"$img\",\"bin\":\"$(bin_for "$img")\"}")
           done
           if [ "${#items[@]}" -eq 0 ]; then
             echo 'any=false' >> "$GITHUB_OUTPUT"
