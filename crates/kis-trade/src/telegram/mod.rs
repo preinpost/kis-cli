@@ -627,7 +627,7 @@ fn persist(list: &[Watch]) {
 async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_session: bool) -> String {
     let now = session::now_kst();
     let header = format!(
-        "📊 관심종목  {}({}) {}",
+        "관심종목  {}({}) {}",
         now.format("%m/%d"),
         kor_weekday(now.weekday()),
         now.format("%H:%M:%S"),
@@ -666,12 +666,14 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_se
         }
     }
 
-    // 컬럼 폭 산출 (한글 2칸 폭 고려).
+    // 라인별 인라인 코드 — 각 줄을 <code> 로 감싸 모노스페이스로 렌더. 전체
+    // <pre> 박스가 없어 "표" 느낌은 줄이되, 같은 줄 안에선 정렬이 보장된다.
     let name_w = rows.iter().map(|r| display_width(&r.name)).max().unwrap_or(0);
     let price_w = rows.iter().map(|r| r.price.chars().count()).max().unwrap_or(0);
 
     let mut body = String::new();
     for r in &rows {
+        body.push_str("<code>");
         body.push_str(&pad_to(&esc(&r.name), name_w));
         body.push_str("  ");
         body.push_str(&" ".repeat(price_w.saturating_sub(r.price.chars().count())));
@@ -680,15 +682,15 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_se
             body.push_str("  ");
             body.push_str(&r.change);
         }
-        body.push('\n');
+        body.push_str("</code>\n");
     }
 
     let footer = if in_session {
-        format!("🔄 {interval_secs}초마다 갱신")
+        format!("{interval_secs}초마다 갱신")
     } else {
-        "🔴 세션 밖 · 마지막 체결가".to_string()
+        "세션 밖 · 마지막 체결가".to_string()
     };
-    format!("{header}\n<pre>{body}</pre>{footer}")
+    format!("{header}\n\n{body}\n{footer}")
 }
 
 /// 시장에 맞는 현재가를 조회해 통화·부호까지 포맷한 표시용 값으로 정규화.
