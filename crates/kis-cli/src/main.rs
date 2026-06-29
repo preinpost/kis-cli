@@ -362,8 +362,8 @@ enum BriefAction {
         /// 관심 종목 (이름 또는 코드). 공백으로 구분. 생략 시 저장된 목록(brief-stream.toml) 사용.
         /// 인자를 주면 저장된 목록을 그 목록으로 덮어씀.
         symbols: Vec<String>,
-        /// 갱신 주기 (초). 기본 1
-        #[arg(long, default_value_t = 1)]
+        /// 갱신 주기 (초). 기본 5 — 1초는 텔레그램 edit rate-limit(429) 유발
+        #[arg(long, default_value_t = 5)]
         interval: u64,
         /// 세션 무시하고 즉시 1회만 전송 후 종료 (포맷 확인용)
         #[arg(long)]
