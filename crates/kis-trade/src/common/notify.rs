@@ -37,7 +37,15 @@ pub enum EditOutcome {
     RateLimited(u64),
 }
 
-pub async fn send_message(tg: &TelegramConfig, text: &str) -> Result<i64> {
+/// sendMessage 결과 — `edit_message_text` 의 `EditOutcome` 과 대칭.
+/// 429 는 `RateLimited` 로 분리해 호출자가 `retry_after`(cap 60s) 만큼 백오프하게 한다.
+pub enum SendOutcome {
+    Sent(i64),
+    /// retry_after (초, 이미 cap 적용)
+    RateLimited(u64),
+}
+
+pub async fn send_message(tg: &TelegramConfig, text: &str) -> Result<SendOutcome> {
     let url = format!("https://api.telegram.org/bot{}/sendMessage", tg.bot_token);
     let resp = http()
         .post(&url)
@@ -51,12 +59,17 @@ pub async fn send_message(tg: &TelegramConfig, text: &str) -> Result<i64> {
         .await?;
     let status = resp.status();
     let body: Value = resp.json().await?;
+    if status.as_u16() == 429 {
+        let raw = body["parameters"]["retry_after"].as_u64().unwrap_or(1);
+        return Ok(SendOutcome::RateLimited(raw.min(RATE_LIMIT_CAP_SECS)));
+    }
     if body.get("ok").and_then(Value::as_bool) != Some(true) {
         return Err(anyhow!("sendMessage HTTP {}: {}", status, body));
     }
-    body["result"]["message_id"]
+    let id = body["result"]["message_id"]
         .as_i64()
-        .ok_or_else(|| anyhow!("message_id 파싱 실패: {body}"))
+        .ok_or_else(|| anyhow!("message_id 파싱 실패: {body}"))?;
+    Ok(SendOutcome::Sent(id))
 }
 
 /// 텔레그램 명령 메뉴(/ 자동완성·Menu 버튼)에 명령 목록을 등록(setMyCommands).

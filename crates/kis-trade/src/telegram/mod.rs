@@ -25,7 +25,7 @@ use kis_core::config::{load_config, TelegramConfig};
 use kis_data::symbols::{self, ResolveMode};
 
 // 텔레그램 Bot API HTTP 헬퍼는 kis-trade::common::notify 공용.
-use crate::common::notify::{edit_message_text, register_commands, send_message, EditOutcome};
+use crate::common::notify::{edit_message_text, register_commands, send_message, EditOutcome, SendOutcome};
 
 pub struct StreamConfig {
     /// 관심 종목 (이름 또는 코드). 비어 있으면 영속 파일(brief-stream.toml)에서 로드.
@@ -88,11 +88,19 @@ pub async fn run(
 
     // 4) --once: 세션 무시, 즉시 1회 전송 후 종료.
     if cfg.once {
+        if watches.is_empty() {
+            return Err(anyhow!("관심종목 없음 — `kis brief stream <종목> --once` 로 시드하세요"));
+        }
         let cache = HolidayCache::new();
         let now = session::now_kst();
         let in_session = any_in_session(&session_markets(&watches), now, &client, &cache).await;
         let text = render(&client, &watches, cfg.interval_secs, in_session).await;
-        let id = send_message(&tg, &text).await?;
+        let id = match send_message(&tg, &text).await? {
+            SendOutcome::Sent(id) => id,
+            SendOutcome::RateLimited(secs) => {
+                return Err(anyhow!("sendMessage rate-limited (retry_after {secs}초)"));
+            }
+        };
         info!("--once 전송 완료 (message_id={id}, {}종목)", watches.len());
         return Ok(());
     }
@@ -103,6 +111,10 @@ pub async fn run(
         cfg.interval_secs,
         if cfg.listen { "ON (/add /rm /list)" } else { "OFF" },
     );
+
+    if watches.is_empty() {
+        warn!("관심종목 없음 — 텔레그램 /add <종목> 또는 `kis brief stream <종목> --once` 로 시드하세요");
+    }
 
     // 5) 공유 상태 (종료 시그널은 주입된 cancel 사용).
     let shared: Shared = Arc::new(Mutex::new(watches));
@@ -137,6 +149,11 @@ pub async fn run(
         let now = session::now_kst();
         let today = now.date_naive();
         let snapshot = shared.lock().await.clone();
+        if snapshot.is_empty() {
+            // 관심종목 없음 — 시세 조회·메시지 발행/갱신 스킵. /add 런타임 추가 대기.
+            sleep_or_cancel(&cancel, OFF_HOURS_REFRESH_SECS).await;
+            continue;
+        }
         let markets = session_markets(&snapshot);
         let in_session = any_in_session(&markets, now, &client, &cache).await;
 
@@ -178,9 +195,24 @@ pub async fn run(
                             backoff = Some(secs);
                         }
                         Ok(EditOutcome::NotFound) => {
-                            failures = 0;
                             warn!("메시지를 찾을 수 없음 (삭제됨?) — 새 메시지 발행");
-                            current = send_fresh(&tg, today, &text).await;
+                            match send_fresh(&tg, today, &text).await {
+                                FreshOutcome::Sent(s) => {
+                                    failures = 0;
+                                    current = Some(s);
+                                }
+                                FreshOutcome::RateLimited(secs) => {
+                                    failures = failures.saturating_add(1);
+                                    warn!("sendMessage rate-limit (연속 {failures}회, {secs}초 백오프)");
+                                    backoff = Some(secs);
+                                }
+                                FreshOutcome::Failed => {
+                                    failures = failures.saturating_add(1);
+                                    let bo = backoff_for(failures);
+                                    error!("sendMessage 실패 (연속 {failures}회, {bo}초 후 재시도)");
+                                    backoff = Some(bo);
+                                }
+                            }
                         }
                         Err(e) => {
                             failures = failures.saturating_add(1);
@@ -194,15 +226,23 @@ pub async fn run(
             // 첫 실행 또는 새 트레이딩일 → 새 메시지 발행.
             _ => {
                 let next = send_fresh(&tg, today, &text).await;
-                if next.is_some() {
-                    failures = 0;
-                } else {
-                    failures = failures.saturating_add(1);
-                    let bo = backoff_for(failures);
-                    error!("sendMessage 실패 (연속 {failures}회, {bo}초 후 재시도)");
-                    backoff = Some(bo);
+                match next {
+                    FreshOutcome::Sent(s) => {
+                        failures = 0;
+                        current = Some(s);
+                    }
+                    FreshOutcome::RateLimited(secs) => {
+                        failures = failures.saturating_add(1);
+                        warn!("sendMessage rate-limit (연속 {failures}회, {secs}초 백오프)");
+                        backoff = Some(secs);
+                    }
+                    FreshOutcome::Failed => {
+                        failures = failures.saturating_add(1);
+                        let bo = backoff_for(failures);
+                        error!("sendMessage 실패 (연속 {failures}회, {bo}초 후 재시도)");
+                        backoff = Some(bo);
+                    }
                 }
-                current = next;
             }
         }
 
@@ -219,16 +259,26 @@ pub async fn run(
     Ok(())
 }
 
-/// 새 메시지 발행 후 상태 튜플 생성. 실패하면 상태 유지(None).
-async fn send_fresh(tg: &TelegramConfig, today: NaiveDate, text: &str) -> Option<(NaiveDate, i64, String)> {
+enum FreshOutcome {
+    Sent((NaiveDate, i64, String)),
+    RateLimited(u64),
+    Failed,
+}
+
+/// 새 메시지 발행. 성공 시 상태 튜플, 429 시 `retry_after`(초), 그 외 실패.
+async fn send_fresh(tg: &TelegramConfig, today: NaiveDate, text: &str) -> FreshOutcome {
     match send_message(tg, text).await {
-        Ok(id) => {
+        Ok(SendOutcome::Sent(id)) => {
             info!("새 메시지 발행 (message_id={id})");
-            Some((today, id, text.to_string()))
+            FreshOutcome::Sent((today, id, text.to_string()))
+        }
+        Ok(SendOutcome::RateLimited(secs)) => {
+            warn!("텔레그램 rate-limit (retry_after {secs}초)");
+            FreshOutcome::RateLimited(secs)
         }
         Err(e) => {
             error!("sendMessage 실패: {e}");
-            None
+            FreshOutcome::Failed
         }
     }
 }
