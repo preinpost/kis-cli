@@ -2,7 +2,7 @@ name: kis-stop-loss
 
 # 로컬 빌드 + 자동 손절 데몬 (전용 바이너리 kisd-stop-loss).
 # ⚠ command 끝에 "--execute" 를 붙이면 실주문. 기본은 dry-run(관찰만) — 검증 후 붙일 것.
-# GHCR 발행 이미지로 띄우려면 deploy/ 참조. 상태는 external 볼륨 kis-data 공유 — telegram.yaml 헤더 참조.
+# GHCR 발행 이미지로 띄우려면 deploy/ 참조. 상태는 external 볼륨 kis-data 공유 — brief.yaml 헤더 참조.
 #
 #   기동(dry-run): docker compose -f stop-loss.yaml up -d
 

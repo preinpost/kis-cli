@@ -1891,6 +1891,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "kisd-brief"
+version = "1.0.23"
+dependencies = [
+ "anyhow",
+ "clap",
+ "kis-daemon",
+ "kis-trade",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "kisd-daytrade"
 version = "1.0.23"
 dependencies = [
@@ -1903,18 +1915,6 @@ dependencies = [
 
 [[package]]
 name = "kisd-stop-loss"
-version = "1.0.23"
-dependencies = [
- "anyhow",
- "clap",
- "kis-daemon",
- "kis-trade",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "kisd-telegram"
 version = "1.0.23"
 dependencies = [
  "anyhow",

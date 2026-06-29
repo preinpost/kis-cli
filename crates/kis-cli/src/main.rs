@@ -114,10 +114,10 @@ enum Commands {
         action: DaytradeAction,
     },
 
-    /// 텔레그램 — 관심 종목 시세를 메시지 1건에 in-place 로 실시간 갱신
-    Telegram {
+    /// 시황 브리프 — 관심 종목 시세를 메시지 1건에 in-place 로 실시간 갱신
+    Brief {
         #[command(subcommand)]
-        action: TelegramAction,
+        action: BriefAction,
     },
 
     /// 백테스트 — 전략별 서브커맨드. 공통 옵션은 모든 전략이 공유
@@ -356,10 +356,10 @@ struct SignalWatchCommonArgs {
 }
 
 #[derive(Subcommand)]
-enum TelegramAction {
+enum BriefAction {
     /// 관심 종목 시세를 텔레그램 메시지 1건에 실시간 갱신 (장 시작 시 발행 → in-place 수정, 다음날 새 메시지)
     Stream {
-        /// 관심 종목 (이름 또는 코드). 공백으로 구분. 생략 시 저장된 목록(telegram-stream.toml) 사용.
+        /// 관심 종목 (이름 또는 코드). 공백으로 구분. 생략 시 저장된 목록(brief-stream.toml) 사용.
         /// 인자를 주면 저장된 목록을 그 목록으로 덮어씀.
         symbols: Vec<String>,
         /// 갱신 주기 (초). 기본 1
@@ -1929,10 +1929,10 @@ async fn async_main(cli: Cli) -> Result<()> {
             }
         },
 
-        Commands::Telegram { action } => match action {
-            TelegramAction::Stream { symbols, interval, once, background, no_listen, pick } => {
+        Commands::Brief { action } => match action {
+            BriefAction::Stream { symbols, interval, once, background, no_listen, pick } => {
                 let client = std::sync::Arc::new(build_client()?);
-                let cfg = commands::telegram::StreamConfig {
+                let cfg = commands::brief::StreamConfig {
                     symbols,
                     interval_secs: interval,
                     once,
@@ -1942,14 +1942,14 @@ async fn async_main(cli: Cli) -> Result<()> {
                 };
                 if background {
                     // systemd unit 설치만 — 로깅/시그널 배선 불필요(즉시 반환).
-                    commands::telegram::run(client, cfg, tokio_util::sync::CancellationToken::new()).await
+                    commands::brief::run(client, cfg, tokio_util::sync::CancellationToken::new()).await
                 } else {
-                    let _log_guard = kis_daemon::logging::init_daemon("telegram-stream")?;
-                    commands::telegram::run(client, cfg, daemon_cancel()).await
+                    let _log_guard = kis_daemon::logging::init_daemon("brief-stream")?;
+                    commands::brief::run(client, cfg, daemon_cancel()).await
                 }
             }
-            TelegramAction::List => commands::telegram::list_service(),
-            TelegramAction::Remove => commands::telegram::remove_service(),
+            BriefAction::List => commands::brief::list_service(),
+            BriefAction::Remove => commands::brief::remove_service(),
         },
 
         Commands::Backtest { strategy } => {

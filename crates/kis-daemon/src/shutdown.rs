@@ -7,7 +7,7 @@ use tracing::{error, info};
 
 /// 백그라운드 태스크를 띄워 종료 신호를 감시하고, 신호 수신 시 `cancel` 을 취소한다.
 /// 메인 루프가 `cancel.cancelled()` 를 select 하다 빠져나오는 패턴에 쓴다.
-/// (telegram stream / daytrade daemon 처럼 자체 select 루프를 가진 데몬용)
+/// (brief stream / daytrade daemon 처럼 자체 select 루프를 가진 데몬용)
 pub fn spawn_signal_listener(cancel: CancellationToken) {
     tokio::spawn(async move {
         #[cfg(unix)]

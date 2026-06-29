@@ -1,6 +1,6 @@
-//! `kisd-telegram` — 텔레그램 실시간 관심종목 스트림 데몬 바이너리 (컨테이너 전용).
+//! `kisd-brief` — 시황 브리프 스트림 데몬 바이너리 (컨테이너 전용).
 //!
-//! 기본 동작 = 스트림 데몬 실행. 인자로 종목을 주면 watchlist(telegram-stream.toml)를
+//! 기본 동작 = 스트림 데몬 실행. 인자로 종목을 주면 watchlist(brief-stream.toml)를
 //! 그 목록으로 덮어쓰고 시작하며, 생략 시 저장된 목록을 사용한다.
 //! 엔진은 [`kis_trade::telegram`]. systemd `--background` 경로는 kis-cli 에만 존재.
 
@@ -11,9 +11,9 @@ use clap::Parser;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Parser)]
-#[command(name = "kisd-telegram", about = "텔레그램 실시간 관심종목 스트림 데몬", disable_version_flag = true)]
+#[command(name = "kisd-brief", about = "시황 브리프 스트림 데몬", disable_version_flag = true)]
 struct Cli {
-    /// 관심 종목 (이름 또는 코드). 공백 구분. 생략 시 저장된 목록(telegram-stream.toml) 사용.
+    /// 관심 종목 (이름 또는 코드). 공백 구분. 생략 시 저장된 목록(brief-stream.toml) 사용.
     symbols: Vec<String>,
     /// 갱신 주기 (초). 기본 1
     #[arg(long, default_value_t = 1)]
@@ -31,7 +31,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let _log_guard = kis_daemon::logging::init_daemon("telegram-stream")?;
+    let _log_guard = kis_daemon::logging::init_daemon("brief-stream")?;
     let cli = Cli::parse();
 
     let cancel = CancellationToken::new();

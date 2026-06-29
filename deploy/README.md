@@ -7,7 +7,7 @@
 
 | 데몬 | 이미지 | compose 파일 | 추가 필요 env | 기동 |
 |---|---|---|---|---|
-| 텔레그램 스트림 | `ghcr.io/<owner>/kisd-telegram` | `telegram.yaml` | `KIS_TELEGRAM_BOT_TOKEN`, `KIS_TELEGRAM_CHAT_ID` | `docker compose -f telegram.yaml up -d` |
+| 시황 브리프 | `ghcr.io/<owner>/kisd-brief` | `brief.yaml` | `KIS_TELEGRAM_BOT_TOKEN`, `KIS_TELEGRAM_CHAT_ID` | `docker compose -f brief.yaml up -d` |
 | 데이트레이드 | `ghcr.io/<owner>/kisd-daytrade` | `daytrade.yaml` | (공통만) `KIS_IS_MOCK=false`면 실주문 | `docker compose -f daytrade.yaml up -d` |
 | 자동 손절 | `ghcr.io/<owner>/kisd-stop-loss` | `stop-loss.yaml` | (공통만) | `docker compose -f stop-loss.yaml up -d` (기본 dry-run) |
 | (일회성 CLI) | `ghcr.io/<owner>/kis-cli` | — | — | `docker run --rm … kis-cli <subcommand>` |
@@ -47,10 +47,10 @@ docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
 ## 데몬별 기동
 
 ```bash
-# 텔레그램: 관심종목 1회 시드(kis-cli 이미지) 후 데몬 상주 (국내·미국 주식 모두 지원)
+# 시황 브리프: 관심종목 1회 시드(kis-cli 이미지) 후 데몬 상주 (국내·미국 주식 모두 지원)
 docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
-  ghcr.io/<owner>/kis-cli:latest telegram stream 005930 000660 TSLA --once
-docker compose -f telegram.yaml up -d
+  ghcr.io/<owner>/kis-cli:latest brief stream 005930 000660 TSLA --once
+docker compose -f brief.yaml up -d
 
 # 데이트레이드: 전략 등록(kis-cli 이미지) 후 데몬 상주 (daytrade.toml hot-reload)
 docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
@@ -100,11 +100,11 @@ docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
 #    → "KOSPI 960 건 / KOSDAQ 1700 건 ..." 처럼 시장별 건수가 찍히면 정상.
 
 # 2) 떠 있는 데몬이 새 DB 를 잡도록 재기동
-docker compose -f telegram.yaml restart
+docker compose -f brief.yaml restart
 
 # 3) 확인 — 삼성전자 005930 이 나오면 OK
 docker run --rm -v kis-data:/data ghcr.io/<owner>/kis-cli:latest symbols find 삼성
 ```
 
-> 셋 데몬이 external 볼륨 `kis-data` 를 공유하므로 **`symbols sync` 는 한 번만** 하면 telegram·daytrade·stop-loss 모두 같은 마스터를 쓴다.
+> 셋 데몬이 external 볼륨 `kis-data` 를 공유하므로 **`symbols sync` 는 한 번만** 하면 brief·daytrade·stop-loss 모두 같은 마스터를 쓴다.
 > 단, 볼륨을 새로 만든 직후(`docker volume create kis-data` 후)거나 `docker volume rm kis-data` 로 지운 뒤에는 다시 한 번 동기화해야 한다.

@@ -2,9 +2,9 @@ name: kis-daytrade
 
 # 로컬 빌드 + 데이트레이드 자동매매 데몬 (전용 바이너리 kisd-daytrade).
 # GHCR 발행 이미지로 띄우려면 deploy/ 참조.
-# 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 공유 — 준비 절차는 telegram.yaml 헤더 참조.
+# 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 공유 — 준비 절차는 brief.yaml 헤더 참조.
 #
-#   전략 등록(kis-cli:local 이미지로 — telegram.yaml 헤더의 CLI 이미지 빌드 참조):
+#   전략 등록(kis-cli:local 이미지로 — brief.yaml 헤더의 CLI 이미지 빌드 참조):
 #     docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \
 #       kis-cli:local daytrade add paper ma-cross 005930 --qty 1 --budget 1000000
 #   기동: docker compose -f daytrade.yaml up -d      # daytrade.toml 변경 hot-reload

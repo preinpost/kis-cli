@@ -2,7 +2,7 @@ name: kis-stop-loss
 
 # 자동 손절 데몬 (전용 이미지 kisd-stop-loss).
 # ⚠ command 끝에 "--execute" 를 붙이면 실주문. 기본은 dry-run(관찰만) — 검증 후 붙일 것.
-# 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 공유 — 준비 절차는 telegram.yaml 헤더 참조.
+# 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 공유 — 준비 절차는 brief.yaml 헤더 참조.
 #
 #   기동(dry-run): docker compose -f stop-loss.yaml up -d
 #

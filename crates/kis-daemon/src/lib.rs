@@ -1,6 +1,6 @@
 //! kis-daemon — 데몬 공통 인프라.
 //!
-//! 4개 데몬(stop-loss / signal-watch / daytrade daemon / telegram stream)이 공유하는
+//! 4개 데몬(stop-loss / signal-watch / daytrade daemon / brief stream)이 공유하는
 //! 스캐폴딩을 모은 leaf crate. **데몬을 한 프로세스로 합치지 않는다** — 각 데몬은 여전히
 //! 자기 subcommand·컨테이너로 돌고, 여기서는 라이브러리 코드만 가져다 쓴다.
 //!

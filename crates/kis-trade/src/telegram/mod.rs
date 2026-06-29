@@ -1,4 +1,4 @@
-//! `kis telegram stream` — 관심 종목 시세를 텔레그램 메시지 1건에 **in-place** 로 실시간 갱신.
+//! `kis brief stream` — 관심 종목 시세를 텔레그램 메시지 1건에 **in-place** 로 실시간 갱신.
 //!
 //! **설계**
 //! - 매 주기(기본 1초) 관심 종목마다 `inquire_price` REST 조회 → 표 1장으로 렌더.
@@ -28,7 +28,7 @@ use kis_data::symbols::{self, ResolveMode};
 use crate::common::notify::{edit_message_text, register_commands, send_message, EditOutcome};
 
 pub struct StreamConfig {
-    /// 관심 종목 (이름 또는 코드). 비어 있으면 영속 파일(telegram-stream.toml)에서 로드.
+    /// 관심 종목 (이름 또는 코드). 비어 있으면 영속 파일(brief-stream.toml)에서 로드.
     pub symbols: Vec<String>,
     /// 갱신 주기 (초). 기본 1.
     pub interval_secs: u64,
@@ -65,7 +65,7 @@ pub async fn run(
     cancel: CancellationToken,
 ) -> Result<()> {
     // 1) 관심종목 확정: CLI 인자가 있으면 그 목록으로 영속 파일을 덮어쓰고(seed),
-    //    없으면 영속 파일(telegram-stream.toml)에서 로드.
+    //    없으면 영속 파일(brief-stream.toml)에서 로드.
     let watches = if !cfg.symbols.is_empty() {
         let resolved = resolve_watches(&cfg.symbols, cfg.pick)?;
         save_watchlist(&codes_of(&resolved))?;
@@ -98,7 +98,7 @@ pub async fn run(
     }
 
     info!(
-        "telegram stream 시작: {}종목 · 주기 {}초 · 명령수신 {}",
+        "brief stream 시작: {}종목 · 주기 {}초 · 명령수신 {}",
         watches.len(),
         cfg.interval_secs,
         if cfg.listen { "ON (/add /rm /list)" } else { "OFF" },
@@ -127,6 +127,8 @@ pub async fn run(
     // (메시지 생성 날짜, message_id, 마지막 렌더 텍스트)
     let mut current: Option<(NaiveDate, i64, String)> = None;
     let mut prev_in_session: Option<bool> = None;
+    // 연속 edit/발행 실패(429·네트워크) 카운트 — 점진 백오프에 사용. 성공 시 0 리셋.
+    let mut failures: u32 = 0;
 
     loop {
         if cancel.is_cancelled() {
@@ -157,38 +159,63 @@ pub async fn run(
             Some((d, _, _)) => in_session && *d != today,
         };
 
+        // 이번 주기 끝에 추가로 대기할 백오프. None 이면 정상 주기 대기.
+        // RateLimited/네트워크 실패 시에만 세워, 이중 sleep(백오프+정상 wait)을 막는다.
+        let mut backoff: Option<u64> = None;
+
         match current.clone() {
             // 기존 메시지 유지 → 텍스트가 바뀐 경우만 in-place 갱신.
             Some((d, id, last)) if !need_fresh => {
                 if last != text {
                     match edit_message_text(&tg, id, &text).await {
                         Ok(EditOutcome::Ok) | Ok(EditOutcome::NotModified) => {
+                            failures = 0;
                             current = Some((d, id, text));
                         }
                         Ok(EditOutcome::RateLimited(secs)) => {
-                            warn!("텔레그램 rate-limit, {secs}초 백오프");
-                            sleep_or_cancel(&cancel, secs).await;
+                            failures = failures.saturating_add(1);
+                            warn!("텔레그램 rate-limit, {secs}초 백오프 (연속 {failures}회)");
+                            backoff = Some(secs);
                         }
                         Ok(EditOutcome::NotFound) => {
+                            failures = 0;
                             warn!("메시지를 찾을 수 없음 (삭제됨?) — 새 메시지 발행");
                             current = send_fresh(&tg, today, &text).await;
                         }
-                        Err(e) => error!("editMessageText 실패: {e}"),
+                        Err(e) => {
+                            failures = failures.saturating_add(1);
+                            let bo = backoff_for(failures);
+                            error!("editMessageText 실패 (연속 {failures}회, {bo}초 후 재시도): {e}");
+                            backoff = Some(bo);
+                        }
                     }
                 }
             }
             // 첫 실행 또는 새 트레이딩일 → 새 메시지 발행.
             _ => {
-                current = send_fresh(&tg, today, &text).await;
+                let next = send_fresh(&tg, today, &text).await;
+                if next.is_some() {
+                    failures = 0;
+                } else {
+                    failures = failures.saturating_add(1);
+                    let bo = backoff_for(failures);
+                    error!("sendMessage 실패 (연속 {failures}회, {bo}초 후 재시도)");
+                    backoff = Some(bo);
+                }
+                current = next;
             }
         }
 
-        // 장중: 빠른 주기. 세션 밖: 느린 주기(시세 정적). 개장은 다음 폴링에서 자동 감지.
-        let wait = if in_session { cfg.interval_secs } else { OFF_HOURS_REFRESH_SECS };
+        // 백오프가 있으면 그것만 대기(이중 sleep 방지). 없으면 정상 주기.
+        let wait = match backoff {
+            Some(bo) => bo,
+            None if in_session => cfg.interval_secs,
+            None => OFF_HOURS_REFRESH_SECS,
+        };
         sleep_or_cancel(&cancel, wait).await;
     }
 
-    info!("종료 신호 수신 — telegram stream 정리");
+    info!("종료 신호 수신 — brief stream 정리");
     Ok(())
 }
 
@@ -212,6 +239,12 @@ async fn sleep_or_cancel(cancel: &CancellationToken, secs: u64) {
         _ = cancel.cancelled() => {}
         _ = tokio::time::sleep(std::time::Duration::from_secs(secs)) => {}
     }
+}
+
+/// 연속 실패에 대한 점진 백오프(초): 2, 4, 8, 16, 32, 60, 60, ...
+/// 네트워크 실패 시 1초 폭격을 막고, 429 누적 페널티를 식히는 데 사용.
+fn backoff_for(failures: u32) -> u64 {
+    (1u64 << failures.min(6)).min(60)
 }
 
 fn resolve_watches(symbols: &[String], pick: Option<usize>) -> Result<Vec<Watch>> {
@@ -273,7 +306,7 @@ async fn any_in_session(
 }
 
 // ─────────────────────────────────────────────────────────────
-// 관심종목 영속화 (telegram-stream.toml)
+// 관심종목 영속화 (brief-stream.toml)
 // ─────────────────────────────────────────────────────────────
 
 #[derive(serde::Serialize, serde::Deserialize, Default)]
@@ -284,7 +317,7 @@ struct WatchlistFile {
 
 /// 영속 파일에서 종목 코드 목록 로드. 없거나 깨졌으면 빈 목록.
 fn load_watchlist() -> Vec<String> {
-    let path = match kis_core::config::telegram_stream_path() {
+    let path = match kis_core::config::brief_stream_path() {
         Ok(p) => p,
         Err(_) => return Vec::new(),
     };
@@ -299,7 +332,7 @@ fn load_watchlist() -> Vec<String> {
 
 /// 종목 코드 목록을 영속 파일에 저장.
 fn save_watchlist(codes: &[String]) -> Result<()> {
-    let path = kis_core::config::telegram_stream_path()?;
+    let path = kis_core::config::brief_stream_path()?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -727,7 +760,7 @@ fn pad_to(s: &str, width: usize) -> String {
 // `--background` — systemd user unit (Linux 전용, 단일 서비스)
 // ─────────────────────────────────────────────────────────────
 
-const SERVICE_NAME: &str = "kis-telegram-stream";
+const SERVICE_NAME: &str = "kis-brief-stream";
 
 fn unit_path() -> String {
     format!("/etc/systemd/system/{SERVICE_NAME}.service")
@@ -740,15 +773,15 @@ fn install_systemd_unit(interval_secs: u64) -> Result<()> {
         .ok_or_else(|| anyhow!("$USER 를 읽을 수 없습니다"))?;
 
     let exe = std::env::current_exe()?;
-    // 종목은 telegram-stream.toml 에서 읽으므로 ExecStart 에 박지 않는다.
+    // 종목은 brief-stream.toml 에서 읽으므로 ExecStart 에 박지 않는다.
     let exec_start = format!(
-        "{} telegram stream --interval {interval_secs}",
+        "{} brief stream --interval {interval_secs}",
         shell_escape(&exe.to_string_lossy())
     );
 
     let unit = format!(
         "[Unit]\n\
-         Description=kis-cli telegram stream (관심종목 라이브)\n\
+         Description=kis-cli brief stream (관심종목 라이브)\n\
          After=network-online.target\n\
          Wants=network-online.target\n\
          \n\
@@ -775,8 +808,8 @@ fn install_systemd_unit(interval_secs: u64) -> Result<()> {
         println!("⚠ ExecStart 의 경로는 현재 맥 로컬 바이너리입니다. VPS 에선 `which kis` 결과로 교체하세요.");
         println!();
         println!("VPS 에서 직접 실행이 더 편합니다:");
-        println!("  sudo $(which kis) telegram stream --interval {interval_secs} --background");
-        println!("종목은 텔레그램에서 /add 로 등록하거나 telegram-stream.toml 을 편집하세요.");
+        println!("  sudo $(which kis) brief stream --interval {interval_secs} --background");
+        println!("종목은 텔레그램에서 /add 로 등록하거나 brief-stream.toml 을 편집하세요.");
         return Ok(());
     }
 
@@ -784,7 +817,7 @@ fn install_systemd_unit(interval_secs: u64) -> Result<()> {
         Ok(()) => {}
         Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
             return Err(anyhow!(
-                "{path} 에 쓰기 권한이 없습니다. 재실행: sudo $(which kis) telegram stream --interval {interval_secs} --background"
+                "{path} 에 쓰기 권한이 없습니다. 재실행: sudo $(which kis) brief stream --interval {interval_secs} --background"
             ));
         }
         Err(e) => return Err(anyhow!("{path} 쓰기 실패: {e}")),
@@ -796,7 +829,7 @@ fn install_systemd_unit(interval_secs: u64) -> Result<()> {
     info!("✓ {SERVICE_NAME}.service 활성화 및 시작됨 (실행 유저: {run_user})");
     println!("ExecStart: {exec_start}");
     println!("로그 확인: sudo journalctl -u {SERVICE_NAME} -f");
-    println!("제거:      sudo $(which kis) telegram remove");
+    println!("제거:      sudo $(which kis) brief remove");
     Ok(())
 }
 
@@ -824,7 +857,7 @@ pub fn list_service() -> Result<()> {
     println!("    Unit:        {path}");
     println!();
     println!("로그: sudo journalctl -u {SERVICE_NAME} -f");
-    println!("제거: sudo $(which kis) telegram remove");
+    println!("제거: sudo $(which kis) brief remove");
     Ok(())
 }
 
@@ -839,7 +872,7 @@ pub fn remove_service() -> Result<()> {
     match std::fs::remove_file(&path) {
         Ok(()) => {}
         Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            return Err(anyhow!("{path} 삭제 권한이 없습니다. 재실행: sudo $(which kis) telegram remove"));
+            return Err(anyhow!("{path} 삭제 권한이 없습니다. 재실행: sudo $(which kis) brief remove"));
         }
         Err(e) => return Err(anyhow!("{path} 삭제 실패: {e}")),
     }
@@ -1003,5 +1036,17 @@ mod tests {
         let removed2 = apply_rm(&mut list2, &["없음".into()]);
         assert!(removed2.is_empty());
         assert_eq!(list2.len(), 1);
+    }
+
+    #[test]
+    fn backoff_grows_then_caps_at_60() {
+        assert_eq!(backoff_for(1), 2);
+        assert_eq!(backoff_for(2), 4);
+        assert_eq!(backoff_for(3), 8);
+        assert_eq!(backoff_for(4), 16);
+        assert_eq!(backoff_for(5), 32);
+        assert_eq!(backoff_for(6), 60); // 64 → cap 60
+        assert_eq!(backoff_for(7), 60); // 상한 유지
+        assert_eq!(backoff_for(100), 60);
     }
 }

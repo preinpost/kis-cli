@@ -1,7 +1,7 @@
 name: kis-daytrade
 
 # 데이트레이드 자동매매 데몬 (전용 이미지 kisd-daytrade).
-# 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 공유 — 준비 절차는 telegram.yaml 헤더 참조.
+# 상태(symbols.db·토큰캐시·*.toml)는 external 볼륨 kis-data 공유 — 준비 절차는 brief.yaml 헤더 참조.
 #
 #   전략 등록(kis-cli 이미지로 — 데몬 이미지엔 CLI 없음):
 #     docker run --rm -v kis-data:/data --env-file .env -e TZ=Asia/Seoul \

@@ -6,7 +6,7 @@ members = [
     "crates/kis-analysis",
     "crates/kis-daemon",
     "crates/kis-trade",
-    "crates/kisd-telegram",
+    "crates/kisd-brief",
     "crates/kisd-stop-loss",
     "crates/kisd-daytrade",
     "crates/kis-cli",

@@ -2,7 +2,7 @@
 #
 # kis 워크스페이스 컨테이너 이미지 (헤드리스). 하나의 Dockerfile 을 build-arg 로 재사용:
 #   PKG=kis-cli       BIN=kis            → 인터랙티브/일회성 CLI (symbols sync·auth·daytrade add 등)
-#   PKG=kisd-telegram BIN=kisd-telegram  → 텔레그램 스트림 데몬
+#   PKG=kisd-brief BIN=kisd-brief  → 시황 브리프 스트림 데몬
 #   PKG=kisd-stop-loss BIN=kisd-stop-loss → 자동 손절 데몬
 #   PKG=kisd-daytrade BIN=kisd-daytrade  → 데이트레이드 데몬
 # 차트 뷰어(wry/tao, WebKitGTK)는 `--no-default-features` 로 제외 → 작은 이미지(데몬엔 무관).
@@ -62,7 +62,7 @@ COPY --from=builder /usr/local/bin/app /usr/local/bin/app
 
 USER kis
 # XDG_CONFIG_HOME=/data → dirs::config_dir() = /data/kis-cli/
-#   (config.toml·토큰캐시·symbols.db·daytrade.db·daytrade.toml·telegram-stream.toml 전부 볼륨에 영속)
+#   (config.toml·토큰캐시·symbols.db·daytrade.db·daytrade.toml·brief-stream.toml 전부 볼륨에 영속)
 # TZ=Asia/Seoul → Local::now()/cron 이 KST 로 동작 (한국 장시간 판정).
 ENV XDG_CONFIG_HOME=/data \
     TZ=Asia/Seoul \

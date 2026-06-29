@@ -2,7 +2,7 @@ name: Publish container images (GHCR)
 
 # 워크스페이스 바이너리별 컨테이너 이미지를 GHCR 에 발행한다 (데몬별 독립 패키지).
 #   ghcr.io/<owner>/kis-cli         — 인터랙티브/일회성 CLI (symbols sync·auth·daytrade add 등)
-#   ghcr.io/<owner>/kisd-telegram   — 텔레그램 스트림 데몬
+#   ghcr.io/<owner>/kisd-brief   — 시황 브리프 스트림 데몬
 #   ghcr.io/<owner>/kisd-stop-loss  — 자동 손절 데몬
 #   ghcr.io/<owner>/kisd-daytrade   — 데이트레이드 데몬
 #
@@ -58,8 +58,8 @@ jobs:
             cli:
               - 'crates/kis-cli/**'
               - 'skill/**'
-            telegram:
-              - 'crates/kisd-telegram/**'
+            brief:
+              - 'crates/kisd-brief/**'
             stoploss:
               - 'crates/kisd-stop-loss/**'
             daytrade:
@@ -71,7 +71,7 @@ jobs:
           FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') }}
           SHARED: ${{ steps.filter.outputs.shared }}
           CLI: ${{ steps.filter.outputs.cli }}
-          TG: ${{ steps.filter.outputs.telegram }}
+          BRIEF: ${{ steps.filter.outputs.brief }}
           SL: ${{ steps.filter.outputs.stoploss }}
           DT: ${{ steps.filter.outputs.daytrade }}
         run: |
@@ -79,13 +79,13 @@ jobs:
           # image == GHCR 패키지명 == cargo 패키지(-p). 산출 바이너리(BIN)는 패키지와 같지만
           # kis-cli 만 [[bin]] name = "kis" 라 예외 매핑한다.
           bin_for() { case "$1" in kis-cli) echo kis ;; *) echo "$1" ;; esac; }
-          imgs=(kis-cli kisd-telegram kisd-stop-loss kisd-daytrade)
+          imgs=(kis-cli kisd-brief kisd-stop-loss kisd-daytrade)
           want=()
           if [ "$FORCE_ALL" = "true" ] || [ "$SHARED" = "true" ]; then
             want=("${imgs[@]}")
           else
             [ "$CLI" = "true" ] && want+=(kis-cli)
-            [ "$TG"  = "true" ] && want+=(kisd-telegram)
+            [ "$BRIEF"  = "true" ] && want+=(kisd-brief)
             [ "$SL"  = "true" ] && want+=(kisd-stop-loss)
             [ "$DT"  = "true" ] && want+=(kisd-daytrade)
           fi

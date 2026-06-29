@@ -118,9 +118,9 @@ pub fn daytrade_config_path() -> Result<PathBuf> {
     Ok(config_dir()?.join("daytrade.toml"))
 }
 
-/// 텔레그램 스트림 관심종목 파일 경로 (`telegram-stream.toml`)
-pub fn telegram_stream_path() -> Result<PathBuf> {
-    Ok(config_dir()?.join("telegram-stream.toml"))
+/// 시황 브리프 스트림 관심종목 파일 경로 (`brief-stream.toml`)
+pub fn brief_stream_path() -> Result<PathBuf> {
+    Ok(config_dir()?.join("brief-stream.toml"))
 }
 
 /// 설정 파일 로딩
