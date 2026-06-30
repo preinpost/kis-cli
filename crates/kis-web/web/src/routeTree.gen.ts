@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as JournalRouteImport } from './routes/journal'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SymbolCodeRouteImport } from './routes/symbol.$code'
 
@@ -25,9 +27,19 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,14 +55,18 @@ const SymbolCodeRoute = SymbolCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRoute
   '/settings': typeof SettingsRoute
   '/watchlist': typeof WatchlistRoute
   '/symbol/$code': typeof SymbolCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRoute
   '/settings': typeof SettingsRoute
   '/watchlist': typeof WatchlistRoute
   '/symbol/$code': typeof SymbolCodeRoute
@@ -58,22 +74,48 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRoute
   '/settings': typeof SettingsRoute
   '/watchlist': typeof WatchlistRoute
   '/symbol/$code': typeof SymbolCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/settings' | '/watchlist' | '/symbol/$code'
+  fullPaths:
+    | '/'
+    | '/journal'
+    | '/login'
+    | '/portfolio'
+    | '/settings'
+    | '/watchlist'
+    | '/symbol/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/settings' | '/watchlist' | '/symbol/$code'
-  id: '__root__' | '/' | '/login' | '/settings' | '/watchlist' | '/symbol/$code'
+  to:
+    | '/'
+    | '/journal'
+    | '/login'
+    | '/portfolio'
+    | '/settings'
+    | '/watchlist'
+    | '/symbol/$code'
+  id:
+    | '__root__'
+    | '/'
+    | '/journal'
+    | '/login'
+    | '/portfolio'
+    | '/settings'
+    | '/watchlist'
+    | '/symbol/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  JournalRoute: typeof JournalRoute
   LoginRoute: typeof LoginRoute
+  PortfolioRoute: typeof PortfolioRoute
   SettingsRoute: typeof SettingsRoute
   WatchlistRoute: typeof WatchlistRoute
   SymbolCodeRoute: typeof SymbolCodeRoute
@@ -95,11 +137,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,7 +177,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  JournalRoute: JournalRoute,
   LoginRoute: LoginRoute,
+  PortfolioRoute: PortfolioRoute,
   SettingsRoute: SettingsRoute,
   WatchlistRoute: WatchlistRoute,
   SymbolCodeRoute: SymbolCodeRoute,

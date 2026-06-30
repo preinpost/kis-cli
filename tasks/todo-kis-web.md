@@ -60,6 +60,17 @@
 - [ ] **실데이터 검증**: 장중(국내 09:00~15:30 KST / 미국 야간)에 실제 틱 흐르는지 — 사용자 확인 대기
 - 한계(v2): 탭당 WS 1연결(다중탭 위험), 동적구독=재연결. 야간선물 제외.
 
+## 매매일지 + 포트폴리오 관리 (수동 우선) ✅ 완료
+플랜: `~/.claude/plans/glittery-enchanting-quill.md`
+- [x] 마이그레이션 0002 (trades, holding_meta) ✅
+- [x] 평균단가/실현손익 계산 모듈(positions.rs) + 단위테스트 4개 ✅
+- [x] Phase J 백엔드: trades CRUD + stats (api/journal.rs) ✅ e2e(실현 750·승률·필터·토스 미해석 종목)
+- [x] Phase J 프론트: journal.tsx(통계·필터·폼·종목검색·수정삭제) + api/journal.ts ✅
+- [x] Phase M 백엔드: holding_meta + /portfolio/positions (KIS+수동 통합, 통화별 비중) ✅ e2e(수동 평단150·실현750·메타)
+- [x] Phase M 프론트: portfolio.tsx(메타 인라인편집·목표비중·리밸런싱 가감주수·목표/손절 도달표시·일지연동) ✅
+- [x] 회귀: 워크스페이스 29테스트 통과, 통합 바이너리 검증
+- [ ] **실데이터 확인**: 사용자가 실제 매매 기록 + KIS 보유 합산 화면 확인 대기
+
 ## P4+ (장기)
 - [ ] P4 퍼블릭 하드닝 / P5 주문 / P6 데몬제어
 

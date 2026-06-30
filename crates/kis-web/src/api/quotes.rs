@@ -129,6 +129,26 @@ fn apply_sign(magnitude: &str, sign_code: &str) -> String {
     }
 }
 
+/// 포트폴리오용 — 종목의 현재가 + 통화만. resolve + 시세 호출, 실패/미해석 시 None.
+pub(crate) async fn current_price(
+    client: &KisClient,
+    symbols_db_path: String,
+    symbol: &str,
+) -> Option<(f64, String)> {
+    let info = symbols::resolve(symbols_db_path, symbol.to_string()).await;
+    match info.kind {
+        "domestic" => {
+            let q = fetch_domestic(client, &info).await.ok()?;
+            Some((q.price.trim().parse().ok()?, "KRW".to_string()))
+        }
+        "overseas" => {
+            let q = fetch_overseas(client, &info).await.ok()?;
+            Some((q.price.trim().parse().ok()?, "USD".to_string()))
+        }
+        _ => None,
+    }
+}
+
 fn internal<E: std::fmt::Display>(e: E) -> Error {
     tracing::error!("quotes internal error: {e}");
     Error::from_string("서버 오류", StatusCode::INTERNAL_SERVER_ERROR)

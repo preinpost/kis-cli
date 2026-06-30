@@ -29,10 +29,26 @@ function RootLayout() {
             </Link>
             {user && (
               <Link
+                to="/portfolio"
+                className="text-neutral-600 hover:text-neutral-900 [&.active]:font-semibold [&.active]:text-neutral-900"
+              >
+                포트폴리오
+              </Link>
+            )}
+            {user && (
+              <Link
                 to="/watchlist"
                 className="text-neutral-600 hover:text-neutral-900 [&.active]:font-semibold [&.active]:text-neutral-900"
               >
                 관심종목
+              </Link>
+            )}
+            {user && (
+              <Link
+                to="/journal"
+                className="text-neutral-600 hover:text-neutral-900 [&.active]:font-semibold [&.active]:text-neutral-900"
+              >
+                매매일지
               </Link>
             )}
             {user && (

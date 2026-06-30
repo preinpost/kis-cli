@@ -2,6 +2,7 @@
 
 pub mod account;
 pub mod auth;
+pub mod journal;
 pub mod portfolio;
 pub mod quotes;
 pub mod stream;
@@ -27,6 +28,8 @@ pub enum ApiTag {
     Symbols,
     /// 관심종목
     Watchlist,
+    /// 매매일지
+    Journal,
     /// 시스템 상태
     System,
 }
@@ -66,6 +69,7 @@ pub fn all() -> (
     quotes::QuotesApi,
     symbols::SymbolsApi,
     watchlist::WatchlistApi,
+    journal::JournalApi,
 ) {
     (
         SystemApi,
@@ -75,5 +79,6 @@ pub fn all() -> (
         quotes::QuotesApi,
         symbols::SymbolsApi,
         watchlist::WatchlistApi,
+        journal::JournalApi,
     )
 }

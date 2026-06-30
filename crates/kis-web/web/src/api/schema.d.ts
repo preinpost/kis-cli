@@ -317,6 +317,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/portfolio/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 통합 포지션 — KIS 자동 보유 + 수동(매매일지 파생). 종목별 메타·비중·실현손익 포함.
+         *     KIS 자격증명이 없어도 수동 포지션은 동작(현재가는 미표시).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["Positions"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/portfolio/meta/{symbol}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 종목 관리 메타(메모·목표가·손절가·목표비중) 저장. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    symbol: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json; charset=utf-8": components["schemas"]["MetaInput"];
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["OkDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/quotes/{symbol}": {
         parameters: {
             query?: never;
@@ -522,6 +601,170 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/trades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 매매 기록 목록 (필터: symbol/side/broker/from/to). */
+        get: {
+            parameters: {
+                query?: {
+                    symbol?: string;
+                    side?: string;
+                    broker?: string;
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["TradeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 매매 기록 추가. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json; charset=utf-8": components["schemas"]["TradeInput"];
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["TradeDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trades/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 매매 기록 수정. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json; charset=utf-8": components["schemas"]["TradeInput"];
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["TradeDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** 매매 기록 삭제. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["OkDto"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trades/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 매매 통계 (실현손익·승률·횟수). */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["TradeStatsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -529,6 +772,12 @@ export interface components {
         /** AddReq */
         AddReq: {
             symbol: string;
+        };
+        /** CurrencyAmount */
+        CurrencyAmount: {
+            currency: string;
+            /** Format: double */
+            amount: number;
         };
         /** Health */
         Health: {
@@ -575,6 +824,19 @@ export interface components {
             password: string;
         };
         /**
+         * MetaInput
+         * @description 종목 관리 메타 입력.
+         */
+        MetaInput: {
+            memo?: string;
+            /** Format: double */
+            target_price?: number;
+            /** Format: double */
+            stop_price?: number;
+            /** Format: double */
+            target_weight?: number;
+        };
+        /**
          * OkDto
          * @description 단순 성공 응답 (여러 엔드포인트 공용 — 스키마 이름 중복 방지).
          */
@@ -587,6 +849,43 @@ export interface components {
             domestic?: components["schemas"]["Summary"];
             overseas?: components["schemas"]["Summary"];
             holdings: components["schemas"]["Holding"][];
+        };
+        /**
+         * PositionDto
+         * @description 통합 포지션 (KIS 자동 + 수동 매매일지 파생) + 관리 메타.
+         */
+        PositionDto: {
+            source: string;
+            symbol: string;
+            name: string;
+            market: string;
+            currency: string;
+            /** Format: double */
+            quantity: number;
+            /** Format: double */
+            avg_cost: number;
+            /** Format: double */
+            current_price?: number;
+            /** Format: double */
+            eval_amount: number;
+            /** Format: double */
+            unrealized_pnl?: number;
+            /** Format: double */
+            realized_pnl: number;
+            /** Format: double */
+            weight: number;
+            memo?: string;
+            /** Format: double */
+            target_price?: number;
+            /** Format: double */
+            stop_price?: number;
+            /** Format: double */
+            target_weight?: number;
+        };
+        /** Positions */
+        Positions: {
+            has_kis: boolean;
+            positions: components["schemas"]["PositionDto"][];
         };
         /** Quote */
         Quote: {
@@ -633,6 +932,65 @@ export interface components {
         SyncResult: {
             /** Format: int64 */
             synced: number;
+        };
+        /** TradeDto */
+        TradeDto: {
+            id: string;
+            traded_at: string;
+            symbol: string;
+            name?: string;
+            market?: string;
+            broker?: string;
+            side: string;
+            /** Format: double */
+            quantity: number;
+            /** Format: double */
+            price: number;
+            /** Format: double */
+            fee: number;
+            currency: string;
+            reason?: string;
+            tags?: string;
+            memo?: string;
+        };
+        /** TradeInput */
+        TradeInput: {
+            /** @description 체결일시 (RFC3339 또는 "2026-06-30"). */
+            traded_at: string;
+            /** @description 종목 코드/티커/이름 (KIS 해석 시도, 미해석도 허용). */
+            symbol: string;
+            /** @description "buy" | "sell" */
+            side: string;
+            /** Format: double */
+            quantity: number;
+            /** Format: double */
+            price: number;
+            /**
+             * Format: double
+             * @default 0
+             */
+            fee: number;
+            broker?: string;
+            currency?: string;
+            reason?: string;
+            tags?: string;
+            memo?: string;
+        };
+        /** TradeStatsDto */
+        TradeStatsDto: {
+            /** Format: int64 */
+            trade_count: number;
+            /** Format: int64 */
+            buy_count: number;
+            /** Format: int64 */
+            sell_count: number;
+            /** Format: int64 */
+            win_count: number;
+            /** Format: double */
+            win_rate: number;
+            /** Format: int64 */
+            symbol_count: number;
+            realized: components["schemas"]["CurrencyAmount"][];
         };
         /** UserDto */
         UserDto: {

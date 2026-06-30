@@ -12,6 +12,7 @@ mod config;
 mod crypto;
 mod db;
 mod kis;
+mod positions;
 mod state;
 mod static_files;
 mod symbols;
