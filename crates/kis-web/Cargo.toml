@@ -1,0 +1,38 @@
+[package]
+name = "kis-web"
+version.workspace = true
+edition.workspace = true
+
+# 포트폴리오/시세 웹앱 백엔드 — poem(REST+OpenAPI) + Vite SPA(web/) 서빙.
+# kis-core 를 라이브러리로 직접 import 해 사용자별 KisClient 를 인메모리 토큰캐시로 운용한다.
+# P0(스캐폴드): 최소 의존성. auth/db/crypto 는 P1 에서 추가.
+
+[dependencies]
+poem = { version = "3", features = ["cookie"] }
+poem-openapi = { version = "5", features = ["swagger-ui", "cookie"] }
+
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+chrono = { workspace = true }
+
+# 인증·멀티유저 기반 (P1)
+# sqlx 는 런타임 쿼리 API(query/query_as)만 사용 → 빌드타임 DATABASE_URL 불필요(기존 CI build 무영향).
+# migrate! 는 ./migrations 폴더의 .sql 을 컴파일타임 임베드(라이브 DB 불필요).
+# macros: FromRow 파생 + migrate! 매크로용 (query! 컴파일타임 매크로는 미사용 → DATABASE_URL 불필요).
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros", "chrono"] }
+argon2 = "0.5"          # 비밀번호 해시(argon2id)
+rand = "0.8"            # 세션 토큰·솔트
+uuid = { version = "1", features = ["v4"] }
+aes-gcm = "0.10"        # KIS 자격증명 봉투암호화(AES-256-GCM)
+hex = "0.4"             # 세션 토큰 해시 인코딩
+sha2 = "0.10"           # 세션 토큰 해시(DB엔 해시만 저장)
+
+kis-core = { path = "../kis-core" }
+kis-data = { path = "../kis-data" }
+
+# 빌드된 Vite SPA(web/dist)를 바이너리에 임베드 → 단일 컨테이너 배포.
+rust-embed = { version = "8", features = ["mime-guess"] }

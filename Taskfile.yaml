@@ -1,0 +1,117 @@
+# kis-cli 워크스페이스 태스크 러너 (https://taskfile.dev)
+#   설치: brew install go-task   /   실행: task <name>   (목록: task --list)
+#
+# kis-web(포트폴리오/시세 웹앱) 개발·실행이 주 용도.
+#   task dev     → 백엔드(:8088) + 프론트 dev 서버(:5180, /api 프록시) 동시 기동 → http://localhost:5180
+#   task run     → 릴리스 단일 바이너리(임베드 SPA) 실행 → http://localhost:8088
+#   task gen:api → 백엔드 OpenAPI 스펙에서 프론트 TS 타입 재생성
+
+version: "3"
+
+vars:
+  WEB_DIR: crates/kis-web/web
+  BACKEND_BIND: 127.0.0.1:8088   # 프론트 dev 프록시(vite.config.ts)가 가리키는 주소
+
+env:
+  # 개발 전용 고정 마스터키(KIS 자격증명 암호화). 로컬에서만! 프로덕션은 반드시
+  # 직접 생성한 값을 환경에 주입한다: openssl rand -hex 32
+  KIS_WEB_MASTER_KEY: '{{.KIS_WEB_MASTER_KEY | default "0000000000000000000000000000000000000000000000000000000000000000"}}'
+
+tasks:
+  default:
+    desc: 태스크 목록
+    cmds:
+      - task --list
+    silent: true
+
+  # ─────────────── kis-web: 개발 ───────────────
+  dev:
+    desc: "웹앱 개발 모드 — 백엔드(:8088) + 프론트(:5180) 동시 기동, http://localhost:5180"
+    deps: [dev:backend, dev:frontend]
+
+  dev:backend:
+    desc: "poem 백엔드만 핫(재빌드 X) 실행 (:8088)"
+    env:
+      KIS_WEB_BIND: "{{.BACKEND_BIND}}"
+    cmds:
+      - cargo run -p kis-web
+
+  dev:frontend:
+    desc: "Vite dev 서버만 실행 (:5180, /api → :8088 프록시)"
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - pnpm install
+      - pnpm dev
+
+  # ─────────────── kis-web: 프로덕션(단일 바이너리) ───────────────
+  run:
+    desc: "릴리스 단일 바이너리(임베드 SPA) 실행 → http://localhost:8088"
+    deps: [build:web]
+    env:
+      KIS_WEB_BIND: 127.0.0.1:8088
+    cmds:
+      - cargo run -p kis-web --release
+
+  build:
+    desc: "웹앱 전체 빌드 (프론트 dist → 임베드 → 릴리스 바이너리)"
+    deps: [build:web]
+    cmds:
+      - cargo build -p kis-web --release
+      - 'echo "→ target/release/kis-web (임베드 SPA 포함, 단일 바이너리)"'
+
+  build:web:
+    desc: "프론트(Vite SPA) 빌드 → crates/kis-web/web/dist (rust-embed 임베드 소스)"
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - pnpm install --frozen-lockfile
+      - pnpm build
+    sources:
+      - "src/**/*"
+      - "index.html"
+      - "package.json"
+      - "vite.config.ts"
+    generates:
+      - "dist/**/*"
+
+  # ─────────────── 코드젠 / 품질 ───────────────
+  gen:api:
+    desc: "백엔드 OpenAPI 스펙에서 프론트 TS 타입(schema.d.ts) 재생성"
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      # 백엔드를 잠깐 띄워 라이브 스펙으로 코드젠 후 종료
+      - |
+        KIS_WEB_BIND={{.BACKEND_BIND}} cargo run -p kis-web >/tmp/kisweb-gen.log 2>&1 &
+        SRV=$!
+        for i in $(seq 1 30); do curl -sf http://{{.BACKEND_BIND}}/openapi.json >/dev/null && break; sleep 0.5; done
+        pnpm gen:api
+        kill $SRV 2>/dev/null || true
+
+  check:
+    desc: "Rust + 프론트 타입체크 (CI는 test를 안 도므로 로컬 검증용)"
+    cmds:
+      - cargo test --workspace
+      - task: typecheck
+
+  typecheck:
+    desc: "프론트 TypeScript 타입체크"
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - pnpm install
+      - pnpm typecheck
+
+  fmt:
+    desc: "Rust 포맷"
+    cmds:
+      - cargo fmt --all
+
+  # ─────────────── 배포 ───────────────
+  docker:build:
+    desc: "kis-web 컨테이너 이미지 빌드 (Dockerfile.web)"
+    cmds:
+      - docker build -f Dockerfile.web -t kis-web:latest .
+
+  clean:
+    desc: "프론트 dist + node_modules 정리"
+    dir: "{{.WEB_DIR}}"
+    cmds:
+      - rm -rf dist node_modules

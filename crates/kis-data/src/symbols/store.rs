@@ -196,6 +196,35 @@ impl Store {
         Ok(rows.filter_map(|r| r.ok()).collect())
     }
 
+    /// 부분일치(LIKE) 검색. FTS 가 토큰 접두어만 매칭해 놓치는 경우의 폴백
+    /// (예: "하이닉스" → "SK하이닉스"). 이름(국/영)·코드 어디든 포함되면 매칭.
+    pub fn search_like(&self, query: &str, limit: usize) -> Result<Vec<Symbol>> {
+        let q = query.trim();
+        if q.is_empty() {
+            return Ok(Vec::new());
+        }
+        // LIKE 와일드카드/이스케이프 문자 무력화
+        let escaped = q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+        let pattern = format!("%{escaped}%");
+        let mut stmt = self.conn.prepare(
+            "SELECT code, market, name_kr, name_en
+             FROM symbols
+             WHERE name_kr LIKE ?1 ESCAPE '\\'
+                OR name_en LIKE ?1 ESCAPE '\\'
+                OR code LIKE ?1 ESCAPE '\\'
+             LIMIT ?2",
+        )?;
+        let rows = stmt.query_map(params![pattern, limit as i64], |r| {
+            Ok(Symbol {
+                code: r.get(0)?,
+                market: Market::from_str(&r.get::<_, String>(1)?).unwrap_or(Market::Kospi),
+                name_kr: r.get(2)?,
+                name_en: r.get(3)?,
+            })
+        })?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
     pub fn set_meta(&self, key: &str, value: &str) -> Result<()> {
         self.conn.execute(
             "INSERT INTO meta(key,value) VALUES(?1,?2)

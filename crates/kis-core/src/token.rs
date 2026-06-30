@@ -1,5 +1,5 @@
 use std::fs;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use chrono::{Duration, Local, NaiveDateTime};
@@ -16,15 +16,25 @@ pub struct TokenManager {
     http: Client,
     token: Mutex<Option<KisAccessToken>>,
     ws_token: Mutex<Option<KisApprovalKey>>,
+    /// 영속 캐시 계층(L2). 메모리 캐시(L1)는 위 Mutex 가 담당.
+    /// CLI/데몬은 FileTokenStore(기본), 웹 멀티유저는 NullTokenStore.
+    store: Arc<dyn TokenStore>,
 }
 
 impl TokenManager {
+    /// 파일 기반 영속 캐시로 생성 (CLI·데몬 기본 동작).
     pub fn new(credentials: Credentials) -> Self {
+        Self::with_store(credentials, Arc::new(FileTokenStore))
+    }
+
+    /// 영속 캐시 계층을 주입해 생성. 웹 멀티유저는 NullTokenStore 로 디스크 공유를 피한다.
+    pub fn with_store(credentials: Credentials, store: Arc<dyn TokenStore>) -> Self {
         Self {
             credentials,
             http: Client::new(),
             token: Mutex::new(None),
             ws_token: Mutex::new(None),
+            store,
         }
     }
 
@@ -42,15 +52,11 @@ impl TokenManager {
             }
         }
 
-        // 2) 파일 캐시
-        if let Ok(path) = config::token_path() {
-            if let Ok(content) = fs::read_to_string(&path) {
-                if let Ok(t) = serde_json::from_str::<KisAccessToken>(&content) {
-                    if !Self::is_expired(&t.access_token_token_expired) {
-                        *self.token.lock().unwrap() = Some(t.clone());
-                        return Ok(t);
-                    }
-                }
+        // 2) 영속 캐시(L2)
+        if let Some(t) = self.store.load_token() {
+            if !Self::is_expired(&t.access_token_token_expired) {
+                *self.token.lock().unwrap() = Some(t.clone());
+                return Ok(t);
             }
         }
 
@@ -87,13 +93,8 @@ impl TokenManager {
             .await
             .context("토큰 응답 파싱 실패")?;
 
-        // 파일에 캐싱
-        if let Ok(path) = config::token_path() {
-            if let Ok(dir) = config::config_dir() {
-                let _ = fs::create_dir_all(dir);
-            }
-            let _ = fs::write(&path, serde_json::to_string_pretty(&token)?);
-        }
+        // 영속 캐시에 저장 (store 구현에 따라 파일 또는 no-op)
+        self.store.save_token(&token);
 
         Ok(token)
     }
@@ -112,15 +113,11 @@ impl TokenManager {
             }
         }
 
-        // 2) 파일
-        if let Ok(path) = config::ws_token_path() {
-            if let Ok(content) = fs::read_to_string(&path) {
-                if let Ok(t) = serde_json::from_str::<KisApprovalKey>(&content) {
-                    if !Self::is_expired(&t.approval_key_expired) {
-                        *self.ws_token.lock().unwrap() = Some(t.clone());
-                        return Ok(t);
-                    }
-                }
+        // 2) 영속 캐시(L2)
+        if let Some(t) = self.store.load_ws_token() {
+            if !Self::is_expired(&t.approval_key_expired) {
+                *self.ws_token.lock().unwrap() = Some(t.clone());
+                return Ok(t);
             }
         }
 
@@ -171,13 +168,8 @@ impl TokenManager {
             approval_key_expired: expired,
         };
 
-        // 파일에 캐싱
-        if let Ok(path) = config::ws_token_path() {
-            if let Ok(dir) = config::config_dir() {
-                let _ = fs::create_dir_all(dir);
-            }
-            let _ = fs::write(&path, serde_json::to_string_pretty(&token)?);
-        }
+        // 영속 캐시에 저장 (store 구현에 따라 파일 또는 no-op)
+        self.store.save_ws_token(&token);
 
         Ok(token)
     }
@@ -193,12 +185,83 @@ impl TokenManager {
         now >= expiry - Duration::minutes(5)
     }
 
-    /// 토큰 무효화 (REST·WS 캐시 모두 삭제)
+    /// 토큰 무효화 (REST·WS 메모리 캐시 + 영속 캐시 모두 삭제)
     pub fn invalidate(&self) {
         *self.token.lock().unwrap() = None;
         *self.ws_token.lock().unwrap() = None;
+        self.store.clear();
+    }
+}
+
+/// 토큰 영속화 계층(L2). 메모리 캐시(L1)는 TokenManager 내부 Mutex 가 담당하고,
+/// 이 트레잇은 그 위의 "프로세스 재시작에도 살아남는" 저장소를 추상화한다.
+///
+/// - CLI/데몬: [`FileTokenStore`] — `~/.config/kis-cli/.kis_*token.json` 공유 (기본).
+/// - 웹 멀티유저: [`NullTokenStore`] — 디스크에 안 남겨 사용자 간 토큰 누출을 차단.
+pub trait TokenStore: Send + Sync {
+    fn load_token(&self) -> Option<KisAccessToken>;
+    fn save_token(&self, token: &KisAccessToken);
+    fn load_ws_token(&self) -> Option<KisApprovalKey>;
+    fn save_ws_token(&self, token: &KisApprovalKey);
+    fn clear(&self);
+}
+
+/// 고정 경로 파일 캐시 — 기존 CLI·데몬 동작과 동일.
+pub struct FileTokenStore;
+
+impl TokenStore for FileTokenStore {
+    fn load_token(&self) -> Option<KisAccessToken> {
+        let path = config::token_path().ok()?;
+        let content = fs::read_to_string(path).ok()?;
+        serde_json::from_str(&content).ok()
+    }
+
+    fn save_token(&self, token: &KisAccessToken) {
+        let Ok(path) = config::token_path() else { return };
+        if let Ok(dir) = config::config_dir() {
+            let _ = fs::create_dir_all(dir);
+        }
+        if let Ok(json) = serde_json::to_string_pretty(token) {
+            let _ = fs::write(path, json);
+        }
+    }
+
+    fn load_ws_token(&self) -> Option<KisApprovalKey> {
+        let path = config::ws_token_path().ok()?;
+        let content = fs::read_to_string(path).ok()?;
+        serde_json::from_str(&content).ok()
+    }
+
+    fn save_ws_token(&self, token: &KisApprovalKey) {
+        let Ok(path) = config::ws_token_path() else { return };
+        if let Ok(dir) = config::config_dir() {
+            let _ = fs::create_dir_all(dir);
+        }
+        if let Ok(json) = serde_json::to_string_pretty(token) {
+            let _ = fs::write(path, json);
+        }
+    }
+
+    fn clear(&self) {
         clear_cache_files();
     }
+}
+
+/// 영속화하지 않는 캐시 — 토큰을 디스크에 남기지 않는다.
+/// 웹 멀티유저에서 사용자별 KisClient 가 한 프로세스에 공존해도 토큰이 섞이지 않도록 보장.
+/// (프로세스 내 캐싱은 TokenManager 의 메모리 L1 캐시가 그대로 수행한다.)
+pub struct NullTokenStore;
+
+impl TokenStore for NullTokenStore {
+    fn load_token(&self) -> Option<KisAccessToken> {
+        None
+    }
+    fn save_token(&self, _token: &KisAccessToken) {}
+    fn load_ws_token(&self) -> Option<KisApprovalKey> {
+        None
+    }
+    fn save_ws_token(&self, _token: &KisApprovalKey) {}
+    fn clear(&self) {}
 }
 
 /// 디스크 상의 토큰 캐시 파일을 모두 삭제 (TokenManager 인스턴스 없이 호출 가능)

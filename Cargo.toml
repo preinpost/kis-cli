@@ -9,6 +9,7 @@ members = [
     "crates/kisd-brief",
     "crates/kisd-stop-loss",
     "crates/kisd-daytrade",
+    "crates/kis-web",
     "crates/kis-cli",
 ]
 

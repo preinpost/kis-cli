@@ -1,5 +1,8 @@
 # 빌드 산출물
 target/
+# 프론트 의존성·산출물 — 컨텍스트에서 제외(이미지 node 스테이지가 새로 빌드).
+**/node_modules/
+crates/kis-web/web/dist/
 
 # VCS / CI 메타
 .git/

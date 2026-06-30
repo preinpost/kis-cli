@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* Minimal base. Tailwind v4 is loaded via the @tailwindcss/vite plugin. */
+html,
+body,
+#root {
+  min-height: 100svh;
+}
+
+body {
+  margin: 0;
+}

@@ -1,0 +1,71 @@
+# syntax=docker/dockerfile:1
+#
+# kis-web — 포트폴리오/시세 웹앱 단일 이미지.
+# 일반 워크스페이스 Dockerfile 과 달리 프론트(Vite SPA) 빌드 스테이지가 추가된다:
+#   1) web    : crates/kis-web/web 를 pnpm 으로 빌드 → dist
+#   2) builder: dist 를 crates/kis-web/web/dist 로 복사 후 poem 백엔드 빌드(rust-embed 가 컴파일타임 임베드)
+#   3) runtime: debian-slim + 비루트 + /data 볼륨
+#
+# 빌드:  docker build -f Dockerfile.web -t kis-web:latest .
+# 멀티아치: builder 는 cargo-zigbuild 로 BUILDPLATFORM 에서 두 아키 크로스컴파일(루트 Dockerfile 과 동일).
+
+# ─────────────────────────── frontend (web/dist) ───────────────────────────
+FROM node:24-slim AS web
+WORKDIR /web
+RUN corepack enable
+# 락파일만 먼저 복사 → deps 캐시 레이어 (소스 변경에도 재설치 안 함)
+COPY crates/kis-web/web/package.json crates/kis-web/web/pnpm-lock.yaml ./
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+COPY crates/kis-web/web ./
+RUN pnpm build   # → /web/dist
+
+# ─────────────────────────── builder ───────────────────────────
+# --platform=$BUILDPLATFORM: 빌더는 항상 네이티브 → arm64 도 에뮬 없이 컴파일.
+FROM --platform=$BUILDPLATFORM ghcr.io/rust-cross/cargo-zigbuild:0.23 AS builder
+WORKDIR /app
+
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+        amd64) echo "x86_64-unknown-linux-gnu"  > /tgt ;; \
+        arm64) echo "aarch64-unknown-linux-gnu" > /tgt ;; \
+        *) echo "지원하지 않는 TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && rustup target add "$(cat /tgt)"
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY skill ./skill
+# 프론트 빌드 산출물 → rust-embed 임베드 위치 (cargo build 전에 존재해야 함)
+COPY --from=web /web/dist ./crates/kis-web/web/dist
+
+# .2.34: glibc 2.34 심볼 타깃(런타임 bookworm=2.36 호환).
+RUN --mount=type=cache,id=cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,id=cargo-target-web-${TARGETARCH},target=/app/target \
+    cargo zigbuild -p kis-web --release --locked --target "$(cat /tgt).2.34" \
+    && cp "target/$(cat /tgt)/release/kis-web" /usr/local/bin/app
+
+# ─────────────────────────── runtime ───────────────────────────
+FROM debian:bookworm-slim AS runtime
+
+# rustls = OpenSSL 불필요. TLS 루트 인증서 + KST 타임존만.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --uid 10001 kis \
+    && mkdir -p /data && chown kis:kis /data
+
+COPY --from=builder /usr/local/bin/app /usr/local/bin/app
+
+USER kis
+# XDG_CONFIG_HOME=/data → 토큰캐시·symbols.db 등 상태 영속(다른 데몬과 볼륨 공유 가능).
+# KIS_WEB_BIND=0.0.0.0:8088 → 컨테이너 외부 노출(리버스 프록시 뒤). TZ=KST → 장시간 판정.
+ENV XDG_CONFIG_HOME=/data \
+    TZ=Asia/Seoul \
+    RUST_LOG=info \
+    KIS_WEB_BIND=0.0.0.0:8088
+EXPOSE 8088
+VOLUME ["/data"]
+
+ENTRYPOINT ["/usr/local/bin/app"]

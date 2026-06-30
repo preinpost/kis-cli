@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use crate::config::Credentials;
 use crate::models::ApiResponse;
-use crate::token::TokenManager;
+use crate::token::{FileTokenStore, NullTokenStore, TokenManager, TokenStore};
 
 pub const BASE_URL_PROD: &str = "https://openapi.koreainvestment.com:9443";
 pub const BASE_URL_MOCK: &str = "https://openapivts.koreainvestment.com:29443";
@@ -25,12 +25,31 @@ impl KisClient {
         Self::with_mock(credentials, false)
     }
 
+    /// 파일 토큰 캐시 사용 (CLI·데몬 기본).
     pub fn with_mock(credentials: Credentials, is_mock: bool) -> Self {
-        let token_manager = Arc::new(TokenManager::new(Credentials {
-            app_key: credentials.app_key.clone(),
-            app_secret: credentials.app_secret.clone(),
-            account_number: credentials.account_number.clone(),
-        }));
+        Self::with_store(credentials, is_mock, Arc::new(FileTokenStore))
+    }
+
+    /// 토큰을 디스크에 남기지 않는 인메모리 캐시 사용.
+    /// 웹 멀티유저처럼 한 프로세스에서 여러 자격증명의 클라이언트가 공존할 때 토큰 누출을 막는다.
+    pub fn with_in_memory_cache(credentials: Credentials, is_mock: bool) -> Self {
+        Self::with_store(credentials, is_mock, Arc::new(NullTokenStore))
+    }
+
+    /// 토큰 영속화 계층을 직접 주입해 생성.
+    pub fn with_store(
+        credentials: Credentials,
+        is_mock: bool,
+        store: Arc<dyn TokenStore>,
+    ) -> Self {
+        let token_manager = Arc::new(TokenManager::with_store(
+            Credentials {
+                app_key: credentials.app_key.clone(),
+                app_secret: credentials.app_secret.clone(),
+                account_number: credentials.account_number.clone(),
+            },
+            store,
+        ));
         Self {
             token_manager,
             credentials,
