@@ -11,6 +11,8 @@ import {
   useQuote,
   type WatchlistItem,
 } from '../api/quotes'
+import { useLiveQuote } from '../api/stream'
+import { fmtMoney, signed, colorBySign } from '../lib/quote'
 
 export const Route = createFileRoute('/watchlist')({
   component: WatchlistPage,
@@ -178,34 +180,53 @@ function AddBox() {
 
 function WatchRow({ item, enabled }: { item: WatchlistItem; enabled: boolean }) {
   const quote = useQuote(item.symbol, enabled)
+  const live = useLiveQuote(item.symbol, enabled)
   const remove = useRemoveWatch()
   const q = quote.data
-  const rate = q ? Number(q.change_rate) || 0 : 0
+
+  // 실시간 틱 우선, 없으면 REST 폴백.
+  const currency = q?.currency ?? (item.market === 'overseas' ? 'USD' : 'KRW')
+  const price = live?.price ?? q?.price
+  const diff = live?.diff ?? q?.change
+  const rate = live?.rate ?? q?.change_rate
+  const sign = live?.sign ?? q?.sign
 
   return (
     <tr className="border-b border-neutral-100 last:border-0">
       <td className="px-4 py-2.5">
-        <div className="font-medium text-neutral-900">{q?.name || item.symbol}</div>
-        <div className="text-xs text-neutral-400">
-          {item.symbol} · {q?.currency ?? (item.market === 'overseas' ? 'USD' : 'KRW')}
+        <Link
+          to="/symbol/$code"
+          params={{ code: item.symbol }}
+          className="font-medium text-neutral-900 hover:underline"
+        >
+          {q?.name || item.symbol}
+        </Link>
+        <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+          {item.symbol} · {currency}
+          {live && (
+            <span className="flex items-center gap-1 text-emerald-600">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              LIVE
+            </span>
+          )}
         </div>
       </td>
       <td className="px-4 py-2.5 text-right font-mono">
         {!enabled ? (
           <span className="text-neutral-300">—</span>
-        ) : quote.isPending ? (
+        ) : price == null && quote.isPending ? (
           <span className="text-neutral-400">…</span>
-        ) : quote.isError ? (
+        ) : price == null && quote.isError ? (
           <span className="text-xs text-red-500">오류</span>
         ) : (
-          fmtMoney(q!.price, q!.currency)
+          fmtMoney(price, currency)
         )}
       </td>
-      <td className={`px-4 py-2.5 text-right font-mono ${pnlColor(rate)}`}>
-        {enabled && q ? (
+      <td className={`px-4 py-2.5 text-right font-mono ${colorBySign(sign)}`}>
+        {enabled && price != null ? (
           <>
-            {signed(q.change)}
-            <div className="text-xs">{signed(q.change_rate)}%</div>
+            {signed(diff, sign)}
+            <div className="text-xs">{signed(rate, sign)}%</div>
           </>
         ) : (
           ''
@@ -223,21 +244,4 @@ function WatchRow({ item, enabled }: { item: WatchlistItem; enabled: boolean }) 
       </td>
     </tr>
   )
-}
-
-function num(s: string | undefined): number {
-  return Number(String(s ?? '').trim()) || 0
-}
-function fmtMoney(s: string, currency: string): string {
-  const sym = currency === 'USD' ? '$' : '₩'
-  return `${sym}${num(s).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}`
-}
-function signed(s: string): string {
-  const n = num(s)
-  return (n > 0 ? '+' : '') + n.toLocaleString('ko-KR', { maximumFractionDigits: 2 })
-}
-function pnlColor(n: number): string {
-  if (n > 0) return 'text-red-600'
-  if (n < 0) return 'text-blue-600'
-  return 'text-neutral-900'
 }

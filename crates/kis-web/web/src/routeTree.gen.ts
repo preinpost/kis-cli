@@ -13,6 +13,7 @@ import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SymbolCodeRouteImport } from './routes/symbol.$code'
 
 const WatchlistRoute = WatchlistRouteImport.update({
   id: '/watchlist',
@@ -34,18 +35,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SymbolCodeRoute = SymbolCodeRouteImport.update({
+  id: '/symbol/$code',
+  path: '/symbol/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/watchlist': typeof WatchlistRoute
+  '/symbol/$code': typeof SymbolCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/watchlist': typeof WatchlistRoute
+  '/symbol/$code': typeof SymbolCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/watchlist': typeof WatchlistRoute
+  '/symbol/$code': typeof SymbolCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/settings' | '/watchlist'
+  fullPaths: '/' | '/login' | '/settings' | '/watchlist' | '/symbol/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/settings' | '/watchlist'
-  id: '__root__' | '/' | '/login' | '/settings' | '/watchlist'
+  to: '/' | '/login' | '/settings' | '/watchlist' | '/symbol/$code'
+  id: '__root__' | '/' | '/login' | '/settings' | '/watchlist' | '/symbol/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +76,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   WatchlistRoute: typeof WatchlistRoute
+  SymbolCodeRoute: typeof SymbolCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/symbol/$code': {
+      id: '/symbol/$code'
+      path: '/symbol/$code'
+      fullPath: '/symbol/$code'
+      preLoaderRoute: typeof SymbolCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   WatchlistRoute: WatchlistRoute,
+  SymbolCodeRoute: SymbolCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

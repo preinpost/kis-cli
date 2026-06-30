@@ -5,8 +5,11 @@ use anyhow::{Context, Result};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use futures_util::{SinkExt, StreamExt};
+use serde::Serialize;
+use tokio::sync::mpsc;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_util::sync::CancellationToken;
 
 use crate::token::TokenManager;
 
@@ -53,6 +56,32 @@ struct DecryptInfo {
     iv: String,
 }
 
+/// 파싱된 실시간 체결 틱 (라이브러리 소비자용 — SSE 릴레이 등).
+#[derive(Clone, Debug, Serialize)]
+pub struct Tick {
+    pub market: &'static str, // "domestic" | "overseas"
+    pub symbol: String,       // 국내 6자리코드 / 해외 티커
+    pub time: String,
+    pub price: String,
+    pub sign: String, // KIS 전일대비부호 코드 (1상한·2상승·3보합·4하한·5하락)
+    pub diff: String,
+    pub rate: String,
+    pub volume: String,
+}
+
+/// 한 WS 연결에서 구독할 종목.
+#[derive(Clone, Debug)]
+pub enum Sub {
+    Domestic(String),                       // 국내 6자리 코드
+    Overseas { excd: String, symbol: String }, // excd: NAS/NYS/AMS
+}
+
+/// 틱 출력 방식. CLI=Print(stdout), 웹/라이브러리=Channel(mpsc).
+enum Sink {
+    Print { header_printed: bool },
+    Channel(mpsc::Sender<Tick>),
+}
+
 pub async fn run_domestic(token_manager: Arc<TokenManager>, symbol: &str) -> Result<()> {
     let approval_key = token_manager
         .get_ws_approval_key_string()
@@ -63,11 +92,13 @@ pub async fn run_domestic(token_manager: Arc<TokenManager>, symbol: &str) -> Res
     println!("[{symbol}] 실시간 체결가 스트리밍 시작...");
     println!("종료: Ctrl+C\n");
 
+    let subs = [(WS_TR_ID_DOMESTIC_CCNL, symbol.to_string())];
+    let mut sink = Sink::Print { header_printed: false };
     let max_retries = 3;
     let mut retry_count = 0;
 
     while retry_count < max_retries {
-        match connect_and_stream(&url, &approval_key, WS_TR_ID_DOMESTIC_CCNL, symbol, Feed::Domestic).await {
+        match connect_and_stream(&url, &approval_key, &subs, &mut sink).await {
             Ok(()) => break,
             Err(e) => {
                 retry_count += 1;
@@ -100,10 +131,12 @@ pub async fn run_night_futures(
     println!("[{symbol}] KRX 야간선물 실시간 체결 스트리밍 시작...");
     println!("종료: Ctrl+C\n");
 
+    let subs = [(WS_TR_ID_NIGHT_FUTURES_CCNL, symbol.to_string())];
+    let mut sink = Sink::Print { header_printed: false };
     let max_retries = 3;
     let mut retry_count = 0;
     while retry_count < max_retries {
-        match connect_and_stream(&url, &approval_key, WS_TR_ID_NIGHT_FUTURES_CCNL, symbol, Feed::NightFutures).await {
+        match connect_and_stream(&url, &approval_key, &subs, &mut sink).await {
             Ok(()) => break,
             Err(e) => {
                 retry_count += 1;
@@ -136,10 +169,12 @@ pub async fn run_overseas(
     println!("[{excd}:{symbol}] 실시간 체결가 스트리밍 시작...");
     println!("종료: Ctrl+C\n");
 
+    let subs = [(WS_TR_ID_OVERSEAS_CCNL, tr_key)];
+    let mut sink = Sink::Print { header_printed: false };
     let max_retries = 3;
     let mut retry_count = 0;
     while retry_count < max_retries {
-        match connect_and_stream(&url, &approval_key, WS_TR_ID_OVERSEAS_CCNL, &tr_key, Feed::Overseas).await {
+        match connect_and_stream(&url, &approval_key, &subs, &mut sink).await {
             Ok(()) => break,
             Err(e) => {
                 retry_count += 1;
@@ -163,39 +198,106 @@ enum Feed {
     NightFutures,
 }
 
+fn feed_from_tr_id(tr_id: &str) -> Option<Feed> {
+    match tr_id {
+        WS_TR_ID_DOMESTIC_CCNL => Some(Feed::Domestic),
+        WS_TR_ID_OVERSEAS_CCNL => Some(Feed::Overseas),
+        WS_TR_ID_NIGHT_FUTURES_CCNL => Some(Feed::NightFutures),
+        _ => None,
+    }
+}
+
+fn print_header(feed: Feed) {
+    match feed {
+        Feed::Domestic => println!(
+            "{:<8} {:>12} {:>8} {:>8}  {:>12} {:>10}",
+            "시간", "현재가", "대비", "대비율", "거래량", "체결강도"
+        ),
+        Feed::Overseas => println!(
+            "{:<10} {:>12} {:>8} {:>8}  {:>12}",
+            "UTC", "현재가", "대비", "대비율", "누적거래량"
+        ),
+        Feed::NightFutures => println!(
+            "{:<8} {:>12} {:>8} {:>8}  {:>12} {:>10}",
+            "시간", "현재가", "대비", "대비율", "거래량", "미결제"
+        ),
+    }
+    println!("─────────────────────────────────────────────────────────────");
+}
+
+/// 국내/해외 실시간 필드 → Tick. (야간선물은 채널 미지원 → None)
+fn extract_tick(feed: Feed, fields: &[&str]) -> Option<Tick> {
+    let get = |i: usize| fields.get(i).copied().unwrap_or("").to_string();
+    match feed {
+        Feed::Domestic => {
+            if fields.len() <= 13 {
+                return None;
+            }
+            Some(Tick {
+                market: "domestic",
+                symbol: get(0),
+                time: get(1),
+                price: get(2),
+                sign: get(3),
+                diff: get(4),
+                rate: get(5),
+                volume: get(13),
+            })
+        }
+        Feed::Overseas => {
+            if fields.len() <= 20 {
+                return None;
+            }
+            // fields[0] = RSYM "D{EXCD}{TICKER}" (예: DNASTSLA) → 티커는 [4..]
+            let rsym = fields[0];
+            let symbol = if rsym.len() > 4 {
+                rsym[4..].to_string()
+            } else {
+                rsym.to_string()
+            };
+            Some(Tick {
+                market: "overseas",
+                symbol,
+                time: get(7),
+                price: get(11),
+                sign: get(12),
+                diff: get(13),
+                rate: get(14),
+                volume: get(20),
+            })
+        }
+        Feed::NightFutures => None,
+    }
+}
+
+/// 단일 WS 연결로 여러 종목(국내/해외 혼합)을 구독하고 틱을 sink 로 흘려보낸다.
 async fn connect_and_stream(
     url: &str,
     approval_key: &str,
-    tr_id: &str,
-    tr_key: &str,
-    feed: Feed,
+    subs: &[(&str, String)],
+    sink: &mut Sink,
 ) -> Result<()> {
     let (ws_stream, _) = connect_async(url).await.context("WebSocket 연결 실패")?;
     let (mut write, mut read) = ws_stream.split();
 
-    // 구독 메시지 전송
-    let subscribe_msg = serde_json::json!({
-        "header": {
-            "approval_key": approval_key,
-            "custtype": "P",
-            "tr_type": "1",
-            "content-type": "utf-8",
-        },
-        "body": {
-            "input": {
-                "tr_id": tr_id,
-                "tr_key": tr_key,
+    // 구독 메시지 — sub(종목)마다 1개씩 같은 연결로 전송
+    for (tr_id, tr_key) in subs {
+        let subscribe_msg = serde_json::json!({
+            "header": {
+                "approval_key": approval_key,
+                "custtype": "P",
+                "tr_type": "1",
+                "content-type": "utf-8",
             },
-        },
-    });
-
-    write
-        .send(Message::Text(subscribe_msg.to_string().into()))
-        .await
-        .context("구독 메시지 전송 실패")?;
+            "body": { "input": { "tr_id": tr_id, "tr_key": tr_key } },
+        });
+        write
+            .send(Message::Text(subscribe_msg.to_string().into()))
+            .await
+            .context("구독 메시지 전송 실패")?;
+    }
 
     let mut decrypt_info: Option<DecryptInfo> = None;
-    let mut header_printed = false;
 
     while let Some(msg) = read.next().await {
         let msg = msg.context("메시지 수신 오류")?;
@@ -218,11 +320,9 @@ async fn connect_and_stream(
                 continue;
             }
             let encrypt_flag = parts[0];
-            let _tr_id = parts[1];
-            let _count = parts[2];
+            let frame_tr_id = parts[1];
             let mut data_str = parts[3].to_string();
 
-            // 암호화된 데이터 복호화
             if encrypt_flag == "1" {
                 if let Some(ref info) = decrypt_info {
                     if let Ok(decrypted) = aes_cbc_decrypt(&info.key, &info.iv, &data_str) {
@@ -232,30 +332,30 @@ async fn connect_and_stream(
             }
 
             let fields: Vec<&str> = data_str.split('^').collect();
+            let Some(feed) = feed_from_tr_id(frame_tr_id) else {
+                continue;
+            };
 
-            if !header_printed {
-                match feed {
-                    Feed::Domestic => println!(
-                        "{:<8} {:>12} {:>8} {:>8}  {:>12} {:>10}",
-                        "시간", "현재가", "대비", "대비율", "거래량", "체결강도"
-                    ),
-                    Feed::Overseas => println!(
-                        "{:<10} {:>12} {:>8} {:>8}  {:>12}",
-                        "UTC", "현재가", "대비", "대비율", "누적거래량"
-                    ),
-                    Feed::NightFutures => println!(
-                        "{:<8} {:>12} {:>8} {:>8}  {:>12} {:>10}",
-                        "시간", "현재가", "대비", "대비율", "거래량", "미결제"
-                    ),
+            match sink {
+                Sink::Print { header_printed } => {
+                    if !*header_printed {
+                        print_header(feed);
+                        *header_printed = true;
+                    }
+                    match feed {
+                        Feed::Domestic => print_domestic(&fields),
+                        Feed::Overseas => print_overseas(&fields),
+                        Feed::NightFutures => print_night_futures(&fields),
+                    }
                 }
-                println!("─────────────────────────────────────────────────────────────");
-                header_printed = true;
-            }
-
-            match feed {
-                Feed::Domestic => print_domestic(&fields),
-                Feed::Overseas => print_overseas(&fields),
-                Feed::NightFutures => print_night_futures(&fields),
+                Sink::Channel(tx) => {
+                    if let Some(tick) = extract_tick(feed, &fields) {
+                        // 수신측(SSE) 종료 시 send 실패 → 스트림 종료
+                        if tx.send(tick).await.is_err() {
+                            break;
+                        }
+                    }
+                }
             }
         } else {
             // 시스템 메시지 (구독 응답, PINGPONG)
@@ -270,7 +370,6 @@ async fn connect_and_stream(
                     continue;
                 }
 
-                // 복호화 키 저장
                 if let Some(output) = data["body"]["output"].as_object() {
                     if let (Some(key), Some(iv)) = (
                         output.get("key").and_then(|v| v.as_str()),
@@ -289,6 +388,58 @@ async fn connect_and_stream(
                     eprintln!("[구독 성공] {tr_id}: {msg}");
                 } else if !rt_cd.is_empty() {
                     eprintln!("[구독 실패] {tr_id}: {msg}");
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// 라이브러리용 멀티-종목 실시간 스트림. 단일 연결로 국내+해외 혼합 구독, 틱을 채널로 전달.
+/// `cancel` 취소 시 WS 연결을 닫고 종료한다(SSE 스트림 Drop 등).
+pub async fn run_stream(
+    token_manager: Arc<TokenManager>,
+    subs: Vec<Sub>,
+    tx: mpsc::Sender<Tick>,
+    cancel: CancellationToken,
+) -> Result<()> {
+    let approval_key = token_manager
+        .get_ws_approval_key_string()
+        .await
+        .context("WebSocket approval key 발급 실패")?;
+    let url = format!("{WS_URL_REAL}/tryitout");
+
+    let tuples: Vec<(&str, String)> = subs
+        .iter()
+        .map(|s| match s {
+            Sub::Domestic(code) => (WS_TR_ID_DOMESTIC_CCNL, code.clone()),
+            Sub::Overseas { excd, symbol } => {
+                (WS_TR_ID_OVERSEAS_CCNL, format!("D{excd}{symbol}"))
+            }
+        })
+        .collect();
+
+    let mut sink = Sink::Channel(tx);
+    let max_retries = 5;
+    let mut retries = 0;
+
+    while !cancel.is_cancelled() {
+        tokio::select! {
+            _ = cancel.cancelled() => break,
+            res = connect_and_stream(&url, &approval_key, &tuples, &mut sink) => {
+                match res {
+                    Ok(()) => break, // 서버가 연결 종료
+                    Err(e) => {
+                        retries += 1;
+                        if retries >= max_retries {
+                            return Err(e);
+                        }
+                        tokio::select! {
+                            _ = cancel.cancelled() => break,
+                            _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {}
+                        }
+                    }
                 }
             }
         }

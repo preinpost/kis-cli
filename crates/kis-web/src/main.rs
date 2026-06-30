@@ -3,7 +3,7 @@
 //! poem-openapi 로 타입드 REST API(`/api`)를 노출하고, Vite SPA(`web/dist`)를 정적 서빙한다.
 //! P1: 멀티유저 인증(회원가입·로그인·세션). KIS 연동·포트폴리오는 P2.
 
-use poem::{EndpointExt, Route, Server, listener::TcpListener};
+use poem::{EndpointExt, Route, Server, get, listener::TcpListener, middleware::CookieJarManager};
 use poem_openapi::OpenApiService;
 
 mod api;
@@ -27,11 +27,17 @@ fn build_app(state: state::AppState) -> impl poem::Endpoint {
     let spec = api_service.spec_endpoint();
     let swagger = api_service.swagger_ui();
 
+    // /api 하위: SSE 스트림(구체 경로)을 OpenApi 캐치올보다 먼저 매칭.
+    let api = Route::new()
+        .at("/quotes/stream", get(api::stream::quotes_stream))
+        .nest("/", api_service);
+
     Route::new()
-        .nest("/api", api_service)
+        .nest("/api", api)
         .at("/openapi.json", spec)
         .nest("/docs", swagger)
         .nest("/", static_files::endpoint())
+        .with(CookieJarManager::new()) // req.cookie() (SSE 인증)용 — 쿠키 파싱
         .data(state)
 }
 

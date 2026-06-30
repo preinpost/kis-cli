@@ -4,6 +4,7 @@ pub mod account;
 pub mod auth;
 pub mod portfolio;
 pub mod quotes;
+pub mod stream;
 pub mod symbols;
 pub mod watchlist;
 

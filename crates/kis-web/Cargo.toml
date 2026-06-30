@@ -8,10 +8,12 @@ edition.workspace = true
 # P0(스캐폴드): 최소 의존성. auth/db/crypto 는 P1 에서 추가.
 
 [dependencies]
-poem = { version = "3", features = ["cookie"] }
+poem = { version = "3", features = ["cookie", "sse"] }
 poem-openapi = { version = "5", features = ["swagger-ui", "cookie"] }
 
 tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures-util = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }

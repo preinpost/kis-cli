@@ -50,8 +50,18 @@
 - [ ] quotes/watchlist 실데이터 검증 (현재가 실제 표시) — 사용자 확인 대기
 - [ ] (선택) FTS 토크나이저 개선은 kis-data 영역 — LIKE 폴백으로 우회함
 
-## P3+ (장기)
-- [ ] P3 실시간 SSE / P4 퍼블릭 하드닝 / P5 주문 / P6 데몬제어
+## P3 — 실시간 시세 (SSE) ✅ 구현 완료 (실데이터는 장중 확인 대기)
+- [x] kis-core ws.rs 리팩터(비파괴): Tick/Sub 타입, connect_and_stream 다중구독+Sink(Print|Channel),
+      run_stream(단일연결 국내+해외 멀티플렉싱 + CancellationToken). CLI watch 무영향 ✅ 25테스트 통과
+- [x] kis-web SSE: GET /api/quotes/stream?symbols= (일반 poem 핸들러, 세션쿠키 인증, CookieJarManager),
+      run_stream 틱 → SSE Event, 스트림 Drop 시 cancel→WS종료 ✅ 401/409/200(event-stream) 검증
+- [x] 프론트: api/stream.ts(앱-레벨 EventSource 매니저 + useLiveQuote, 심볼 합집합 1연결),
+      watchlist 행 라이브(LIVE 점, REST 폴백), routes/symbol.$code.tsx 상세(라이브+최근체결) ✅ build/tsc
+- [ ] **실데이터 검증**: 장중(국내 09:00~15:30 KST / 미국 야간)에 실제 틱 흐르는지 — 사용자 확인 대기
+- 한계(v2): 탭당 WS 1연결(다중탭 위험), 동적구독=재연결. 야간선물 제외.
+
+## P4+ (장기)
+- [ ] P4 퍼블릭 하드닝 / P5 주문 / P6 데몬제어
 
 ## 검증 노트
 - CI는 build만 → 로컬 `cargo test --workspace` 필수
