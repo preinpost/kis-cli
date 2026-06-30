@@ -7,7 +7,9 @@ use poem_openapi::param::Path;
 use poem_openapi::payload::Json;
 use poem_openapi::{Object, OpenApi};
 
+use kis_core::api::domestic_stock::quotations::inquire_daily_itemchartprice as dome_chart;
 use kis_core::api::domestic_stock::quotations::inquire_price as dome_price;
+use kis_core::api::overseas_stock::quotations::dailyprice as os_chart;
 use kis_core::api::overseas_stock::quotations::price as os_price;
 use kis_core::client::KisClient;
 
@@ -32,6 +34,17 @@ struct Quote {
     low: String,
     volume: String,
 }
+
+/// 미니 차트(스파크라인)용 종가 시계열 (오래된→최신).
+#[derive(Object)]
+struct Spark {
+    symbol: String,
+    points: Vec<f64>,
+    /// 구간 등락 (마지막 >= 처음)
+    up: bool,
+}
+
+const SPARK_DAYS: usize = 30;
 
 pub struct QuotesApi;
 
@@ -68,6 +81,85 @@ impl QuotesApi {
 
         Ok(Json(quote))
     }
+
+    /// 미니 차트용 일봉 종가 시계열 (최근 ~30거래일, 오래된→최신).
+    #[oai(path = "/:symbol/spark", method = "get")]
+    async fn spark(
+        &self,
+        state: Data<&AppState>,
+        auth: SessionAuth,
+        symbol: Path<String>,
+    ) -> Result<Json<Spark>> {
+        let st = state.0;
+        let client = st
+            .clients
+            .get(&st.db, &st.config.master_key, &auth.0.id)
+            .await
+            .map_err(internal)?
+            .ok_or_else(|| Error::from_string("KIS 자격증명을 먼저 등록하세요", StatusCode::CONFLICT))?;
+
+        let info = symbols::resolve(st.config.symbols_db_path.clone(), symbol.0.clone()).await;
+
+        // 캐시 히트 시 KIS 호출 생략 (일봉은 장중 거의 안 변함)
+        if let Some((points, up)) = st.spark_get(&info.code) {
+            return Ok(Json(Spark { symbol: info.code, points, up }));
+        }
+
+        let points = match info.kind {
+            "domestic" => fetch_spark_domestic(&client, &info).await.map_err(upstream)?,
+            "overseas" => fetch_spark_overseas(&client, &info).await.map_err(upstream)?,
+            _ => return Err(Error::from_string("지원하지 않는 종목 유형입니다", StatusCode::BAD_REQUEST)),
+        };
+        let up = points.first().zip(points.last()).map(|(a, b)| b >= a).unwrap_or(true);
+        st.spark_put(&info.code, points.clone(), up);
+        Ok(Json(Spark { symbol: info.code, points, up }))
+    }
+}
+
+/// 국내 일봉 종가 (오래된→최신, 최대 SPARK_DAYS).
+async fn fetch_spark_domestic(client: &KisClient, info: &SymbolInfo) -> anyhow::Result<Vec<f64>> {
+    let today = chrono::Local::now().format("%Y%m%d").to_string();
+    let from = (chrono::Local::now() - chrono::Duration::days(60))
+        .format("%Y%m%d")
+        .to_string();
+    let req = dome_chart::Request {
+        fid_cond_mrkt_div_code: "J".into(),
+        fid_input_iscd: info.code.clone(),
+        fid_input_date_1: from,
+        fid_input_date_2: today,
+        fid_period_div_code: "D".into(),
+        fid_org_adj_prc: "0".into(),
+    };
+    let mut r = dome_chart::call(client, &req).await?;
+    r.candles.reverse(); // 최신→오래된 → 오래된→최신
+    Ok(closes(r.candles.iter().map(|c| c.stck_clpr.as_str())))
+}
+
+/// 해외 일봉 종가 (오래된→최신).
+async fn fetch_spark_overseas(client: &KisClient, info: &SymbolInfo) -> anyhow::Result<Vec<f64>> {
+    let excd = if info.excd.is_empty() { "NAS" } else { info.excd };
+    let today = chrono::Local::now().format("%Y%m%d").to_string();
+    let req = os_chart::Request {
+        auth: "".into(),
+        excd: excd.into(),
+        symb: info.code.clone(),
+        gubn: "0".into(), // 0 일봉
+        bymd: today,      // 기준일(최신)
+        modp: "1".into(), // 수정주가
+    };
+    let mut r = os_chart::call(client, &req).await?;
+    r.bars.reverse();
+    Ok(closes(r.bars.iter().map(|b| b.clos.as_str())))
+}
+
+/// 종가 문자열 시퀀스 → f64 (0/공백 제외), 마지막 SPARK_DAYS개만.
+fn closes<'a>(iter: impl Iterator<Item = &'a str>) -> Vec<f64> {
+    let all: Vec<f64> = iter
+        .filter_map(|s| s.trim().parse::<f64>().ok())
+        .filter(|v| *v > 0.0)
+        .collect();
+    let start = all.len().saturating_sub(SPARK_DAYS);
+    all[start..].to_vec()
 }
 
 async fn fetch_domestic(client: &KisClient, info: &SymbolInfo) -> anyhow::Result<Quote> {

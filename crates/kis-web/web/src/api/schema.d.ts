@@ -433,6 +433,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/quotes/{symbol}/spark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 미니 차트용 일봉 종가 시계열 (최근 ~30거래일, 오래된→최신). */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    symbol: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json; charset=utf-8": components["schemas"]["Spark"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/symbols/search": {
         parameters: {
             query?: never;
@@ -907,6 +944,16 @@ export interface components {
             username: string;
             display_name: string;
             password: string;
+        };
+        /**
+         * Spark
+         * @description 미니 차트(스파크라인)용 종가 시계열 (오래된→최신).
+         */
+        Spark: {
+            symbol: string;
+            points: number[];
+            /** @description 구간 등락 (마지막 >= 처음) */
+            up: boolean;
         };
         /**
          * Summary

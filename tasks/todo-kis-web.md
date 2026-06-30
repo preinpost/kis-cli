@@ -71,6 +71,13 @@
 - [x] 회귀: 워크스페이스 29테스트 통과, 통합 바이너리 검증
 - [ ] **실데이터 확인**: 사용자가 실제 매매 기록 + KIS 보유 합산 화면 확인 대기
 
+## 미니 차트(스파크라인) ✅ 완료
+- [x] 백엔드 GET /quotes/{symbol}/spark — 일봉 종가 시계열(국내 inquire_daily_itemchartprice /
+      해외 dailyprice), 최근 30거래일 오래된→최신, up 플래그 ✅
+- [x] 프론트 Sparkline.tsx(SVG polyline + 끝점 dot, 상승=빨강/하락=파랑), useSpark 훅(staleTime 10분),
+      watchlist 행 종목명 왼쪽에 토스 스타일 미니차트 ✅ build/test/경로검증
+- [ ] 실데이터 확인(실계좌 필요) — 사용자 확인 대기
+
 ## P4+ (장기)
 - [ ] P4 퍼블릭 하드닝 / P5 주문 / P6 데몬제어
 

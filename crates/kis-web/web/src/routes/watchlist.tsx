@@ -9,10 +9,12 @@ import {
   useSymbolSearch,
   useSyncSymbols,
   useQuote,
+  useSpark,
   type WatchlistItem,
 } from '../api/quotes'
 import { useLiveQuote } from '../api/stream'
 import { fmtMoney, signed, colorBySign } from '../lib/quote'
+import { Sparkline } from '../components/Sparkline'
 
 export const Route = createFileRoute('/watchlist')({
   component: WatchlistPage,
@@ -65,6 +67,7 @@ function WatchlistPage() {
                 <th className="px-4 py-2.5 font-medium">종목</th>
                 <th className="px-4 py-2.5 text-right font-medium">현재가</th>
                 <th className="px-4 py-2.5 text-right font-medium">전일대비</th>
+                <th className="px-4 py-2.5 text-center font-medium">차트</th>
                 <th className="px-4 py-2.5 text-right font-medium"></th>
               </tr>
             </thead>
@@ -181,6 +184,7 @@ function AddBox() {
 function WatchRow({ item, enabled }: { item: WatchlistItem; enabled: boolean }) {
   const quote = useQuote(item.symbol, enabled)
   const live = useLiveQuote(item.symbol, enabled)
+  const spark = useSpark(item.symbol, enabled)
   const remove = useRemoveWatch()
   const q = quote.data
 
@@ -230,6 +234,17 @@ function WatchRow({ item, enabled }: { item: WatchlistItem; enabled: boolean }) 
           </>
         ) : (
           ''
+        )}
+      </td>
+      <td className="px-4 py-2.5">
+        {enabled && (
+          <div className="flex justify-center">
+            <Sparkline
+              points={spark.data?.points ?? []}
+              up={spark.data?.up ?? true}
+              loading={spark.isPending}
+            />
+          </div>
         )}
       </td>
       <td className="px-4 py-2.5 text-right">

@@ -39,6 +39,25 @@ export function useQuote(symbol: string, enabled = true) {
   })
 }
 
+export type Spark = components['schemas']['Spark']
+
+/** 미니 차트용 일봉 종가 시계열. 일봉이라 staleTime 길게(10분). */
+export function useSpark(symbol: string, enabled = true) {
+  return useQuery<Spark>({
+    queryKey: ['spark', symbol],
+    enabled: enabled && !!symbol,
+    retry: false,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await client.GET('/quotes/{symbol}/spark', {
+        params: { path: { symbol } },
+      })
+      if (error) throw new Error(errMessage(error, '차트 조회 실패'))
+      return data as Spark
+    },
+  })
+}
+
 /** 종목 검색 (디바운스는 호출부에서). */
 export function useSymbolSearch(q: string) {
   return useQuery<SymbolDto[]>({
