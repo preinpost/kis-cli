@@ -401,6 +401,7 @@ enum Command {
     Rm(Vec<String>),
     List,
     Clear,
+    Sync,
     Help,
 }
 
@@ -420,6 +421,7 @@ fn parse_command(text: &str) -> Option<Command> {
         "rm" | "remove" | "del" | "delete" => Some(Command::Rm(args)),
         "list" | "ls" => Some(Command::List),
         "clear" => Some(Command::Clear),
+        "sync" | "symbols" => Some(Command::Sync),
         "help" | "start" => Some(Command::Help),
         _ => None,
     }
@@ -459,6 +461,7 @@ const HELP_TEXT: &str = "🤖 관심종목 명령\n\
     /rm 삼성전자 — 종목 삭제\n\
     /list — 현재 관심종목\n\
     /clear — 전체 비우기\n\
+    /sync — 종목 마스터 수동 갱신 (신규 상장·미인식 종목)\n\
     /help — 이 도움말";
 
 async fn run_command_poller(
@@ -568,6 +571,7 @@ async fn handle_command(cmd: Command, shared: &Shared, pick: Option<usize>) -> S
             persist(&list);
             "🧹 관심종목을 모두 비웠습니다.".into()
         }
+        Command::Sync => sync_symbols().await,
         Command::Add(queries) => {
             if queries.is_empty() {
                 return "사용법: /add 삼성전자 000660".into();
@@ -590,6 +594,7 @@ async fn handle_command(cmd: Command, shared: &Shared, pick: Option<usize>) -> S
             }
             if !failed.is_empty() {
                 msg.push_str(&format!("⚠️ 실패: {}\n", failed.join(" / ")));
+                msg.push_str("마스터가 오래되었다면 /sync 로 갱신 후 다시 시도하세요.\n");
             }
             if msg.is_empty() {
                 msg.push_str("이미 등록된 종목입니다.");
@@ -610,6 +615,40 @@ async fn handle_command(cmd: Command, shared: &Shared, pick: Option<usize>) -> S
                 format!("🗑 삭제: {} (현재 {}종목)", removed.join(", "), list.len())
             }
         }
+    }
+}
+
+/// 종목 마스터 DB 수동 갱신. `/add` 가 "일치 종목 없음"으로 실패할 때 사용.
+/// 데이터를 강제로 다시 받는다(if_stale=false). 진행 로그는 stdout(데몬 로그)으로.
+async fn sync_symbols() -> String {
+    let path = match kis_core::config::symbols_db_path() {
+        Ok(p) => p,
+        Err(e) => return format!("⚠️ 심볼 DB 경로 확인 실패: {e}"),
+    };
+    match kis_data::symbols::sync::sync_all(&path, false).await {
+        Ok(report) => {
+            if report.results.is_empty() {
+                return "동기화할 항목이 없습니다.".into();
+            }
+            let mut ok = 0usize;
+            let mut lines = Vec::with_capacity(report.results.len());
+            for r in &report.results {
+                match &r.error {
+                    None => {
+                        ok += 1;
+                        lines.push(format!("• {} {}건", r.market.as_str(), r.count));
+                    }
+                    Some(e) => lines.push(format!("• {} 실패 — {}", r.market.as_str(), esc(e))),
+                }
+            }
+            format!(
+                "🔄 심볼 마스터 동기화 완료 ({}/{})\n{}",
+                ok,
+                report.results.len(),
+                lines.join("\n"),
+            )
+        }
+        Err(e) => format!("⚠️ 동기화 실패: {e}"),
     }
 }
 
@@ -666,24 +705,49 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_se
         }
     }
 
-    // 라인별 인라인 코드 — 각 줄을 <code> 로 감싸 모노스페이스로 렌더. 전체
-    // <pre> 박스가 없어 "표" 느낌은 줄이되, 같은 줄 안에선 정렬이 보장된다.
-    let name_w = rows.iter().map(|r| display_width(&r.name)).max().unwrap_or(0);
-    let price_w = rows.iter().map(|r| r.price.chars().count()).max().unwrap_or(0);
+    // 전체를 하나의 <pre> 박스로 감싼 표 — 헤더 + 구분선 + 종목별 행.
+    // 종목명은 좌측, 현재가는 우측 정렬. 등락은 마지막 열이라 정렬 불필요.
+    const H_NAME: &str = "종목";
+    const H_PRICE: &str = "현재가";
+    const H_CHANGE: &str = "등락";
+    let name_w = rows
+        .iter()
+        .map(|r| display_width(&r.name))
+        .chain(std::iter::once(display_width(H_NAME)))
+        .max()
+        .unwrap_or(0);
+    let price_w = rows
+        .iter()
+        .map(|r| display_width(&r.price))
+        .chain(std::iter::once(display_width(H_PRICE)))
+        .max()
+        .unwrap_or(0);
 
     let mut body = String::new();
+    body.push_str("<pre>");
+    // 헤더 행
+    body.push_str(&pad_to(H_NAME, name_w));
+    body.push_str("  ");
+    body.push_str(&pad_left(H_PRICE, price_w));
+    body.push_str("  ");
+    body.push_str(H_CHANGE);
+    body.push('\n');
+    // 구분선
+    let line_w = name_w + 2 + price_w + 2 + display_width(H_CHANGE);
+    body.push_str(&"─".repeat(line_w));
+    body.push('\n');
+    // 데이터 행
     for r in &rows {
-        body.push_str("<code>");
         body.push_str(&pad_to(&esc(&r.name), name_w));
         body.push_str("  ");
-        body.push_str(&" ".repeat(price_w.saturating_sub(r.price.chars().count())));
-        body.push_str(&esc(&r.price));
+        body.push_str(&pad_left(&esc(&r.price), price_w));
         if !r.change.is_empty() {
             body.push_str("  ");
             body.push_str(&r.change);
         }
-        body.push_str("</code>\n");
+        body.push('\n');
     }
+    body.push_str("</pre>");
 
     let footer = if in_session {
         format!("{interval_secs}초마다 갱신")
@@ -804,6 +868,16 @@ fn pad_to(s: &str, width: usize) -> String {
         s.to_string()
     } else {
         format!("{}{}", s, " ".repeat(width - w))
+    }
+}
+
+/// 표시 폭 기준 우측 정렬 (앞쪽에 공백 패딩). 현재가 열 정렬용.
+fn pad_left(s: &str, width: usize) -> String {
+    let w = display_width(s);
+    if w >= width {
+        s.to_string()
+    } else {
+        format!("{}{}", " ".repeat(width - w), s)
     }
 }
 
@@ -1060,6 +1134,8 @@ mod tests {
         assert_eq!(parse_command("/list"), Some(Command::List));
         assert_eq!(parse_command("/LS"), Some(Command::List)); // 대소문자 무시
         assert_eq!(parse_command("/clear"), Some(Command::Clear));
+        assert_eq!(parse_command("/sync"), Some(Command::Sync));
+        assert_eq!(parse_command("/symbols"), Some(Command::Sync));
         assert_eq!(parse_command("/help"), Some(Command::Help));
         assert_eq!(parse_command("/start"), Some(Command::Help));
         // 봇 멘션 접미사 처리
