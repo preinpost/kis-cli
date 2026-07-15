@@ -28,7 +28,8 @@ pub struct Row {
 pub async fn call(client: &KisClient, req: &Request) -> Result<Vec<Row>> {
     let params = [("MKSC_SHRN_ISCD", req.mksc_shrn_iscd.as_str())];
     let resp = client.get(ENDPOINT, TR_ID, &params).await?;
-    let output = resp.output.ok_or_else(|| anyhow!("응답에 output 없음"))?;
+    // 이 API는 가집계 배열을 output2로 반환한다 (output1/output 없음).
+    let output = resp.output2.ok_or_else(|| anyhow!("응답에 output2 없음"))?;
     let rows: Vec<Row> = serde_json::from_value(output)?;
     Ok(rows)
 }
