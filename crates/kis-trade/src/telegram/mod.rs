@@ -713,39 +713,14 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_se
         }
     }
 
-    // 전체를 하나의 <pre> 박스로 감싼 표 — 헤더 + 구분선 + 종목별 행.
-    // 종목명은 좌측, 현재가는 우측 정렬. 등락은 마지막 열이라 정렬 불필요.
-    const H_NAME: &str = "종목";
-    const H_PRICE: &str = "현재가";
-    const H_CHANGE: &str = "등락";
-    let name_w = rows
-        .iter()
-        .map(|r| display_width(&r.name))
-        .chain(std::iter::once(display_width(H_NAME)))
-        .max()
-        .unwrap_or(0);
-    let price_w = rows
-        .iter()
-        .map(|r| display_width(&r.price))
-        .chain(std::iter::once(display_width(H_PRICE)))
-        .max()
-        .unwrap_or(0);
+    // 라인별 인라인 코드 — 각 줄을 <code> 로 감싸 모노스페이스로 렌더. 전체
+    // <pre> 박스(통짜 표)가 없어 "표" 느낌은 줄이되, 같은 줄 안에선 정렬이 보장된다.
+    let name_w = rows.iter().map(|r| display_width(&r.name)).max().unwrap_or(0);
+    let price_w = rows.iter().map(|r| display_width(&r.price)).max().unwrap_or(0);
 
     let mut body = String::new();
-    body.push_str("<pre>");
-    // 헤더 행
-    body.push_str(&pad_to(H_NAME, name_w));
-    body.push_str("  ");
-    body.push_str(&pad_left(H_PRICE, price_w));
-    body.push_str("  ");
-    body.push_str(H_CHANGE);
-    body.push('\n');
-    // 구분선
-    let line_w = name_w + 2 + price_w + 2 + display_width(H_CHANGE);
-    body.push_str(&"─".repeat(line_w));
-    body.push('\n');
-    // 데이터 행
     for r in &rows {
+        body.push_str("<code>");
         body.push_str(&pad_to(&esc(&r.name), name_w));
         body.push_str("  ");
         body.push_str(&pad_left(&esc(&r.price), price_w));
@@ -753,9 +728,8 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_se
             body.push_str("  ");
             body.push_str(&r.change);
         }
-        body.push('\n');
+        body.push_str("</code>\n");
     }
-    body.push_str("</pre>");
 
     let footer = if in_session {
         format!("{interval_secs}초마다 갱신")
