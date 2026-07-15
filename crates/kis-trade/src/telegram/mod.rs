@@ -836,6 +836,7 @@ async fn render_supply(client: &KisClient) -> Option<String> {
 async fn render_estimate(client: &KisClient, watches: &[Watch]) -> Option<String> {
     struct ERow {
         name: String,
+        prsn: String,
         frgn: String,
         orgn: String,
     }
@@ -850,8 +851,12 @@ async fn render_estimate(client: &KisClient, watches: &[Watch]) -> Option<String
                     if latest.bsop_hour_gb > last_hour {
                         last_hour = latest.bsop_hour_gb.clone();
                     }
+                    // 가집계는 외인·기관만 제공 → 개인(추정)은 -(외인+기관) 로 근사.
+                    let frgn_q = latest.frgn_fake_ntby_qty.trim().parse::<f64>().unwrap_or(0.0);
+                    let orgn_q = latest.orgn_fake_ntby_qty.trim().parse::<f64>().unwrap_or(0.0);
                     rows.push(ERow {
                         name: w.name.clone(),
+                        prsn: fmt_man(&format!("{}", -(frgn_q + orgn_q))),
                         frgn: fmt_man(&latest.frgn_fake_ntby_qty),
                         orgn: fmt_man(&latest.orgn_fake_ntby_qty),
                     });
@@ -865,20 +870,23 @@ async fn render_estimate(client: &KisClient, watches: &[Watch]) -> Option<String
     }
 
     const H_NAME: &str = "종목";
+    const H_PRSN: &str = "개인";
     const H_FRGN: &str = "외인";
     const H_ORGN: &str = "기관";
-    let headers: Vec<(&str, bool)> = vec![(H_NAME, false), (H_FRGN, true), (H_ORGN, true)];
+    // 개인은 가집계가 직접 주지 않아 -(외인+기관) 추정치.
+    let headers: Vec<(&str, bool)> =
+        vec![(H_NAME, false), (H_PRSN, true), (H_FRGN, true), (H_ORGN, true)];
     let grid_rows: Vec<Vec<String>> = rows
         .iter()
-        .map(|r| vec![r.name.clone(), r.frgn.clone(), r.orgn.clone()])
+        .map(|r| vec![r.name.clone(), r.prsn.clone(), r.frgn.clone(), r.orgn.clone()])
         .collect();
     let t = render_grid(&headers, &grid_rows);
 
     let hour = hour_label(&last_hour);
     let title = if hour.is_empty() {
-        "🕒 종목별 외인·기관 잠정(추정·만주)".to_string()
+        "🕒 종목별 개인·외인·기관 잠정(추정·만주)".to_string()
     } else {
-        format!("🕒 종목별 외인·기관 잠정(추정·만주) · {hour} 누계")
+        format!("🕒 종목별 개인·외인·기관 잠정(추정·만주) · {hour} 누계")
     };
     Some(format!("{title}\n{t}"))
 }
@@ -902,12 +910,13 @@ async fn fetch_supply(
     }
 }
 
-/// 순매수 대금(원) → 억원 반올림 + 천단위 + 부호. 양수 앞에 '+', 음수는 '-' 유지.
+/// 순매수 대금(백만원) → 억원 반올림 + 천단위 + 부호. 양수 앞에 '+', 음수는 '-' 유지.
+/// KIS 투자자별 `*_ntby_tr_pbmn` 필드는 백만원 단위이므로 억원 = 백만원 / 100.
 /// 파싱 실패 시 원문 그대로.
-fn fmt_eok(won: &str) -> String {
-    match won.trim().parse::<f64>() {
+fn fmt_eok(mn_won: &str) -> String {
+    match mn_won.trim().parse::<f64>() {
         Ok(v) => {
-            let mut eok = (v / 1e8).round();
+            let mut eok = (v / 100.0).round();
             if eok == 0.0 {
                 eok = 0.0; // -0.0 정규화
             }
@@ -918,7 +927,7 @@ fn fmt_eok(won: &str) -> String {
                 num
             }
         }
-        Err(_) => won.trim().to_string(),
+        Err(_) => mn_won.trim().to_string(),
     }
 }
 
@@ -1580,11 +1589,11 @@ mod tests {
     #[test]
     fn fmt_eok_signs_and_rounding() {
         // 순매수(원) → 억원 반올림 + 천단위 + 부호
-        assert_eq!(fmt_eok("123400000000"), "+1,234"); // +1,234억
-        assert_eq!(fmt_eok("-56700000000"), "-567");    // -567억
-        assert_eq!(fmt_eok("0"), "0");                   // 보합
-        assert_eq!(fmt_eok("-4000000"), "0");            // -0.04억 → 반올림 0 (음수부호 없음)
-        assert_eq!(fmt_eok("n/a"), "n/a");               // 파싱 실패 → 원문
+        assert_eq!(fmt_eok("123400"), "+1,234"); // 123,400백만원 = +1,234억
+        assert_eq!(fmt_eok("-56700"), "-567");    // -56,700백만원 = -567억
+        assert_eq!(fmt_eok("0"), "0");             // 보합
+        assert_eq!(fmt_eok("-4"), "0");            // -0.04억 → 반올림 0 (음수부호 없음)
+        assert_eq!(fmt_eok("n/a"), "n/a");         // 파싱 실패 → 원문
     }
 
     #[test]

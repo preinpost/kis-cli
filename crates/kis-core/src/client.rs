@@ -13,6 +13,10 @@ use crate::token::{FileTokenStore, NullTokenStore, TokenManager, TokenStore};
 pub const BASE_URL_PROD: &str = "https://openapi.koreainvestment.com:9443";
 pub const BASE_URL_MOCK: &str = "https://openapivts.koreainvestment.com:29443";
 
+/// 초당 거래건수 초과(EGW00201) 등 일시 한도초과 시 재시도 횟수. 로컬 레이트리밋이 있어도
+/// 다중 프로세스·버스트 타이밍으로 순간 초과가 날 수 있어 여러 번 짧게 재시도한다.
+const RATE_LIMIT_MAX_RETRIES: u32 = 5;
+
 pub struct KisClient {
     pub token_manager: Arc<TokenManager>,
     credentials: Credentials,
@@ -112,7 +116,7 @@ impl KisClient {
             let resp = req.send().await.context("API 요청 실패")?;
             match parse_response(resp).await {
                 Ok(ok) => return Ok(ok),
-                Err(e) if attempt == 0 && is_rate_limited(&e) => {
+                Err(e) if attempt < RATE_LIMIT_MAX_RETRIES && is_rate_limited(&e) => {
                     attempt += 1;
                     tokio::time::sleep(backoff_duration()).await;
                     continue;
@@ -160,7 +164,7 @@ impl KisClient {
             let resp = req.send().await.context("API 요청 실패")?;
             match parse_response(resp).await {
                 Ok(ok) => return Ok(ok),
-                Err(e) if attempt == 0 && is_rate_limited(&e) => {
+                Err(e) if attempt < RATE_LIMIT_MAX_RETRIES && is_rate_limited(&e) => {
                     attempt += 1;
                     tokio::time::sleep(backoff_duration()).await;
                     continue;
