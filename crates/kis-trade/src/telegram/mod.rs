@@ -17,6 +17,9 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
 use kis_core::api::domestic_stock::quotations::inquire_price;
+use kis_core::api::domestic_stock::market_analysis::inquire_investor_time_by_market as inv_by_market;
+use kis_core::api::domestic_stock::market_analysis::investor_trend_estimate as inv_estimate;
+use kis_core::api::domestic_stock::market_analysis::investor_trade_by_stock_daily as inv_by_stock;
 use kis_core::api::overseas_stock::quotations::price as overseas_price;
 use kis_core::client::KisClient;
 use crate::common::session::{self, HolidayCache, Market};
@@ -402,6 +405,8 @@ enum Command {
     List,
     Clear,
     Sync,
+    /// 수급. 인자 없으면 코스피/코스닥 전체, 있으면 해당 개별종목.
+    Supply(Vec<String>),
     Help,
 }
 
@@ -422,6 +427,7 @@ fn parse_command(text: &str) -> Option<Command> {
         "list" | "ls" => Some(Command::List),
         "clear" => Some(Command::Clear),
         "sync" | "symbols" => Some(Command::Sync),
+        "su" | "sugup" | "sg" | "flow" => Some(Command::Supply(args)),
         "help" | "start" => Some(Command::Help),
         _ => None,
     }
@@ -461,6 +467,8 @@ const HELP_TEXT: &str = "🤖 관심종목 명령\n\
     /rm 삼성전자 — 종목 삭제\n\
     /list — 현재 관심종목\n\
     /clear — 전체 비우기\n\
+    /su — 국장 수급 (코스피/코스닥 전체, 기관 세분화)\n\
+    /su 삼성전자 — 개별종목 수급 (일별 세분화 + 장중 잠정)\n\
     /sync — 종목 마스터 수동 갱신 (신규 상장·미인식 종목)\n\
     /help — 이 도움말";
 
@@ -471,7 +479,6 @@ async fn run_command_poller(
     pick: Option<usize>,
     cancel: CancellationToken,
 ) {
-    let _ = &client; // 향후 확장 여지(현재 resolve 는 동기). 시그니처 일관성 유지.
     let http = reqwest::Client::new();
     let mut offset: i64 = 0;
     info!("명령 폴러 시작 (getUpdates)");
@@ -538,7 +545,7 @@ async fn run_command_poller(
                 None => continue,
             };
             if let Some(cmd) = parse_command(text) {
-                let reply = handle_command(cmd, &shared, pick).await;
+                let reply = handle_command(&client, cmd, &shared, pick).await;
                 if let Err(e) = send_message(&tg, &reply).await {
                     error!("명령 회신 전송 실패: {e}");
                 }
@@ -548,10 +555,11 @@ async fn run_command_poller(
     info!("명령 폴러 종료");
 }
 
-/// 명령 처리 → 공유 리스트 갱신 + 영속화 → 회신 텍스트.
-async fn handle_command(cmd: Command, shared: &Shared, pick: Option<usize>) -> String {
+/// 명령 처리 → 공유 리스트 갱신 + 영속화 → 회신 텍스트. 수급 조회에 client 사용.
+async fn handle_command(client: &KisClient, cmd: Command, shared: &Shared, pick: Option<usize>) -> String {
     match cmd {
         Command::Help => HELP_TEXT.to_string(),
+        Command::Supply(queries) => handle_supply(client, queries, pick).await,
         Command::List => {
             let list = shared.lock().await;
             if list.is_empty() {
@@ -754,7 +762,436 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_se
     } else {
         "세션 밖 · 마지막 체결가".to_string()
     };
-    format!("{header}\n\n{body}\n{footer}")
+
+    // 국장 수급 — 관심종목에 국내 종목이 하나라도 있으면 두 블록을 덧붙인다.
+    //  ① 시장 순매수: 코스피/코스닥 × (외인·개인·기관계 + 기관 세분화: 금투/투신/연기금/사모/…)
+    //     데이터는 시세성(장중 갱신, 약 30분 간격 확정) — 세션 밖엔 당일 최종치.
+    //  ② 종목별 외인·기관 잠정(추정 가집계) — 장중에만(입력시간 09:30~14:30 누계).
+    // 조회 실패한 블록은 조용히 생략.
+    let mut sections: Vec<String> = Vec::new();
+    if watches.iter().any(|w| w.market.is_domestic()) {
+        if let Some(s) = render_supply(client).await {
+            sections.push(s);
+        }
+        if in_session {
+            if let Some(e) = render_estimate(client, watches).await {
+                sections.push(e);
+            }
+        }
+    }
+
+    if sections.is_empty() {
+        format!("{header}\n\n{body}\n{footer}")
+    } else {
+        format!("{header}\n\n{body}\n\n{}\n{footer}", sections.join("\n\n"))
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 국장 수급 (시장별 투자자매매동향 · 시세성)
+// ─────────────────────────────────────────────────────────────
+
+/// 시장 순매수(대금)를 **구분 × 시장(코스피/코스닥)** 표로 렌더. 기관계는
+/// 금투(증권)·투신·연기금·사모·보험·은행·종금·기타금융 으로 세분화해 보여준다.
+/// KIS `inquire-investor-time-by-market`(FHPTJ04030000) 을 시장별 1회씩 조회.
+/// 둘 다 실패하면 None (수급 블록 생략).
+async fn render_supply(client: &KisClient) -> Option<String> {
+    // 시장구분 KSP(코스피)/KSQ(코스닥), 업종구분 0001/1001 = 각 종합.
+    let kospi = fetch_supply(client, "KSP", "0001").await;
+    let kosdaq = fetch_supply(client, "KSQ", "1001").await;
+
+    // 사용 가능한 시장만 열로 구성 (한 쪽만 조회되어도 표시).
+    let mut cols: Vec<(&'static str, inv_by_market::Response)> = Vec::new();
+    if let Some(k) = kospi {
+        cols.push(("코스피", k));
+    }
+    if let Some(k) = kosdaq {
+        cols.push(("코스닥", k));
+    }
+    if cols.is_empty() {
+        return None;
+    }
+
+    // (라벨, 순매수 대금 필드 선택자) — 기관계 하위는 `· ` 들여쓰기.
+    type Sel = fn(&inv_by_market::Response) -> &str;
+    let spec: &[(&str, Sel)] = &[
+        ("외국인", |r| &r.frgn_ntby_tr_pbmn),
+        ("개인", |r| &r.prsn_ntby_tr_pbmn),
+        ("기관계", |r| &r.orgn_ntby_tr_pbmn),
+        ("· 금투", |r| &r.scrt_ntby_tr_pbmn),
+        ("· 투신", |r| &r.ivtr_ntby_tr_pbmn),
+        ("· 연기금", |r| &r.fund_ntby_tr_pbmn),
+        ("· 사모", |r| &r.pe_fund_ntby_tr_pbmn),
+        ("· 보험", |r| &r.insu_ntby_tr_pbmn),
+        ("· 은행", |r| &r.bank_ntby_tr_pbmn),
+        ("· 종금", |r| &r.mrbn_ntby_tr_pbmn),
+        ("· 기타금융", |r| &r.etc_orgt_ntby_tr_pbmn),
+        ("기타법인", |r| &r.etc_corp_ntby_tr_pbmn),
+    ];
+
+    // 셀 문자열 미리 계산 ([행][열]).
+    let cells: Vec<Vec<String>> = spec
+        .iter()
+        .map(|(_, sel)| cols.iter().map(|(_, r)| fmt_eok(sel(r))).collect())
+        .collect();
+
+    const H_GB: &str = "구분";
+    let label_w = spec
+        .iter()
+        .map(|(l, _)| display_width(l))
+        .chain(std::iter::once(display_width(H_GB)))
+        .max()
+        .unwrap_or(0);
+    let col_w: Vec<usize> = cols
+        .iter()
+        .enumerate()
+        .map(|(ci, (h, _))| {
+            cells
+                .iter()
+                .map(|row| display_width(&row[ci]))
+                .chain(std::iter::once(display_width(h)))
+                .max()
+                .unwrap_or(0)
+        })
+        .collect();
+
+    let mut t = String::new();
+    t.push_str("<pre>");
+    // 헤더 (구분 좌측, 시장별 수치 우측 정렬)
+    t.push_str(&pad_to(H_GB, label_w));
+    for (ci, (h, _)) in cols.iter().enumerate() {
+        t.push_str("  ");
+        t.push_str(&pad_left(h, col_w[ci]));
+    }
+    t.push('\n');
+    let line_w = label_w + col_w.iter().map(|w| 2 + w).sum::<usize>();
+    t.push_str(&"─".repeat(line_w));
+    t.push('\n');
+    for (ri, (label, _)) in spec.iter().enumerate() {
+        t.push_str(&pad_to(label, label_w));
+        for ci in 0..cols.len() {
+            t.push_str("  ");
+            t.push_str(&pad_left(&cells[ri][ci], col_w[ci]));
+        }
+        t.push('\n');
+    }
+    t.push_str("</pre>");
+
+    Some(format!("📊 국장 수급 · 순매수(억원)\n{t}"))
+}
+
+/// 관심 국내종목별 외인·기관 **잠정(추정 가집계)** 순매수를 표로 렌더.
+/// KIS `investor-trend-estimate`(HHPTJ04160200) — 증권사 직원이 장중 입력한 누계 추정치.
+/// 입력시간: 외국인 09:30/11:20/13:20/14:30, 기관 10:00/11:20/13:20/14:30.
+/// 각 종목의 최신(가장 큰 입력구분) 1건만 표시. 모두 실패/빈 값이면 None.
+async fn render_estimate(client: &KisClient, watches: &[Watch]) -> Option<String> {
+    struct ERow {
+        name: String,
+        frgn: String,
+        orgn: String,
+    }
+    let mut rows: Vec<ERow> = Vec::new();
+    let mut last_hour = String::new();
+    for w in watches.iter().filter(|w| w.market.is_domestic()) {
+        let req = inv_estimate::Request { mksc_shrn_iscd: w.code.clone() };
+        match inv_estimate::call(client, &req).await {
+            Ok(list) => {
+                // 가장 늦은 입력구분(bsop_hour_gb 최대) = 최신 누계.
+                if let Some(latest) = list.into_iter().max_by(|a, b| a.bsop_hour_gb.cmp(&b.bsop_hour_gb)) {
+                    if latest.bsop_hour_gb > last_hour {
+                        last_hour = latest.bsop_hour_gb.clone();
+                    }
+                    rows.push(ERow {
+                        name: w.name.clone(),
+                        frgn: fmt_man(&latest.frgn_fake_ntby_qty),
+                        orgn: fmt_man(&latest.orgn_fake_ntby_qty),
+                    });
+                }
+            }
+            Err(e) => warn!("[{}] {} 추정 수급 조회 실패: {e}", w.code, w.name),
+        }
+    }
+    if rows.is_empty() {
+        return None;
+    }
+
+    const H_NAME: &str = "종목";
+    const H_FRGN: &str = "외인";
+    const H_ORGN: &str = "기관";
+    let name_w = rows
+        .iter()
+        .map(|r| display_width(&r.name))
+        .chain(std::iter::once(display_width(H_NAME)))
+        .max()
+        .unwrap_or(0);
+    let frgn_w = rows
+        .iter()
+        .map(|r| display_width(&r.frgn))
+        .chain(std::iter::once(display_width(H_FRGN)))
+        .max()
+        .unwrap_or(0);
+    let orgn_w = rows
+        .iter()
+        .map(|r| display_width(&r.orgn))
+        .chain(std::iter::once(display_width(H_ORGN)))
+        .max()
+        .unwrap_or(0);
+
+    let mut t = String::new();
+    t.push_str("<pre>");
+    t.push_str(&pad_to(H_NAME, name_w));
+    t.push_str("  ");
+    t.push_str(&pad_left(H_FRGN, frgn_w));
+    t.push_str("  ");
+    t.push_str(&pad_left(H_ORGN, orgn_w));
+    t.push('\n');
+    t.push_str(&"─".repeat(name_w + 2 + frgn_w + 2 + orgn_w));
+    t.push('\n');
+    for r in &rows {
+        t.push_str(&pad_to(&esc(&r.name), name_w));
+        t.push_str("  ");
+        t.push_str(&pad_left(&r.frgn, frgn_w));
+        t.push_str("  ");
+        t.push_str(&pad_left(&r.orgn, orgn_w));
+        t.push('\n');
+    }
+    t.push_str("</pre>");
+
+    let hour = hour_label(&last_hour);
+    let title = if hour.is_empty() {
+        "🕒 종목별 외인·기관 잠정(추정·만주)".to_string()
+    } else {
+        format!("🕒 종목별 외인·기관 잠정(추정·만주) · {hour} 누계")
+    };
+    Some(format!("{title}\n{t}"))
+}
+
+/// 시장별 투자자매매동향(시세) 1건 조회. 실패는 로그만 남기고 None.
+async fn fetch_supply(
+    client: &KisClient,
+    iscd: &str,
+    iscd2: &str,
+) -> Option<inv_by_market::Response> {
+    let req = inv_by_market::Request {
+        fid_input_iscd: iscd.into(),
+        fid_input_iscd_2: iscd2.into(),
+    };
+    match inv_by_market::call(client, &req).await {
+        Ok(r) => Some(r),
+        Err(e) => {
+            warn!("국장 수급 조회 실패 ({iscd}): {e}");
+            None
+        }
+    }
+}
+
+/// 순매수 대금(원) → 억원 반올림 + 천단위 + 부호. 양수 앞에 '+', 음수는 '-' 유지.
+/// 파싱 실패 시 원문 그대로.
+fn fmt_eok(won: &str) -> String {
+    match won.trim().parse::<f64>() {
+        Ok(v) => {
+            let mut eok = (v / 1e8).round();
+            if eok == 0.0 {
+                eok = 0.0; // -0.0 정규화
+            }
+            let num = format_number(&format!("{eok:.0}"));
+            if eok > 0.0 {
+                format!("+{num}")
+            } else {
+                num
+            }
+        }
+        Err(_) => won.trim().to_string(),
+    }
+}
+
+/// 추정 순매수 수량(주) → 만주(소수 1자리) + 부호. 양수 앞에 '+', 음수는 '-' 유지.
+/// 파싱 실패 시 원문 그대로.
+fn fmt_man(qty: &str) -> String {
+    match qty.trim().parse::<f64>() {
+        Ok(v) => {
+            let mut man = v / 1e4;
+            if man == 0.0 {
+                man = 0.0; // -0.0 정규화
+            }
+            let num = format_number(&format!("{man:.1}"));
+            if man > 0.0 {
+                format!("+{num}")
+            } else {
+                num
+            }
+        }
+        Err(_) => qty.trim().to_string(),
+    }
+}
+
+/// 추정가집계 입력구분(bsop_hour_gb) → 입력 시각 라벨. 미지정 값은 빈 문자열.
+fn hour_label(gb: &str) -> &'static str {
+    match gb {
+        "1" => "09:30",
+        "2" => "10:00",
+        "3" => "11:20",
+        "4" => "13:20",
+        "5" => "14:30",
+        _ => "",
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// /su 명령 — 온디맨드 수급 조회 (시장 전체 / 개별종목)
+// ─────────────────────────────────────────────────────────────
+
+/// `/su` 처리. 인자 없으면 코스피/코스닥 전체 수급, 있으면 각 국내 개별종목 수급.
+async fn handle_supply(client: &KisClient, queries: Vec<String>, pick: Option<usize>) -> String {
+    // 인자 없음 → 시장 전체.
+    if queries.is_empty() {
+        return render_supply(client)
+            .await
+            .unwrap_or_else(|| "국장 수급 조회 실패 — 잠시 후 다시 시도하세요.".into());
+    }
+    // 인자 있음 → 개별종목.
+    let mut out: Vec<String> = Vec::new();
+    for q in &queries {
+        match resolve_one(q, pick) {
+            Ok(w) if w.market.is_domestic() => match render_stock_supply(client, &w).await {
+                Some(s) => out.push(s),
+                None => out.push(format!(
+                    "{} ({}) 수급 데이터 없음 (당일 일별은 장 종료 후, 장중은 잠정만 제공)",
+                    esc(&w.name), w.code
+                )),
+            },
+            Ok(w) => out.push(format!("{} 은(는) 해외 종목 — 국장 수급 미지원", esc(&w.name))),
+            Err(e) => out.push(format!("{q}: {e}")),
+        }
+    }
+    out.join("\n\n")
+}
+
+/// 개별종목 수급 — 일별 투자자매매동향(기관 세분화, 억원) + 장중 외인/기관 잠정(추정).
+/// 일별: `investor-trade-by-stock-daily`(FHPTJ04160001), 잠정: `investor-trend-estimate`(HHPTJ04160200).
+/// 둘 다 비면 None.
+async fn render_stock_supply(client: &KisClient, w: &Watch) -> Option<String> {
+    let today = session::now_kst().format("%Y%m%d").to_string();
+
+    // 일별 — 가장 최근 영업일 1행.
+    let daily = {
+        let req = inv_by_stock::Request {
+            fid_cond_mrkt_div_code: "J".into(),
+            fid_input_iscd: w.code.clone(),
+            fid_input_date_1: today,
+            fid_org_adj_prc: String::new(),
+            fid_etc_cls_code: "1".into(),
+        };
+        match inv_by_stock::call(client, &req).await {
+            Ok(resp) => resp
+                .rows
+                .into_iter()
+                .max_by(|a, b| a.stck_bsop_date.cmp(&b.stck_bsop_date)),
+            Err(e) => {
+                warn!("[{}] {} 종목 수급(일별) 조회 실패: {e}", w.code, w.name);
+                None
+            }
+        }
+    };
+
+    // 잠정(추정) — 최신 입력구분 1건.
+    let est = {
+        let req = inv_estimate::Request { mksc_shrn_iscd: w.code.clone() };
+        match inv_estimate::call(client, &req).await {
+            Ok(list) => list
+                .into_iter()
+                .max_by(|a, b| a.bsop_hour_gb.cmp(&b.bsop_hour_gb)),
+            Err(_) => None,
+        }
+    };
+
+    if daily.is_none() && est.is_none() {
+        return None;
+    }
+
+    let mut parts: Vec<String> = Vec::new();
+
+    if let Some(r) = &daily {
+        type Sel = fn(&inv_by_stock::Row) -> &str;
+        let spec: &[(&str, Sel)] = &[
+            ("외국인", |r| &r.frgn_ntby_tr_pbmn),
+            ("개인", |r| &r.prsn_ntby_tr_pbmn),
+            ("기관계", |r| &r.orgn_ntby_tr_pbmn),
+            ("· 금투", |r| &r.scrt_ntby_tr_pbmn),
+            ("· 투신", |r| &r.ivtr_ntby_tr_pbmn),
+            ("· 연기금", |r| &r.fund_ntby_tr_pbmn),
+            ("· 사모", |r| &r.pe_fund_ntby_tr_pbmn),
+            ("· 보험", |r| &r.insu_ntby_tr_pbmn),
+            ("· 은행", |r| &r.bank_ntby_tr_pbmn),
+            ("· 종금", |r| &r.mrbn_ntby_tr_pbmn),
+            ("· 기타금융", |r| &r.etc_orgt_ntby_tr_pbmn),
+            ("기타법인", |r| &r.etc_corp_ntby_tr_pbmn),
+        ];
+        let labels: Vec<&str> = spec.iter().map(|(l, _)| *l).collect();
+        let vals: Vec<String> = spec.iter().map(|(_, s)| fmt_eok(s(r))).collect();
+        let table = kv_table("국분", "순매수", &labels, &vals);
+        parts.push(format!(
+            "📊 {} 수급 · 순매수(억원) · {}\n{}",
+            esc(&w.name),
+            fmt_date(&r.stck_bsop_date),
+            table
+        ));
+    }
+
+    if let Some(e) = &est {
+        let hour = hour_label(&e.bsop_hour_gb);
+        let when = if hour.is_empty() { String::new() } else { format!(" {hour} 누계") };
+        parts.push(format!(
+            "🕒 장중 잠정(추정·만주){} — 외인 {} / 기관 {}",
+            when,
+            fmt_man(&e.frgn_fake_ntby_qty),
+            fmt_man(&e.orgn_fake_ntby_qty),
+        ));
+    }
+
+    Some(parts.join("\n\n"))
+}
+
+/// (라벨, 값) 리스트를 2열 <pre> 표로. 라벨 좌측, 값 우측 정렬.
+fn kv_table(h_label: &str, h_val: &str, labels: &[&str], vals: &[String]) -> String {
+    let label_w = labels
+        .iter()
+        .map(|s| display_width(s))
+        .chain(std::iter::once(display_width(h_label)))
+        .max()
+        .unwrap_or(0);
+    let val_w = vals
+        .iter()
+        .map(|s| display_width(s))
+        .chain(std::iter::once(display_width(h_val)))
+        .max()
+        .unwrap_or(0);
+    let mut t = String::new();
+    t.push_str("<pre>");
+    t.push_str(&pad_to(h_label, label_w));
+    t.push_str("  ");
+    t.push_str(&pad_left(h_val, val_w));
+    t.push('\n');
+    t.push_str(&"─".repeat(label_w + 2 + val_w));
+    t.push('\n');
+    for (l, v) in labels.iter().zip(vals.iter()) {
+        t.push_str(&pad_to(l, label_w));
+        t.push_str("  ");
+        t.push_str(&pad_left(v, val_w));
+        t.push('\n');
+    }
+    t.push_str("</pre>");
+    t
+}
+
+/// "20250812" → "08/12". 길이가 다르면 원문.
+fn fmt_date(yyyymmdd: &str) -> String {
+    let s = yyyymmdd.trim();
+    if s.len() == 8 {
+        format!("{}/{}", &s[4..6], &s[6..8])
+    } else {
+        s.to_string()
+    }
 }
 
 /// 시장에 맞는 현재가를 조회해 통화·부호까지 포맷한 표시용 값으로 정규화.
@@ -1136,6 +1573,11 @@ mod tests {
         assert_eq!(parse_command("/clear"), Some(Command::Clear));
         assert_eq!(parse_command("/sync"), Some(Command::Sync));
         assert_eq!(parse_command("/symbols"), Some(Command::Sync));
+        // 수급 — 인자 없으면 시장 전체, 있으면 개별종목
+        assert_eq!(parse_command("/su"), Some(Command::Supply(vec![])));
+        assert_eq!(parse_command("/su 삼성전자"), Some(Command::Supply(vec!["삼성전자".into()])));
+        assert_eq!(parse_command("/flow 005930"), Some(Command::Supply(vec!["005930".into()])));
+        assert_eq!(parse_command("/sg"), Some(Command::Supply(vec![])));
         assert_eq!(parse_command("/help"), Some(Command::Help));
         assert_eq!(parse_command("/start"), Some(Command::Help));
         // 봇 멘션 접미사 처리
@@ -1164,6 +1606,40 @@ mod tests {
         let removed2 = apply_rm(&mut list2, &["없음".into()]);
         assert!(removed2.is_empty());
         assert_eq!(list2.len(), 1);
+    }
+
+    #[test]
+    fn fmt_eok_signs_and_rounding() {
+        // 순매수(원) → 억원 반올림 + 천단위 + 부호
+        assert_eq!(fmt_eok("123400000000"), "+1,234"); // +1,234억
+        assert_eq!(fmt_eok("-56700000000"), "-567");    // -567억
+        assert_eq!(fmt_eok("0"), "0");                   // 보합
+        assert_eq!(fmt_eok("-4000000"), "0");            // -0.04억 → 반올림 0 (음수부호 없음)
+        assert_eq!(fmt_eok("n/a"), "n/a");               // 파싱 실패 → 원문
+    }
+
+    #[test]
+    fn fmt_man_signs_and_rounding() {
+        // 추정 순매수(주) → 만주(소수 1자리) + 부호
+        assert_eq!(fmt_man("123000"), "+12.3");   // +12.3만주
+        assert_eq!(fmt_man("-45000"), "-4.5");     // -4.5만주
+        assert_eq!(fmt_man("0"), "0.0");           // 보합
+        assert_eq!(fmt_man("-500"), "-0.1");       // -0.05만 → 반올림 -0.1
+        assert_eq!(fmt_man("1234500"), "+123.5");  // 천단위는 없고 소수 1자리
+        assert_eq!(fmt_man("n/a"), "n/a");         // 파싱 실패 → 원문
+    }
+
+    #[test]
+    fn fmt_date_yyyymmdd() {
+        assert_eq!(fmt_date("20250812"), "08/12");
+        assert_eq!(fmt_date("2025"), "2025"); // 비규격 → 원문
+    }
+
+    #[test]
+    fn hour_label_maps_input_slots() {
+        assert_eq!(hour_label("1"), "09:30");
+        assert_eq!(hour_label("5"), "14:30");
+        assert_eq!(hour_label("9"), ""); // 미지정
     }
 
     #[test]

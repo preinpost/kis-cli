@@ -84,6 +84,7 @@ pub async fn register_commands(tg: &TelegramConfig) -> Result<()> {
                 {"command": "rm",    "description": "종목 삭제"},
                 {"command": "list",  "description": "현재 관심종목"},
                 {"command": "clear", "description": "전체 비우기"},
+                {"command": "su",    "description": "수급 (인자⁠⁠없으면 국장 전체, 종목명이면 개별)"},
                 {"command": "help",  "description": "도움말"},
             ]
         }))
