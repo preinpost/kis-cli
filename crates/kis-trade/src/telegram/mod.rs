@@ -713,23 +713,13 @@ async fn render(client: &KisClient, watches: &[Watch], interval_secs: u64, in_se
         }
     }
 
-    // 라인별 인라인 코드 — 각 줄을 <code> 로 감싸 모노스페이스로 렌더. 전체
-    // <pre> 박스(통짜 표)가 없어 "표" 느낌은 줄이되, 같은 줄 안에선 정렬이 보장된다.
-    let name_w = rows.iter().map(|r| display_width(&r.name)).max().unwrap_or(0);
-    let price_w = rows.iter().map(|r| display_width(&r.price)).max().unwrap_or(0);
-
-    let mut body = String::new();
-    for r in &rows {
-        body.push_str("<code>");
-        body.push_str(&pad_to(&esc(&r.name), name_w));
-        body.push_str("  ");
-        body.push_str(&pad_left(&esc(&r.price), price_w));
-        if !r.change.is_empty() {
-            body.push_str("  ");
-            body.push_str(&r.change);
-        }
-        body.push_str("</code>\n");
-    }
+    // 종목(좌) · 현재가(우) · 등락(화살표 정렬 위해 좌측) 정렬 표.
+    let headers: Vec<(&str, bool)> = vec![("종목", false), ("현재가", true), ("등락", false)];
+    let grid_rows: Vec<Vec<String>> = rows
+        .iter()
+        .map(|r| vec![r.name.clone(), r.price.clone(), r.change.clone()])
+        .collect();
+    let body = render_grid(&headers, &grid_rows);
 
     let footer = if in_session {
         format!("{interval_secs}초마다 갱신")
@@ -1244,9 +1234,10 @@ fn pad_left(s: &str, width: usize) -> String {
     }
 }
 
-/// 박스드로잉(┌┬┐│├┼┤└┴┘) 격자 표를 `<pre>` 로 렌더 — 엑셀 표처럼 셀 테두리 표시.
+/// 정렬된 표를 `<pre>` 로 렌더 — 세로 경계선 없이 공백 정렬 + 헤더 아래 가로구분선만.
+/// (박스드로잉 세로줄은 텔레그램 폰트에서 한글과 폭이 안 맞아 어꺋나므로 사용하지 않는다.)
 /// `cols`: (헤더, 우측정렬여부). `rows`: 각 행의 셀 문자열(열 수는 `cols` 와 동일 가정).
-/// 셀 내용은 내부에서 HTML escape 하며, 각 칸은 좌우 1칸 여백을 둔다.
+/// 셀 내용은 내부에서 HTML escape 한다.
 fn render_grid(cols: &[(&str, bool)], rows: &[Vec<String>]) -> String {
     let n = cols.len();
     // 열별 표시폭 = 헤더/셀 최댓값.
@@ -1259,39 +1250,30 @@ fn render_grid(cols: &[(&str, bool)], rows: &[Vec<String>]) -> String {
             w[i] = w[i].max(display_width(cell));
         }
     }
-    // 가로 경계선 (칸 폭 = 내용폭 + 좌우 여백 2).
-    let rule = |left: &str, mid: &str, right: &str| -> String {
-        let mut s = String::from(left);
-        for i in 0..n {
-            s.push_str(&"─".repeat(w[i] + 2));
-            s.push_str(if i + 1 < n { mid } else { right });
-        }
-        s.push('\n');
-        s
-    };
-    // 한 행 렌더 (좌우 여백 + 정렬 + 세로 구분선).
+    // 한 행 — 첫 열은 바로, 이후 열은 앞에 공백 2칸 띄우고 정렬.
     let line = |cells: &[String]| -> String {
-        let mut s = String::from('│');
+        let mut s = String::new();
         for (i, (_, right)) in cols.iter().enumerate() {
+            if i > 0 {
+                s.push_str("  ");
+            }
             let raw = cells.get(i).map(String::as_str).unwrap_or("");
             let padded = if *right { pad_left(raw, w[i]) } else { pad_to(raw, w[i]) };
-            s.push(' ');
             s.push_str(&esc(&padded));
-            s.push_str(" │");
         }
         s.push('\n');
         s
     };
 
     let header: Vec<String> = cols.iter().map(|(h, _)| (*h).to_string()).collect();
+    let total_w = w.iter().sum::<usize>() + 2 * n.saturating_sub(1);
     let mut t = String::from("<pre>");
-    t.push_str(&rule("┌", "┬", "┐"));
     t.push_str(&line(&header));
-    t.push_str(&rule("├", "┼", "┤"));
+    t.push_str(&"─".repeat(total_w));
+    t.push('\n');
     for row in rows {
         t.push_str(&line(row));
     }
-    t.push_str(&rule("└", "┴", "┘"));
     t.push_str("</pre>");
     t
 }
