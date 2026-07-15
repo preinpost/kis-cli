@@ -810,46 +810,21 @@ async fn render_supply(client: &KisClient) -> Option<String> {
         .collect();
 
     const H_GB: &str = "구분";
-    let label_w = spec
-        .iter()
-        .map(|(l, _)| display_width(l))
-        .chain(std::iter::once(display_width(H_GB)))
-        .max()
-        .unwrap_or(0);
-    let col_w: Vec<usize> = cols
+    // 구분(좌측) + 시장별(우측) 그리드 표.
+    let mut headers: Vec<(&str, bool)> = vec![(H_GB, false)];
+    for (h, _) in &cols {
+        headers.push((*h, true));
+    }
+    let grid_rows: Vec<Vec<String>> = spec
         .iter()
         .enumerate()
-        .map(|(ci, (h, _))| {
-            cells
-                .iter()
-                .map(|row| display_width(&row[ci]))
-                .chain(std::iter::once(display_width(h)))
-                .max()
-                .unwrap_or(0)
+        .map(|(ri, (label, _))| {
+            let mut row = vec![label.to_string()];
+            row.extend((0..cols.len()).map(|ci| cells[ri][ci].clone()));
+            row
         })
         .collect();
-
-    let mut t = String::new();
-    t.push_str("<pre>");
-    // 헤더 (구분 좌측, 시장별 수치 우측 정렬)
-    t.push_str(&pad_to(H_GB, label_w));
-    for (ci, (h, _)) in cols.iter().enumerate() {
-        t.push_str("  ");
-        t.push_str(&pad_left(h, col_w[ci]));
-    }
-    t.push('\n');
-    let line_w = label_w + col_w.iter().map(|w| 2 + w).sum::<usize>();
-    t.push_str(&"─".repeat(line_w));
-    t.push('\n');
-    for (ri, (label, _)) in spec.iter().enumerate() {
-        t.push_str(&pad_to(label, label_w));
-        for ci in 0..cols.len() {
-            t.push_str("  ");
-            t.push_str(&pad_left(&cells[ri][ci], col_w[ci]));
-        }
-        t.push('\n');
-    }
-    t.push_str("</pre>");
+    let t = render_grid(&headers, &grid_rows);
 
     Some(format!("📊 국장 수급 · 순매수(억원)\n{t}"))
 }
@@ -892,44 +867,12 @@ async fn render_estimate(client: &KisClient, watches: &[Watch]) -> Option<String
     const H_NAME: &str = "종목";
     const H_FRGN: &str = "외인";
     const H_ORGN: &str = "기관";
-    let name_w = rows
+    let headers: Vec<(&str, bool)> = vec![(H_NAME, false), (H_FRGN, true), (H_ORGN, true)];
+    let grid_rows: Vec<Vec<String>> = rows
         .iter()
-        .map(|r| display_width(&r.name))
-        .chain(std::iter::once(display_width(H_NAME)))
-        .max()
-        .unwrap_or(0);
-    let frgn_w = rows
-        .iter()
-        .map(|r| display_width(&r.frgn))
-        .chain(std::iter::once(display_width(H_FRGN)))
-        .max()
-        .unwrap_or(0);
-    let orgn_w = rows
-        .iter()
-        .map(|r| display_width(&r.orgn))
-        .chain(std::iter::once(display_width(H_ORGN)))
-        .max()
-        .unwrap_or(0);
-
-    let mut t = String::new();
-    t.push_str("<pre>");
-    t.push_str(&pad_to(H_NAME, name_w));
-    t.push_str("  ");
-    t.push_str(&pad_left(H_FRGN, frgn_w));
-    t.push_str("  ");
-    t.push_str(&pad_left(H_ORGN, orgn_w));
-    t.push('\n');
-    t.push_str(&"─".repeat(name_w + 2 + frgn_w + 2 + orgn_w));
-    t.push('\n');
-    for r in &rows {
-        t.push_str(&pad_to(&esc(&r.name), name_w));
-        t.push_str("  ");
-        t.push_str(&pad_left(&r.frgn, frgn_w));
-        t.push_str("  ");
-        t.push_str(&pad_left(&r.orgn, orgn_w));
-        t.push('\n');
-    }
-    t.push_str("</pre>");
+        .map(|r| vec![r.name.clone(), r.frgn.clone(), r.orgn.clone()])
+        .collect();
+    let t = render_grid(&headers, &grid_rows);
 
     let hour = hour_label(&last_hour);
     let title = if hour.is_empty() {
@@ -1290,6 +1233,58 @@ fn pad_left(s: &str, width: usize) -> String {
     } else {
         format!("{}{}", " ".repeat(width - w), s)
     }
+}
+
+/// 박스드로잉(┌┬┐│├┼┤└┴┘) 격자 표를 `<pre>` 로 렌더 — 엑셀 표처럼 셀 테두리 표시.
+/// `cols`: (헤더, 우측정렬여부). `rows`: 각 행의 셀 문자열(열 수는 `cols` 와 동일 가정).
+/// 셀 내용은 내부에서 HTML escape 하며, 각 칸은 좌우 1칸 여백을 둔다.
+fn render_grid(cols: &[(&str, bool)], rows: &[Vec<String>]) -> String {
+    let n = cols.len();
+    // 열별 표시폭 = 헤더/셀 최댓값.
+    let mut w = vec![0usize; n];
+    for (i, (h, _)) in cols.iter().enumerate() {
+        w[i] = display_width(h);
+    }
+    for row in rows {
+        for (i, cell) in row.iter().take(n).enumerate() {
+            w[i] = w[i].max(display_width(cell));
+        }
+    }
+    // 가로 경계선 (칸 폭 = 내용폭 + 좌우 여백 2).
+    let rule = |left: &str, mid: &str, right: &str| -> String {
+        let mut s = String::from(left);
+        for i in 0..n {
+            s.push_str(&"─".repeat(w[i] + 2));
+            s.push_str(if i + 1 < n { mid } else { right });
+        }
+        s.push('\n');
+        s
+    };
+    // 한 행 렌더 (좌우 여백 + 정렬 + 세로 구분선).
+    let line = |cells: &[String]| -> String {
+        let mut s = String::from('│');
+        for (i, (_, right)) in cols.iter().enumerate() {
+            let raw = cells.get(i).map(String::as_str).unwrap_or("");
+            let padded = if *right { pad_left(raw, w[i]) } else { pad_to(raw, w[i]) };
+            s.push(' ');
+            s.push_str(&esc(&padded));
+            s.push_str(" │");
+        }
+        s.push('\n');
+        s
+    };
+
+    let header: Vec<String> = cols.iter().map(|(h, _)| (*h).to_string()).collect();
+    let mut t = String::from("<pre>");
+    t.push_str(&rule("┌", "┬", "┐"));
+    t.push_str(&line(&header));
+    t.push_str(&rule("├", "┼", "┤"));
+    for row in rows {
+        t.push_str(&line(row));
+    }
+    t.push_str(&rule("└", "┴", "┘"));
+    t.push_str("</pre>");
+    t
 }
 
 
