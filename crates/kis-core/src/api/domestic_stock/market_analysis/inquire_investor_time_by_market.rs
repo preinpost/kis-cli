@@ -169,6 +169,15 @@ pub async fn call(client: &KisClient, req: &Request) -> Result<Response> {
     ];
     let resp = client.get(ENDPOINT, TR_ID, &params).await?;
     let output = resp.output.ok_or_else(|| anyhow!("응답에 output 없음"))?;
-    let parsed: Response = serde_json::from_value(output)?;
+    // 실전 API는 output을 단건 객체가 아닌 1원소 배열([{...}])로 반환한다.
+    // 배열이면 첫 원소를 꺼내고, 객체면 그대로 사용해 두 형태 모두 대응한다.
+    let value = match output {
+        serde_json::Value::Array(arr) => arr
+            .into_iter()
+            .next()
+            .ok_or_else(|| anyhow!("응답 output 배열이 비어있음"))?,
+        v => v,
+    };
+    let parsed: Response = serde_json::from_value(value)?;
     Ok(parsed)
 }
